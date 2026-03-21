@@ -1,0 +1,327 @@
+// ==================== ProjectLimits.h ====================
+#ifndef LIMITS_H
+#define LIMITS_H
+//宏定义:全局常量设置
+#define STR_LEN 50         // str 通用字符串长度
+#define ID_LEN 20          // ID 编号长度
+#define DEPT_NUM 5         // department 科室最少数量
+#define WARD_TYPE_NUM 3    // ward 病房种类最少数量
+#endif // !LIMITS_H
+
+// ==================== BufferClear.h ====================
+#pragma once
+#ifndef BUFFERCLEAR_H
+#define BUFFERCLEAR_H
+void clearBuffer();
+#endif // !BUFFERCLEAR_H
+
+// ==================== BufferClear.c ====================
+#include"BufferClear.h"
+#include<stdio.h>
+
+void clearBuffer() {
+    printf(">>> 清空输入缓冲区...\n");
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+// ==================== HIS_System.h ====================
+#ifndef HIS_SYSTEM_H
+#define HIS_SYSTEM_H
+#include<stdio.h>
+#include<stdbool.h>
+#include<stdlib.h>
+#include"ProjectLimits.h"
+
+//S链表存储数据
+//S.1药品
+typedef struct Drug {
+	char drugId[ID_LEN];			//商品编号
+	char genericName[STR_LEN];		//通用名
+	char tradeName[STR_LEN];		//商品名
+	char alias[STR_LEN];			//别称/俗名
+	int stock;						//剩余库存
+	double price;					//价格(元)
+	struct Drug* next;
+}Drug;
+
+//S.2医生
+typedef struct Docter {
+	char docterId[ID_LEN];			//医生编号
+	char docterName[STR_LEN];		//医生姓名
+	char department[STR_LEN];		//医生所在科室
+	int consultationCount;			//诊号数量
+	struct Docter* next;
+}Docter;
+
+//S.3病床&病房
+	//S.3.1病床
+typedef struct Bed {
+	char bedId[ID_LEN];			//病房编号
+	bool isOccupied;			//是否被使用
+	char patient[ID_LEN];		//患者编号
+	struct Bed* next;
+}Bed;
+
+//S.3.2病房种类
+typedef enum {
+	WARD_NORMAL = 1,			// 普通病房 (设为1便于在终端上调用)
+	WARD_VIP,					// VIP病房
+	WARD_ICU					// ICU病房
+} WardType;
+
+//S.3.3病房
+typedef struct Ward {
+	char wardId[ID_LEN];		//病房编号
+	WardType type;				//病房种类
+	char department[STR_LEN];	//病房所属科室
+	Bed* bedListHead;			//病房内床位数
+	struct Ward* next;
+} Ward;
+
+//S.4医疗记录
+	//挂号、看诊、检查、住院
+typedef enum {
+	REC_REG = 1,    // 挂号 Registration
+	REC_VIEW,       // 看诊 Consultation
+	REC_EXAM,       // 检查 Examination
+	REC_STAY        // 住院 Hospitalization
+} RecordType;
+
+typedef struct MedicalRecord {
+	char recordId[ID_LEN];			// 医疗记录编号
+	RecordType record;
+	char details[512];				//报告细节内容
+	char date[ID_LEN];				//日期
+	char doctorId[ID_LEN];			//所属医生编号
+	struct MedicalRecord* next;
+} MedicalRecord;
+
+//S.5患者节点
+typedef struct Patient {
+	char patientId[ID_LEN];			//患者编号
+	char name[STR_LEN];				//患者姓名
+	char phone[ID_LEN];				//患者电话
+	int type;						//患者类别
+	MedicalRecord* regHead;			// 挂号记录链表
+	MedicalRecord* viewHead;		// 看诊记录链表
+	MedicalRecord* examHead;		// 检查记录链表
+	MedicalRecord* stayHead;		// 住院记录链表
+	struct Patient* next;
+} Patient;
+
+typedef struct HIS_System {
+	Drug* drugHead;
+	Docter* docHead;
+	Ward* wardHead;
+	Patient* patientHead;
+} HIS_System;
+
+// 初始化医疗管理系统底座
+void initSystem(HIS_System* sys);
+
+#endif // HIS_SYSTEM_H
+
+// ==================== HIS_System.c ====================
+#include"HIS_System.h"
+
+//初始化医疗管理系统的所有子模块链表
+//sys 医疗管理系统底座指针
+void initSystem(HIS_System* sys) {
+	// 将所有模块的链表头指针初始化为空
+	sys->drugHead = NULL;
+	sys->docHead = NULL;
+	sys->wardHead = NULL;
+	sys->patientHead = NULL;
+	printf(">>> 医疗管理系统底座初始化完成。\n");
+}
+
+// ==================== DrugManage.h ====================
+#ifndef DRUGMANAGE_H
+#define DRUGMANAGE_H
+#include "HIS_System.h"
+#include <stdbool.h>
+#include <string.h>
+
+// 检查药品编号是否存在
+bool isDrugIdExist(Drug* head, const char* id);
+
+// 检查药品通用名是否存在
+bool isDrugGenNameExist(Drug* head, const char* genName);
+
+// 检查药品商品名是否存在
+bool isDrugTraNameExist(Drug* head, const char* traName);
+
+// 检查药品别名是否存在
+bool isDrugAliNameExist(Drug* head, const char* aliName);
+
+// 录入新药品
+void addDrug(HIS_System* sys);
+
+#endif // DRUGMANAGE_H
+
+// ==================== DrugManage.c ====================
+#include"DrugManage.h"
+#include"HIS_System.h"
+#include"BufferClear.h"
+
+//药品编号防重复
+bool isDrugIdExist(Drug* head, const char* id) {
+    Drug* curr = head;
+    while (curr != NULL) {
+        if (strcmp(curr->drugId, id) == 0) return true;
+        curr = curr->next;
+    }
+    return false;
+}
+//药品通用名防重复
+static bool isDrugGenNameExist(Drug* head, const char* genName) {
+    Drug* curr = head;
+    while (curr != NULL) {
+        if (strcmp(curr->genericName, genName) == 0) return true;
+        curr = curr->next;
+    }
+    return false;
+}
+//药品商品名防重复
+static bool isDrugTraNameExist(Drug* head, const char* traName) {
+    Drug* curr = head;
+    while (curr != NULL) {
+        if (strcmp(curr->tradeName, traName) == 0) return true;
+        curr = curr->next;
+    }
+    return false;
+}
+//药品别名防重复
+bool isDrugAliNameExist(Drug* head, const char* aliName) {
+    Drug* curr = head;
+    while (curr != NULL) {
+        if (strcmp(curr->alias, aliName) == 0) return true;
+        curr = curr->next;
+    }
+    return false;
+}
+
+void addDrug(HIS_System* sys) {
+    Drug* newDrug = (Drug*)malloc(sizeof(Drug));
+    if (!newDrug) {
+        printf("内存分配失败！\n");
+        return;
+    }
+
+    printf("\n--- 录入新药品 ---\n");
+
+    while (1) {
+        printf("请输入药品编号: ");
+        if (scanf("%s", newDrug->drugId) != 1) {
+			clearBuffer();
+			printf("输入错误，请重新输入!\n");
+            continue;
+        };
+        clearBuffer();
+        if (isDrugIdExist(sys->drugHead, newDrug->drugId)) {
+            printf("错误：该药品编号已存在！\n");
+            printf("请重新输入。\n");
+            continue;
+        }
+        break;
+    }
+
+    while (1) {
+        printf("请输入通用名: ");
+        if (scanf("%s", newDrug->genericName) != 1) {
+			clearBuffer();
+			printf("输入错误，请重新输入!\n");
+            continue;
+        }
+        clearBuffer();
+        if (isDrugAliNameExist(sys->drugHead, newDrug->genericName) || isDrugTraNameExist(sys->drugHead, newDrug->genericName)) {
+            printf("错误：该通用名已存在！\n");
+            printf("请重新输入。\n");
+            continue;
+        }
+        break;
+    }
+
+    while (1) {
+        printf("请输入商品名: ");
+        if (scanf("%s", newDrug->tradeName) != 1) {
+            clearBuffer();
+			printf("输入错误，请重新输入!\n");
+			continue;
+        }
+        clearBuffer();
+        if (isDrugAliNameExist(sys->drugHead, newDrug->tradeName) || isDrugGenNameExist(sys->drugHead, newDrug->tradeName)) {
+            printf("错误：该商品名已存在！\n");
+			printf("请重新输入。\n"); 
+            continue;
+        }
+		break; 
+    }
+
+    while (1) {
+        printf("请输入拼音别名 (用于快速检索): ");
+        if(scanf("%s", newDrug->alias) != 1) {
+            clearBuffer();
+			printf("输入错误，请重新输入!\n");
+			continue;
+        }
+        clearBuffer();
+        if (isDrugAliNameExist(sys->drugHead, newDrug->alias) || isDrugGenNameExist(sys->drugHead, newDrug->alias) || isDrugTraNameExist(sys->drugHead, newDrug->alias)) {
+            printf("错误：该别名已存在！\n");
+            printf("请重新输入。\n");
+            continue;
+        }
+        break;
+    }
+
+    printf("请输入初始库存量: ");
+    scanf("%d", &newDrug->stock);
+    clearBuffer();
+
+    printf("请输入单价: ");
+    scanf("%lf", &newDrug->price);    // 注意这里要用%lf读取double类型
+    clearBuffer();
+
+	newDrug->next = sys->drugHead;  //头插法,之后再完善排序功能
+    sys->drugHead = newDrug;
+
+    printf(">>> 药品 [%s] 录入成功！\n", newDrug->tradeName);
+}
+
+// ==================== MediCare_HIS_2025.c ====================
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<stdbool.h>
+
+#include"HIS_System.h"
+#include"DrugManage.h"
+#include"BufferClear.h"
+
+int main() {
+	HIS_System sys;
+	initSystem(&sys);
+	int choice;
+	while (1) {
+		printf("\n--- 医院信息系统 ---\n");
+		printf("1. 录入新药品\n");
+		printf("2. 退出系统\n");
+		printf("请选择操作: ");
+		scanf("%d", &choice);
+		clearBuffer();
+		switch (choice) {
+			case 1:
+				addDrug(&sys);
+				break;
+			case 2:
+				printf("退出系统。再见！\n");
+				return 0;
+			default:
+				printf("无效的选择，请重新输入。\n");
+		}
+	}
+	return 0;
+}
+
+

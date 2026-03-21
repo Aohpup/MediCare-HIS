@@ -1,0 +1,382 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+/* ==========================================
+ * 宏定义与常量限制
+ * ========================================== */
+#define STR_LEN 50         // 通用字符串长度
+#define ID_LEN 20          // 编号长度
+#define DEPT_NUM 5         // 科室数量下限
+#define WARD_TYPE_NUM 3    // 病房种类下限
+
+/* ==========================================
+ * 数据结构定义 (全程链表实现)
+ * ========================================== */
+
+// --- 新增：病房类型枚举 ---
+typedef enum {
+    WARD_NORMAL = 1, // 普通病房 (设为1方便与用户菜单输入对应)
+    WARD_VIP,        // VIP病房
+    WARD_ICU         // ICU病房
+} WardType;
+
+// 1. 药品节点
+typedef struct Drug {
+    char drugId[ID_LEN];         
+    char genericName[STR_LEN];   
+    char tradeName[STR_LEN];     
+    char alias[STR_LEN];         
+    int stock;                   
+    float price;                 
+    struct Drug* next;
+} Drug;
+
+// 2. 医生节点
+typedef struct Doctor {
+    char docId[ID_LEN];          
+    char name[STR_LEN];          
+    char department[STR_LEN];    
+    struct Doctor* next;
+} Doctor;
+
+// 3. 床位与病房节点
+typedef struct Bed {
+    char bedId[ID_LEN];          
+    bool isOccupied;             
+    char patientId[ID_LEN];      
+    struct Bed* next;
+} Bed;
+
+typedef struct Ward {
+    char wardId[ID_LEN];         // 病房编号
+    WardType type;               // --- 修改：使用枚举严格限制病房类型 ---
+    char department[STR_LEN];    // 归属科室
+    Bed* bedListHead;            // 该病房包含的床位链表头指针
+    struct Ward* next;
+} Ward;
+
+// 4. 医疗记录节点
+typedef struct MedicalRecord {
+    char recordId[ID_LEN];       
+    char type[STR_LEN];          
+    char details[256];           
+    char date[ID_LEN];           
+    char doctorId[ID_LEN];       
+    struct MedicalRecord* next;
+} MedicalRecord;
+
+// 5. 患者节点
+typedef struct Patient {
+    char patientId[ID_LEN];      
+    char name[STR_LEN];          
+    char phone[ID_LEN];          
+    int type;                    
+    MedicalRecord* recordsHead;  
+    struct Patient* next;
+} Patient;
+
+/* ==========================================
+ * 全局系统控制块
+ * ========================================== */
+typedef struct HIS_System {
+    Drug* drugHead;
+    Doctor* docHead;
+    Ward* wardHead;
+    Patient* patientHead;
+} HIS_System;
+
+/* ==========================================
+ * 通用工具函数
+ * ========================================== */
+
+// 清空输入缓冲区
+void clearBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+// 系统初始化
+void initSystem(HIS_System* sys) {
+    sys->drugHead = NULL;
+    sys->docHead = NULL;
+    sys->wardHead = NULL;
+    sys->patientHead = NULL;
+    printf(">>> 医疗管理系统底座初始化完成。\n");
+}
+
+// --- 新增：将病房枚举转换为字符串，方便打印显示 ---
+const char* getWardTypeName(WardType type) {
+    switch (type) {
+        case WARD_NORMAL: return "普通病房";
+        case WARD_VIP:    return "VIP病房";
+        case WARD_ICU:    return "ICU病房";
+        default:          return "未知类型";
+    }
+}
+
+/* ==========================================
+ * 模块一：药房管理 
+ * ========================================== */
+
+bool isDrugExist(Drug* head, const char* id) {
+    Drug* curr = head;
+    while (curr != NULL) {
+        if (strcmp(curr->drugId, id) == 0) return true;
+        curr = curr->next;
+    }
+    return false;
+}
+
+void addDrug(HIS_System* sys) {
+    Drug* newDrug = (Drug*)malloc(sizeof(Drug));
+    if (!newDrug) {
+        printf("内存分配失败！\n");
+        return;
+    }
+    
+    printf("\n--- 录入新药品 ---\n");
+    printf("请输入药品编号 (如 D001): ");
+    scanf("%s", newDrug->drugId);
+    clearBuffer();
+
+    if (isDrugExist(sys->drugHead, newDrug->drugId)) {
+        printf("错误：该药品编号已存在！\n");
+        free(newDrug);
+        return;
+    }
+
+    printf("请输入通用名: ");
+    scanf("%s", newDrug->genericName);
+    printf("请输入商品名: ");
+    scanf("%s", newDrug->tradeName);
+    printf("请输入拼音别名 (用于快速检索): ");
+    scanf("%s", newDrug->alias);
+    printf("请输入初始库存量: ");
+    scanf("%d", &newDrug->stock);
+    printf("请输入单价: ");
+    scanf("%f", &newDrug->price);
+    clearBuffer();
+
+    newDrug->next = sys->drugHead;
+    sys->drugHead = newDrug;
+
+    printf(">>> 药品 [%s] 录入成功！\n", newDrug->tradeName);
+}
+
+void displayDrugs(HIS_System* sys) {
+    if (sys->drugHead == NULL) {
+        printf("\n当前药房为空！\n");
+        return;
+    }
+    printf("\n%-10s %-15s %-15s %-10s %-8s %-8s\n", "编号", "通用名", "商品名", "别名", "库存", "单价");
+    for (int i = 0; i < 75; i++) printf("-");
+    printf("\n");
+    
+    Drug* curr = sys->drugHead;
+    while (curr != NULL) {
+        printf("%-10s %-15s %-15s %-10s %-8d %-8.2f\n", 
+            curr->drugId, curr->genericName, curr->tradeName, 
+            curr->alias, curr->stock, curr->price);
+        curr = curr->next;
+    }
+}
+
+/* ==========================================
+ * 模块二：患者管理
+ * ========================================== */
+
+void addPatient(HIS_System* sys) {
+    Patient* newPatient = (Patient*)malloc(sizeof(Patient));
+    if (!newPatient) {
+        printf("内存分配失败！\n");
+        return;
+    }
+
+    printf("\n--- 建立患者档案 ---\n");
+    printf("请输入患者编号 (如 P001): ");
+    scanf("%s", newPatient->patientId);
+    clearBuffer();
+    
+    printf("请输入患者姓名: ");
+    scanf("%s", newPatient->name);
+    printf("请输入联系电话: ");
+    scanf("%s", newPatient->phone);
+    printf("请选择患者类型 (1.门诊 2.住院): ");
+    scanf("%d", &newPatient->type);
+    clearBuffer();
+
+    newPatient->recordsHead = NULL; 
+    newPatient->next = NULL;
+
+    if (sys->patientHead == NULL) {
+        sys->patientHead = newPatient;
+    } else {
+        Patient* curr = sys->patientHead;
+        while (curr->next != NULL) {
+            curr = curr->next;
+        }
+        curr->next = newPatient;
+    }
+    printf(">>> 患者档案 [%s] 建立成功！\n", newPatient->name);
+}
+
+/* ==========================================
+ * 模块三：病房管理 (展示枚举类型的使用)
+ * ========================================== */
+
+// 录入新病房
+void addWard(HIS_System* sys) {
+    Ward* newWard = (Ward*)malloc(sizeof(Ward));
+    if (!newWard) {
+        printf("内存分配失败！\n");
+        return;
+    }
+
+    printf("\n--- 录入新病房 ---\n");
+    printf("请输入病房编号 (如 W001): ");
+    scanf("%s", newWard->wardId);
+    clearBuffer();
+
+    // --- 修改：强制用户通过菜单选择，避免拼写错误 ---
+    int typeChoice = 0;
+    while (1) {
+        printf("请选择病房类型:\n");
+        printf("  1. 普通病房\n");
+        printf("  2. VIP病房\n");
+        printf("  3. ICU病房\n");
+        printf("请输入选项 (1-3): ");
+        
+        if (scanf("%d", &typeChoice) == 1 && typeChoice >= 1 && typeChoice <= 3) {
+            newWard->type = (WardType)typeChoice; // 类型强转赋值给枚举变量
+            clearBuffer();
+            break;
+        }
+        clearBuffer();
+        printf("输入无效！请选择1到3之间的纯数字。\n\n");
+    }
+
+    printf("请输入归属科室 (如 内科): ");
+    scanf("%s", newWard->department);
+    clearBuffer();
+
+    newWard->bedListHead = NULL; // 初始没有床位
+    newWard->next = sys->wardHead; // 头插法
+    sys->wardHead = newWard;
+
+    printf(">>> 病房 [%s] (%s) 录入成功！\n", newWard->wardId, getWardTypeName(newWard->type));
+}
+
+// 显示所有病房
+void displayWards(HIS_System* sys) {
+    if (sys->wardHead == NULL) {
+        printf("\n当前没有病房记录！\n");
+        return;
+    }
+    printf("\n%-15s %-15s %-15s\n", "病房编号", "病房类型", "归属科室");
+    for (int i = 0; i < 45; i++) printf("-");
+    printf("\n");
+    
+    Ward* curr = sys->wardHead;
+    while (curr != NULL) {
+        // --- 修改：使用辅助函数将枚举转换为字符串输出 ---
+        printf("%-15s %-15s %-15s\n", 
+            curr->wardId, getWardTypeName(curr->type), curr->department);
+        curr = curr->next;
+    }
+}
+
+/* ==========================================
+ * 系统主菜单与内存清理
+ * ========================================== */
+
+void freeSystem(HIS_System* sys) {
+    Drug* currDrug = sys->drugHead;
+    while (currDrug) {
+        Drug* temp = currDrug;
+        currDrug = currDrug->next;
+        free(temp);
+    }
+    
+    Patient* currPatient = sys->patientHead;
+    while (currPatient) {
+        MedicalRecord* currRecord = currPatient->recordsHead;
+        while (currRecord) {
+            MedicalRecord* tempRec = currRecord;
+            currRecord = currRecord->next;
+            free(tempRec);
+        }
+        Patient* tempPat = currPatient;
+        currPatient = currPatient->next;
+        free(tempPat);
+    }
+    
+    // --- 修改：补全病房和床位的内存释放 ---
+    Ward* currWard = sys->wardHead;
+    while (currWard) {
+        Bed* currBed = currWard->bedListHead;
+        while (currBed) {
+            Bed* tempBed = currBed;
+            currBed = currBed->next;
+            free(tempBed);
+        }
+        Ward* tempWard = currWard;
+        currWard = currWard->next;
+        free(tempWard);
+    }
+    
+    // (医生链表释放略，逻辑同上)
+    printf(">>> 系统内存已安全释放。\n");
+}
+
+void displayMenu() {
+    printf("\n");
+    for (int i = 0; i < 50; i++) printf("=");
+    printf("\n        MediCare HIS 医疗管理系统 (2025版)        \n");
+    for (int i = 0; i < 50; i++) printf("=");
+    printf("\n");
+    printf("  [基础信息管理]\n");
+    printf("  1. 录入药品信息 (入库)\n");
+    printf("  2. 查看药房库存\n");
+    printf("  3. 建立患者档案\n");
+    printf("  4. 录入病房信息 (展示枚举功能)\n");
+    printf("  5. 查看病房列表\n");
+    printf("  [系统操作]\n");
+    printf("  0. 安全退出系统\n");
+    for (int i = 0; i < 50; i++) printf("=");
+    printf("\n请输入操作序号: ");
+}
+
+int main() {
+    HIS_System sys;
+    initSystem(&sys);
+    
+    int choice;
+    while (1) {
+        displayMenu();
+        if (scanf("%d", &choice) != 1) {
+            clearBuffer();
+            printf("无效输入，请输入数字！\n");
+            continue;
+        }
+        clearBuffer();
+        
+        switch (choice) {
+            case 1: addDrug(&sys); break;
+            case 2: displayDrugs(&sys); break;
+            case 3: addPatient(&sys); break;
+            case 4: addWard(&sys); break;
+            case 5: displayWards(&sys); break;
+            case 0: 
+                printf("\n准备退出系统...\n");
+                freeSystem(&sys);
+                printf("感谢使用MediCare HIS，再见！\n");
+                return 0;
+            default:
+                printf("无效操作，请重新输入。\n");
+        }
+    }
+    return 0;
+}
