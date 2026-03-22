@@ -1,19 +1,37 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include<stdio.h>
 #include<stdlib.h>
+#include<string.h>
+#include<stdbool.h>
+
 #include"HIS_System.h"
-#include"DrugFileManage.h"
-#include"HIS_StartMenu.h"
+#include"DrugManage.h"
+#include"BufferClear.h"
 
 int main() {
-    HIS_System sys;
-    initSystem(&sys);      // 底座初始化
-	/*
-    TODO: 这里可以选择性地调用loadSystemData函数来加载本地数据文件，目前注释掉以便每次运行都从空系统开始，方便测试功能模块
-    loadSystemData(&sys);  // 读取本地.txt数据文件
-    */
-
-    // 进入主菜单系统
-    showMainMenu(&sys);
-
-    return 0;
+	HIS_System sys;
+	initSystem(&sys);
+	int choice;
+	while (1) {
+		printf("\n--- 医院信息系统 ---\n");
+		printf("1. 录入新药品\n");
+		printf("2. 退出系统\n");
+		printf("请选择操作: ");
+		scanf("%d", &choice);
+		clearBuffer();
+		switch (choice) {
+			case 1:
+				addDrug(&sys);
+				break;
+			case 2:
+				printf("退出系统。再见！\n");
+				return 0;
+			default:
+				printf("无效的选择，请重新输入。\n");
+		}
+	}
+	return 0;
 }
+
+
+

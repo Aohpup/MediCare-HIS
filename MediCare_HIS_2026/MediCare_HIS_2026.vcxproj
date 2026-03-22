@@ -126,7 +126,6 @@
     <ClCompile Include="BufferClear.c" />
     <ClCompile Include="DrugManage.c" />
     <ClCompile Include="DrugFileManage.c" />
-    <ClCompile Include="HIS_StartMenu.c" />
     <ClCompile Include="HIS_System.c" />
     <ClCompile Include="InputUtils.c" />
     <ClCompile Include="MediCare_HIS_2026.c" />
@@ -139,7 +138,6 @@
     <ClInclude Include="BufferClear.h" />
     <ClInclude Include="DrugManage.h" />
     <ClInclude Include="DrugFileManage.h" />
-    <ClInclude Include="HIS_StartMenu.h" />
     <ClInclude Include="InputUtils.h" />
     <ClInclude Include="ProjectLimits.h" />
     <ClInclude Include="HIS_System.h" />

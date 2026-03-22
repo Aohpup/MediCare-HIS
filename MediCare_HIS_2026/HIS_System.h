@@ -10,7 +10,6 @@
 //S.1药品
 typedef struct Drug {
 	char drugId[ID_LEN];			//商品编号
-	char drugGbCode[16];		//国标码(国家药品本位码 共14位)
 	char genericName[STR_LEN];		//通用名
 	char tradeName[STR_LEN];		//商品名
 	char alias[STR_LEN];			//别称/俗名
