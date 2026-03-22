@@ -260,7 +260,7 @@ void addDrug(HIS_System* sys) {
     }
 
     while (1) {
-        printf("请输入拼音别名 (用于快速检索): ");
+        printf("请输入别名 (用于快速检索): ");
         if(scanf("%s", newDrug->alias) != 1) {
             clearBuffer();
 			printf("输入错误，请重新输入!\n");

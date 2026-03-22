@@ -8,8 +8,8 @@
 #define WARD_TYPE_NUM 3    // ward 病房种类最少数量
 
 //数据文件路径
-#define DRUG_FILE "drugs.txt"
-#define DOCTOR_FILE "doctors.txt"
-#define PATIENT_FILE "patients.txt"
+#define DRUG_FILE "HIS_drugs.txt"
+#define DOCTOR_FILE "HIS_doctors.txt"
+#define PATIENT_FILE "HIS_patients.txt"
 
 #endif // !LIMITS_H

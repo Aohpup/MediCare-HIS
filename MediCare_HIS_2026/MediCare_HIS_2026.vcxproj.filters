@@ -36,13 +36,23 @@
     <ClCompile Include="HIS_StartMenu.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DrugSort.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PrintFormattedStr.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ConfirmExit.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <Text Include="HIS_drugs.txt" />
     <Text Include="源.txt">
-      <Filter>源文件</Filter>
+      <Filter>资源文件</Filter>
     </Text>
     <Text Include="Code.txt">
-      <Filter>源文件</Filter>
+      <Filter>资源文件</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
@@ -65,6 +75,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="HIS_StartMenu.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DrugSort.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PrintFormattedStr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ConfirmExit.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,7 +4,7 @@
 
 // 从txt文件加载系统数据
 void loadDrugSystemData(HIS_System* sys) {
-    printf(">>> 正在从本地 TXT 文件加载数据...\n");
+    printf(">>> 正在从药品文件中加载数据...\n");
     FILE* fp = fopen(DRUG_FILE, "r");
     if (!fp) {
         printf(">>> 警告: 找不到 %s，将作为新系统启动。\n", DRUG_FILE);
@@ -14,6 +14,11 @@ void loadDrugSystemData(HIS_System* sys) {
     char buffer[512];
     while (fgets(buffer, sizeof(buffer), fp) != NULL) {
         Drug* newDrug = (Drug*)malloc(sizeof(Drug));
+        if (newDrug == NULL) {
+            printf(">>> 错误: 内存分配失败，无法加载药品数据！\n");
+            fclose(fp);
+            return;
+        }
         // txt文件中格式为: ID 国标码 通用名 商品名 别名 库存 价格
         if (sscanf(buffer, "%s %s %s %s %s %d %lf",
             newDrug->drugId, newDrug->drugGbCode, 
@@ -31,7 +36,6 @@ void loadDrugSystemData(HIS_System* sys) {
 }
 
 void saveDrugSystemData(HIS_System* sys) {
-    printf(">>> 正在保存药品管理系统数据...\n");
     FILE* fp = fopen(DRUG_FILE, "w");
     if (!fp) {
         printf(">>> 错误: 无法创建或打开保存文件！\n");

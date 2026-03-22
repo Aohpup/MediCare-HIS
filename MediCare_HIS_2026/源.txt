@@ -152,7 +152,7 @@ void addDrug(HIS_System* sys) {
     scanf("%s", newDrug->genericName);
     printf("请输入商品名: ");
     scanf("%s", newDrug->tradeName);
-    printf("请输入拼音别名 (用于快速检索): ");
+    printf("请输入别名 (用于快速检索): ");
     scanf("%s", newDrug->alias);
     printf("请输入初始库存量: ");
     scanf("%d", &newDrug->stock);

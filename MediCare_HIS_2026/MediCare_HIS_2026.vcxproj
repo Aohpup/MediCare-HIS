@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -123,6 +123,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ConfirmExit.c" />
+    <ClCompile Include="DrugSort.c" />
     <ClCompile Include="BufferClear.c" />
     <ClCompile Include="DrugManage.c" />
     <ClCompile Include="DrugFileManage.c" />
@@ -130,17 +132,22 @@
     <ClCompile Include="HIS_System.c" />
     <ClCompile Include="InputUtils.c" />
     <ClCompile Include="MediCare_HIS_2026.c" />
+    <ClCompile Include="PrintFormattedStr.c" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Code.txt" />
+    <Text Include="HIS_drugs.txt" />
     <Text Include="源.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ConfirmExit.h" />
+    <ClInclude Include="DrugSort.h" />
     <ClInclude Include="BufferClear.h" />
     <ClInclude Include="DrugManage.h" />
     <ClInclude Include="DrugFileManage.h" />
     <ClInclude Include="HIS_StartMenu.h" />
     <ClInclude Include="InputUtils.h" />
+    <ClInclude Include="PrintFormattedStr.h" />
     <ClInclude Include="ProjectLimits.h" />
     <ClInclude Include="HIS_System.h" />
   </ItemGroup>
