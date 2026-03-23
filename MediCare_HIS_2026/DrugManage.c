@@ -7,6 +7,7 @@
 #include"ProjectLimits.h"
 #include"DrugFileManage.h"
 #include"PrintFormattedStr.h"
+#include"ConfirmFunc.h"
 
 //---------------------------------------------------
 //药品编号防重复
@@ -100,8 +101,10 @@ void drugManageMenu(HIS_System* sys) {
 			displayAllDrugs(sys);
 			break;
 		case 7:
-			printf(">>> 正在保存药品系统数据...\n");
-			saveDrugSystemData(sys);
+			if (confirmFunc("保存", "药品系统数据")) {
+				printf(">>> 正在保存药品系统数据...\n");
+				saveDrugSystemData(sys);
+			}
 			break;
 		case 0:
 			return;

@@ -123,7 +123,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ConfirmExit.c" />
+    <ClCompile Include="ConfirmFunc.c" />
     <ClCompile Include="DrugSort.c" />
     <ClCompile Include="BufferClear.c" />
     <ClCompile Include="DrugManage.c" />
@@ -140,7 +140,7 @@
     <Text Include="源.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ConfirmExit.h" />
+    <ClInclude Include="ConfirmFunc.h" />
     <ClInclude Include="DrugSort.h" />
     <ClInclude Include="BufferClear.h" />
     <ClInclude Include="DrugManage.h" />

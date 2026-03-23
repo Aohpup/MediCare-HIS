@@ -3,7 +3,7 @@
 #include"DrugManage.h"
 #include"DrugFileManage.h"
 #include"InputUtils.h"
-#include"ConfirmExit.h"
+#include"ConfirmFunc.h"
 #include <stdio.h>
 
 // 管理员/系统维护视角菜单
@@ -27,7 +27,15 @@ void adminMenu(HIS_System* sys) {
 		case 3: printf(">>> 模块待开发: 3种病房与床位分配...\n"); break;
 		case 4: printf(">>> 模块待开发: 多维数据报表统计...\n"); break;
 		case 5: /*test saveSystemData(sys); */break;
-		case 0: return;
+		case 0: 
+			if (confirmFunc("退出", "管理员控制台")) {
+				printf(">>> 退出成功！正在返回主菜单...\n");
+				return;
+			}
+			else {
+				printf(">>> 已取消退出！正在返回操作菜单...\n");
+				break;
+			}
 		default: printf(">>> 无效选择，请重试。\n");
 		}
 	}
@@ -103,7 +111,7 @@ void showMainMenu(HIS_System* sys) {
 		case 0:
 			/*test
 			saveSystemData(sys);*/
-			if (confirmExit()) {
+			if (confirmFunc("退出", "系统")) {
 				printf(">>> 感谢使用，系统已安全退出！\n");
 				exit(0);
 			}
