@@ -2,6 +2,10 @@
 #include"HIS_StartMenu.h"
 #include"DrugManage.h"
 #include"DrugFileManage.h"
+#include"DocterManage.h"
+#include"DocterFileManage.h"
+#include"DepartmentManage.h"
+#include"DepartmentFileManage.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
 #include <stdio.h>
@@ -12,10 +16,11 @@ void adminMenu(HIS_System* sys) {
 	while (1) {
 		printf("\n========== 管理员控制台 ==========\n");
 		printf("1. 药品管理系统\n");
-		printf("2. 注册新医生信息\n");
-		printf("3. 病房及床位管理 (包含类型关联)\n");
-		printf("4. 财务与库存报表统计\n");
-		printf("5. 保存系统数据\n");
+		printf("2. 医生管理系统\n");
+		printf("3. 科室管理系统\n");
+		printf("4. 病房及床位管理\n");
+		printf("5. 财务与库存报表统计\n");
+		printf("6. 保存系统数据\n");
 		printf("0. 返回主菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择管理员操作: ");
@@ -23,10 +28,11 @@ void adminMenu(HIS_System* sys) {
 		//TODO: 这里的功能实现需要访问药品信息链表，医生信息链表，以及病房床位链表等，涉及较多数据结构操作，暂时以提示代替具体实现
 		switch (choice) {
 		case 1: drugManageMenu(sys); break;
-		case 2: printf(">>> 模块待开发: 录入至少20名医生...\n"); break;
-		case 3: printf(">>> 模块待开发: 3种病房与床位分配...\n"); break;
-		case 4: printf(">>> 模块待开发: 多维数据报表统计...\n"); break;
-		case 5: /*test saveSystemData(sys); */break;
+		case 2: doctorManageMenu(sys); break; 
+		case 3: departmentManageMenu(sys); break;	
+		case 4: printf(">>> 模块待开发: 3种病房与床位分配...\n"); break;
+		case 5: printf(">>> 模块待开发: 多维数据报表统计...\n"); break;
+		case 6: /*test saveSystemData(sys); */break;
 		case 0: 
 			if (confirmFunc("退出", "管理员控制台")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
@@ -102,6 +108,7 @@ void showMainMenu(HIS_System* sys) {
 		printf("3. 患者登录 (挂号与信息查询)\n");
 		printf("0. 退出系统\n");
 		printf("******************************************\n");
+
 		choice = safeGetInt("请选择您的身份: ");
 
 		switch (choice) {

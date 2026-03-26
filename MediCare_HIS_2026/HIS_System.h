@@ -19,7 +19,8 @@ typedef struct Drug {
 	struct Drug* next;
 }Drug;
 
-//S.2医生
+//S.2医生&科室
+	//S.2.1医生
 typedef struct Docter {
 	char docterId[ID_LEN];			//医生编号
 	char docterName[STR_LEN];		//医生姓名
@@ -27,6 +28,18 @@ typedef struct Docter {
 	int consultationCount;			//诊号数量
 	struct Docter* next;
 }Docter;
+	//S.2.2科室 (修改为一级科类->二级科室层级结构)
+typedef struct SubDepartment {
+	char subDeptName[STR_LEN];     // 二级科室名称 (具体科室名字，如：心内科)
+	char subDeptId[ID_LEN];        // 具体诊室的编号
+	struct SubDepartment* next;
+}SubDepartment;
+
+typedef struct Department {
+	char categoryName[STR_LEN];    // 一级科室名称 (科室类名字，如：内科)
+	SubDepartment* subDeptHead;    // 该大类下的具体科室链表
+	struct Department* next;
+}Department;
 
 //S.3病床&病房
 	//S.3.1病床
@@ -88,6 +101,8 @@ typedef struct Patient {
 typedef struct HIS_System {
 	Drug* drugHead;
 	Docter* docHead;
+	SubDepartment* subDeptHead;
+	Department* deptHead;
 	Ward* wardHead;
 	Patient* patientHead;
 } HIS_System;

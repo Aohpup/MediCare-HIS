@@ -1,10 +1,9 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include"DrugManage.h"
 #include"HIS_System.h"
-#include"BufferClear.h"
+#include"DrugManage.h"
+#include"DrugSort.h"
 #include"InputUtils.h"
-#include"ProjectLimits.h"
 #include"DrugFileManage.h"
 #include"PrintFormattedStr.h"
 #include"ConfirmFunc.h"
@@ -89,7 +88,7 @@ void drugManageMenu(HIS_System* sys) {
 			queryDrug(sys);
 			break;
 		case 3:
-			modifyDrug(sys);
+			modifyDrug(sys);	
 			break;
 		case 4:
 			drugSortMenu(sys);
@@ -275,7 +274,7 @@ void addDrug(HIS_System* sys) {
 		printf(">>> 药品 <%s>(%s) 录入成功！\n", newDrug->genericName, newDrug->tradeName);
 		
 		// 提示是否继续添加
-		printf(">>> 提示：继续添加请按回车；或直接输入 '-1' 可以在下一个编号输入时退出。\n");
+		printf(">>> 提示：已自动继续添加药品；可直接输入 '-1' 可以在下一个编号输入时退出。\n");
 	}
 }
 
@@ -369,7 +368,7 @@ void queryDrug(HIS_System* sys) {
 		}
 		break;
 	case 0:
-		return;
+		return; // 返回上一级菜单
 	default:
 		printf(">>> 无效选择，请重试。\n");
 		return;
@@ -386,6 +385,7 @@ void modifyDrug(HIS_System* sys) {
 		return;
 	}
 	//TODO: 这里的修改功能实现较为复杂，涉及到数据验证和防止重复等逻辑，暂时以提示代替具体实现
+	printf(">>> 修改药品信息功能正在开发中，敬请期待！\n");
 }
 
 //显示所有药品信息
@@ -461,14 +461,16 @@ void deleteDrug(HIS_System** sys) {
 				deleteDrugFunc(&curr, queryStr, 2);
 				break;
 			default:
+				printf(">>> 无效选择，请重试！\n");
 				break;
 		}
 
 	}
 }
 
-//根据查询字符串和模式删除药品记录
+//根据查询字符串和模式删除药品信息
 void deleteDrugFunc(Drug** head, const char* queryStr, int mode) {
+	confirmFunc("删除", "药品信息");
 	Drug* curr = *head;
 	Drug* prev = NULL;
 	while (curr != NULL) {

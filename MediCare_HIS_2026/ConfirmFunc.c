@@ -5,7 +5,7 @@
 bool confirmFunc(const char* function, const char* message) {
 	char choice[8];
 	while (1) {
-		printf(">>> 确定要%s%s吗？ ", function, message);
+		printf("\n>>> 确定要%s%s吗？ ", function, message);
 		printf("(输入 Y 确认%s，N 取消%s): ", function, function);
 		safeGetString("\n请输入您的选择: ", choice, sizeof(choice));
 			if (strcmp(choice, "Y") == 0 || strcmp(choice, "y") == 0) {

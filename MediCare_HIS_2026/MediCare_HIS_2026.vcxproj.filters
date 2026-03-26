@@ -45,6 +45,21 @@
     <ClCompile Include="ConfirmFunc.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DocterManage.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DocterFileManage.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DepartmentFileManage.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DocterSort.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DepartmentManage.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="HIS_drugs.txt" />
@@ -54,6 +69,7 @@
     <Text Include="Code.txt">
       <Filter>资源文件</Filter>
     </Text>
+    <Text Include="HIS_doctors.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DrugManage.h">
@@ -84,6 +100,21 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="ConfirmFunc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DocterManage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DocterFileManage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DepartmentManage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DepartmentFileManage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DocterSort.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -31,6 +31,7 @@ void loadDrugSystemData(HIS_System* sys) {
             free(newDrug);
         }
     }
+
     fclose(fp);
     printf(">>> 数据加载完成！\n");
 }
