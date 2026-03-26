@@ -141,6 +141,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="Code.txt" />
+    <Text Include="HIS_departments.txt" />
     <Text Include="HIS_doctors.txt" />
     <Text Include="HIS_drugs.txt" />
     <Text Include="源.txt" />

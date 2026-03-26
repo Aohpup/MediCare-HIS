@@ -7,6 +7,8 @@ void initSystem(HIS_System* sys) {
 	// 将所有模块的链表头指针初始化为空
 	sys->drugHead = NULL;   
 	sys->docHead = NULL;	
+	sys->subDeptHead = NULL;
+	sys->deptHead = NULL;
 	sys->wardHead = NULL;
 	sys->patientHead = NULL;
 	printf(">>> 医疗管理系统底座初始化完成。\n");

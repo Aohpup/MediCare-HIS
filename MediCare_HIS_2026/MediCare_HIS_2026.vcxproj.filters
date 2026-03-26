@@ -70,6 +70,7 @@
       <Filter>资源文件</Filter>
     </Text>
     <Text Include="HIS_doctors.txt" />
+    <Text Include="HIS_departments.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DrugManage.h">

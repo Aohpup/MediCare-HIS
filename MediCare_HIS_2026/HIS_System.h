@@ -109,5 +109,6 @@ typedef struct HIS_System {
 
 // 初始化医疗管理系统底座
 void initSystem(HIS_System* sys);
+//Warning: 添加数据前请务必先调用 initSystem() 初始化系统底座，否则可能会导致严重错误！！！
 
 #endif // HIS_SYSTEM_H

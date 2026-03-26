@@ -1,14 +1,15 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "HIS_System.h"
-#include "DepartmentManage.h"
-#include "DepartmentFileManage.h"
-#include "InputUtils.h"
-#include "ConfirmFunc.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
+#include"HIS_System.h"
+#include"DepartmentManage.h"
+#include"DepartmentFileManage.h"
+#include"InputUtils.h"
+#include"PrintFormattedStr.h"
+#include"ConfirmFunc.h"
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<stdbool.h>
 
 // 检查一级科室名称是否存在
 bool isDepartmentNameExist(Department* head, const char* name) {
@@ -48,15 +49,30 @@ bool isDepartmentIdExist(Department* head, const char* id) {
     return false;
 }
 
-// 打印单条二级科室详细信息(包含其所属的一级科室)
+//打印科室信息列表的表头
+static void printDepartmentHeader() {
+    printf("\n--- 科室信息列表 ---\n");
+    printf("----------------------------------------------------\n");
+    printFormattedStr("一级科室", 20);
+    printFormattedStr("二级科室", 20);
+    printFormattedStr("诊室编号", 20);
+    printf("\n----------------------------------------------------\n");
+}
+
+// 打印单条二级科室内容
 void printDepartmentInfo(Department* dept, SubDepartment* subDept) {
-    printf("一级科室: [%s] | 二级科室: [%s] | 编号: %s\n",
-        dept->categoryName,
-        subDept ? subDept->subDeptName : "无下属科室",
-        subDept ? subDept->subDeptId : "无下属诊室");
+	//打印内容
+	printFormattedStr(dept->categoryName, 20);
+	printFormattedStr(subDept ? subDept->subDeptName : "无下属科室", 20);
+    printFormattedStr(subDept ? subDept->subDeptId : "无下属诊室", 20);
+	printf("\n");
 }
 
 void addDepartment(HIS_System* sys) {
+    if(sys == NULL) {
+        printf(">>> 错误：系统指针无效，无法添加科室！\n");
+        return;
+	}
     while (1) {
         printf("\n--- 录入新科室 (输入 '-1' 取消本次添加) ---\n");
         char tempCategoryName[STR_LEN];
@@ -71,6 +87,7 @@ void addDepartment(HIS_System* sys) {
         // 查找是否已经存在该一级科室
         Department* curr = sys->deptHead;
         while (curr != NULL) {
+            //error
             if (strcmp(curr->categoryName, tempCategoryName) == 0) {
                 targetDept = curr;
                 break;
@@ -79,16 +96,16 @@ void addDepartment(HIS_System* sys) {
         }
 
         if (targetDept != NULL) {
-            printf(">>> 提示：一级科室 <%s> 已存在！\n", targetDept->categoryName);
+            printf(">>> 提示：一级科室 <%s> 是已存在的科室！\n", targetDept->categoryName);
             char addSubChoice[STR_LEN];
-            safeGetString(">>> 是否要在该科室下直接添加二级科室？(输入 'Y' 添加，其他键重新输入): ", addSubChoice, STR_LEN);
+            safeGetString(">>> 是否要在该科室下直接添加/匹配二级科室？(输入 'Y' 添加，其他键重新输入): ", addSubChoice, STR_LEN);
 
             if (addSubChoice[0] == 'Y' || addSubChoice[0] == 'y') {
                 // 在已有的一级科室下添加二级科室
                 SubDepartment* newSubDept = (SubDepartment*)malloc(sizeof(SubDepartment));
                 if (!newSubDept) { printf(">>> 内存分配失败！\n"); return; }
 
-                safeGetString("请输入新的二级科室名称: ", newSubDept->subDeptName, STR_LEN);
+                safeGetString("请输入新诊室所属二级科室名称: ", newSubDept->subDeptName, STR_LEN);
                 if (strcmp(newSubDept->subDeptName, "-1") == 0) { free(newSubDept); continue; }
 
                 safeGetString("请输入二级科室编号: ", newSubDept->subDeptId, ID_LEN);
@@ -165,16 +182,25 @@ void queryDepartment(HIS_System* sys) {
     switch (choice) {
     case 1:
         safeGetString("请输入一级科室名称: ", queryStr, STR_LEN);
+		bool headerPrinted = false; // 用于控制表头只打印一次
         while (curr != NULL) {
             if (strcmp(curr->categoryName, queryStr) == 0) {
                 SubDepartment* subCurr = curr->subDeptHead;
                 if (subCurr == NULL) {
-                    printf("#%d: ", ++matchCount);
+                    if (!headerPrinted) {
+                        printDepartmentHeader();
+                        headerPrinted = true;
+                    }
+                    printf("#%d:\n", ++matchCount);
                     printDepartmentInfo(curr, NULL);
                     found = true;
                 }
                 while (subCurr != NULL) {
-                    printf("#%d: ", ++matchCount);
+                    if (!headerPrinted) {
+                        printDepartmentHeader();
+                        headerPrinted = true;
+					}
+                    printf("#%d:\n", ++matchCount);
                     printDepartmentInfo(curr, subCurr);
                     found = true;
                     subCurr = subCurr->next;
@@ -185,11 +211,16 @@ void queryDepartment(HIS_System* sys) {
         break;
     case 2:
         safeGetString("请输入二级科室名称: ", queryStr, STR_LEN);
+		bool subHeaderPrinted = false; // 二级科室查询的表头控制
         while (curr != NULL) {
             SubDepartment* subCurr = curr->subDeptHead;
             while (subCurr != NULL) {
                 if (strcmp(subCurr->subDeptName, queryStr) == 0) {
-                    printf("#%d: ", ++matchCount);
+                    if (!subHeaderPrinted) {
+                        printDepartmentHeader();
+                        subHeaderPrinted = true;
+                    }
+                    printf("#%d:\n", ++matchCount);
                     printDepartmentInfo(curr, subCurr);
                     found = true;
                 }
@@ -205,6 +236,7 @@ void queryDepartment(HIS_System* sys) {
             while (subCurr != NULL) {
                 if (strcmp(subCurr->subDeptId, queryStr) == 0) {
                     printf(">>> 查找到唯一结果:\n");
+					printDepartmentHeader();
                     printDepartmentInfo(curr, subCurr);
                     found = true;
                     break;
@@ -288,8 +320,9 @@ void modifyDepartment(HIS_System* sys) {
                 else if (modifyMode == 2) {
                     // 展示列表供选择
                     printf("\n>>> 请选择要修改的具体节点：\n");
+					printDepartmentHeader();
                     for (int i = 0; i < matchCount; i++) {
-                        printf("#[%d]:", i + 1);
+                        printf("#[%d]:\n", i + 1);
                         printDepartmentInfo(deptMatches[i], deptMatches[i]->subDeptHead);
                     }
 
@@ -360,6 +393,7 @@ void modifyDepartment(HIS_System* sys) {
         }
         else if (modifyMode == 2) {
             printf("\n>>> 请选择要修改的具体节点：\n");
+			printDepartmentHeader();
             for (int i = 0; i < matchCount; i++) {
                 printf("[%d] ", i + 1);
                 printDepartmentInfo(deptMatches[i], subDeptMatches[i]);
@@ -400,6 +434,7 @@ void modifyDepartment(HIS_System* sys) {
         }
 
         printf("\n>>> 查找到目标科室：\n");
+		printDepartmentHeader();
         printDepartmentInfo(targetParentDept, targetSubDept);
 
         printf("\n1. 修改该科室名称\n");
@@ -544,8 +579,9 @@ void deleteDepartment(HIS_System** sys) {
                 else if (deleteMode == 2) {
                     // 精确删除
                     printf("\n>>> 请选择要删除的具体节点：\n");
+					printDepartmentHeader();
                     for (int i = 0; i < matchCount; i++) {
-                        printf("#[%d]: ", i + 1);
+                        printf("#[%d]:\n", i + 1);
                         printDepartmentInfo(deptMatches[i], deptMatches[i]->subDeptHead);
                     }
 
@@ -612,8 +648,9 @@ void deleteDepartment(HIS_System** sys) {
             else if (deleteMode == 2) {
                 // 精确删除
                 printf("\n>>> 请选择要删除的具体节点：\n");
+				printDepartmentHeader();
                 for (int i = 0; i < matchCount; i++) {
-                    printf("#[%d]: ", i + 1);
+                    printf("#[%d]:\n", i + 1);
                     printDepartmentInfo(deptMatches[i], subDeptMatches[i]);
                 }
 
@@ -660,6 +697,7 @@ void deleteDepartment(HIS_System** sys) {
         }
 
         printf("\n>>> 查找到目标科室：\n");
+		printDepartmentHeader();
         printDepartmentInfo(targetParentDept, targetSubDept);
 
         if (confirmFunc("删除", "该科室")) {
