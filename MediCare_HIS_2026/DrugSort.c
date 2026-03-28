@@ -82,40 +82,40 @@ void drugSortMenu(HIS_System* sys) {
 	int sortFieldChoice = -1, sortOrderChoice = -1;
 	while (1) {
 		printf("输入对应序号选择排序方式:\n");
-		printf("0. 根据药品编号排序\n");
-		printf("1. 根据国标码排序\n");
-		printf("2. 根据通用名排序\n");
-		printf("3. 根据商品名排序\n");
-		printf("4. 根据别名排序\n");
-		printf("5. 根据库存排序\n");
-		printf("6. 根据价格排序\n");
-		printf("-1. 取消排序\n");
+		printf("1. 根据药品编号排序\n");
+		printf("2. 根据国标码排序\n");
+		printf("3. 根据通用名排序\n");
+		printf("4. 根据商品名排序\n");
+		printf("5. 根据别名排序\n");
+		printf("6. 根据库存排序\n");
+		printf("7. 根据价格排序\n");
+		printf("0. 取消排序\n");
 		sortFieldChoice = safeGetInt(">>> 请输入排序方式: \n");
-		if (sortFieldChoice == -1) {
+		if (sortFieldChoice == SORT_EXIT) {
 			printf(">>> 已取消排序。\n");
 			break;
 		}
-		else if (sortFieldChoice < 0 || sortFieldChoice > 6) {
+		else if (sortFieldChoice < SORT_BY_ID || sortFieldChoice > SORT_BY_PRICE) {
 			printf(">>> 无效选择，请重新输入！\n");
 			continue;
 		}
 		
 		printf("请输入对应序号选择排序顺序:\n");
-		printf("0. 升序\n");
-		printf("1. 降序\n");
-		printf("-1. 取消排序\n");
+		printf("1. 升序\n");
+		printf("2. 降序\n");
+		printf("0. 取消排序\n");
 		sortOrderChoice = safeGetInt(">>> 请输入排序顺序: \n");
-		if (sortOrderChoice == -1) {
+		if (sortOrderChoice == ORDER_EXIT) {
 			printf(">>> 已取消排序。\n");
 			break;
 		}
-		else if (sortOrderChoice < 0 || sortOrderChoice > 1) {
+		else if (sortOrderChoice < ORDER_ASC || sortOrderChoice > ORDER_DESC) {
 			printf(">>> 无效选择，请重新输入！\n");
 			continue;
 		}
 
 		const char* sortOptions[] = { "根据药品编号排序", "根据国标码排序", "根据通用名排序", "根据商品名排序", "根据别名排序", "根据库存排序", "根据价格排序" };
-		printf("\n>>> 已选择排序方式: %s\n", sortOptions[sortFieldChoice]);
+		printf("\n>>> 已选择排序方式: %s\n", sortOptions[sortFieldChoice - 1]);
 		printf(">>> 已选择排序顺序: %s\n\n", sortOrderChoice == ORDER_ASC ? "升序" : "降序");
 
 		sortDrugList(sys->drugHead, NULL, sortFieldChoice, sortOrderChoice);

@@ -37,6 +37,7 @@ typedef struct SubDepartment {
 
 typedef struct Department {
 	char categoryName[STR_LEN];    // 一级科室名称 (科室类名字，如：内科)
+	char categoryId[ID_LEN];       // 一级科室代码
 	SubDepartment* subDeptHead;    // 该大类下的具体科室链表
 	struct Department* next;
 }Department;

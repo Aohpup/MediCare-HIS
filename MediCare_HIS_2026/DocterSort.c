@@ -1,6 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include"DocterSort.h"
-#include"HIS_System.h"
+#include"InputUtils.h"
 #include<string.h>
 
 // 交换两个医生节点的数据和next指针
@@ -8,6 +8,7 @@ static void swapDoctors(Docter* a, Docter* b) {
 	Docter temp = *a;
 	*a = *b;
 	*b = temp;
+	// 交换后需要修正next指针
 	Docter* tempNext = a->next;
 	a->next = b->next;
 	b->next = tempNext;
@@ -70,28 +71,28 @@ void doctorSortMenu(HIS_System* sys) {
 		int choice, order;
 		printf("\n--- 医生信息排序 ---\n");
 		printf("请选择排序方式:\n");
-		printf("0. 按医生编号排序\n");
-		printf("1. 按医生姓名排序\n");
-		printf("2. 按所在科室排序\n");
-		printf("3. 按诊号数量排序\n");
-		printf("-1. 取消排序\n");
+		printf("1. 按医生编号排序\n");
+		printf("2. 按医生姓名排序\n");
+		printf("3. 按所在科室排序\n");
+		printf("4. 按诊号数量排序\n");
+		printf("0. 取消排序\n");
 		choice = safeGetInt("请输入选择: ");
-		if (choice == -1) {
-			printf(">>>	已取消排序。\n");
+		if (choice == SORT_EXIT) {
+			printf(">>>\n已取消排序。\n");
 			break;
 		}
-		else if (choice < 0 || choice > 3) {
+		else if (choice < SORT_BY_ID || choice > SORT_BY_CONSULT) {
 			printf(">>> 无效选择，请重新输入！\n");
 			return;
 		}
 		printf("请输入对应序号选择排序顺序:\n");
-		printf("0. 升序\n");
-		printf("1. 降序\n");
-		printf("-1. 取消排序\n");
+		printf("1. 升序\n");
+		printf("2. 降序\n");
+		printf("0. 取消排序\n");
 		order = safeGetInt(">>> 请输入排序顺序: \n");
-		if (order == 0) order = ORDER_ASC;
-		else if (order == 1) order = ORDER_DESC;
-		else if (order == -1) {
+		if (order == ORDER_ASC) order = ORDER_ASC;
+		else if (order == ORDER_DESC) order = ORDER_DESC;
+		else if (order == ORDER_EXIT) {
 			printf(">>> 已取消排序。\n");
 			break;
 		}
@@ -101,7 +102,7 @@ void doctorSortMenu(HIS_System* sys) {
 		}
 
 		const char* sortOptions[] = { "按医生编号排序", "按医生姓名排序", "按所在科室排序", "按诊号数量排序" };
-		printf("\n>>> 已选择排序方式: %s\n", sortOptions[choice]);
+		printf("\n>>> 已选择排序方式: %s\n", sortOptions[choice - 1]);
 		printf(">>> 已选择排序顺序: %s\n\n", order == ORDER_ASC ? "升序" : "降序");
 
 		sortDoctorList(sys->docHead, NULL, choice, order);

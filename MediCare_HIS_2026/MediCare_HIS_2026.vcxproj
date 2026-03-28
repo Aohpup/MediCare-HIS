@@ -126,6 +126,7 @@
     <ClCompile Include="ConfirmFunc.c" />
     <ClCompile Include="DepartmentFileManage.c" />
     <ClCompile Include="DepartmentManage.c" />
+    <ClCompile Include="DepartmentSort.c" />
     <ClCompile Include="DocterFileManage.c" />
     <ClCompile Include="DocterManage.c" />
     <ClCompile Include="DocterSort.c" />
@@ -140,16 +141,16 @@
     <ClCompile Include="PrintFormattedStr.c" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Code.txt" />
+    <Text Include="C:\Users\27918\Desktop\要求\程序设计基础课程设计（2025级）自拟题签.txt" />
     <Text Include="HIS_departments.txt" />
     <Text Include="HIS_doctors.txt" />
     <Text Include="HIS_drugs.txt" />
-    <Text Include="源.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfirmFunc.h" />
     <ClInclude Include="DepartmentFileManage.h" />
     <ClInclude Include="DepartmentManage.h" />
+    <ClInclude Include="DepartmentSort.h" />
     <ClInclude Include="DocterFileManage.h" />
     <ClInclude Include="DocterManage.h" />
     <ClInclude Include="DocterSort.h" />

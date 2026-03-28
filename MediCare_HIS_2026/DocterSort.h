@@ -4,14 +4,16 @@
 #include "HIS_System.h"
 
 // 排序方式常量定义
-#define SORT_BY_ID			0		//根据医生编号排序
-#define SORT_BY_NAME		1		//根据医生姓名排序
-#define SORT_BY_DEPT		2		//根据医生所在科室排序
-#define SORT_BY_CONSULT		3		//根据医生诊号数量排序
+#define SORT_EXIT        0		//退出排序
+#define SORT_BY_ID			1		//根据医生编号排序
+#define SORT_BY_NAME		2		//根据医生姓名排序
+#define SORT_BY_DEPT		3		//根据医生所在科室排序
+#define SORT_BY_CONSULT		4		//根据医生诊号数量排序
 
 // 排序顺序常量定义
-#define ORDER_ASC  0			//升序
-#define ORDER_DESC 1			//降序
+#define ORDER_EXIT 0			//退出排序
+#define ORDER_ASC  1			//升序
+#define ORDER_DESC 2			//降序
 
 //确定是否需要交换两个医生节点以满足用户选择的排序方式和顺序
 bool needToSortDoctor(Docter* a, Docter* b, int choice, int order);
