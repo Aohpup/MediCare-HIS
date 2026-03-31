@@ -2,6 +2,8 @@
 #include"ConfirmFunc.h"
 #include"InputUtils.h"
 
+// 确认函数，用于在执行关键操作前获取用户确认
+// 操作名称，操作对象描述
 bool confirmFunc(const char* function, const char* message) {
 	char choice[8];
 	while (1) {

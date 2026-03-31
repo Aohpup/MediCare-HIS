@@ -130,7 +130,7 @@ void departmentSortMenu(HIS_System* sys) {
 		printf("1. 按一级科室名称排序\n");
 		printf("2. 按一级科室代码排序\n");
 		printf("3. 按二级科室名称排序\n");
-		printf("4. 按科室编号排序\n");
+		printf("4. 按诊室编号排序\n");
 		printf("0. 取消排序\n");
 		choice = safeGetInt("请选择排序方式: ");
 		if (choice == SORT_EXIT) break;

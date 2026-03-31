@@ -7,7 +7,7 @@
 bool isDoctorIdExist(Docter* head, const char* id);
 
 //检查医生姓名是否存在
-bool isDoctorNameExist(Docter* head, const char* name);
+//bool isDoctorNameExist(Docter* head, const char* name);
 
 //医生管理菜单界面
 void doctorManageMenu(HIS_System* sys);

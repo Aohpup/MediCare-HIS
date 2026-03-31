@@ -57,6 +57,66 @@ static bool isCategoryIdExist(Department* head, const char* id) {
 	return false;
 }
 
+// 统计某二级科室编号下的医生数量（为可能的“多医生-单科室”扩展预留）
+static int countDoctorsBySubDeptId(HIS_System* sys, const char* subDeptId) {
+	if (sys == NULL || subDeptId == NULL) return 0;
+	int count = 0;
+	Docter* docCurr = sys->docHead;
+	while (docCurr != NULL) {
+		if (strcmp(docCurr->subDeptId, subDeptId) == 0) {
+			count++;
+		}
+		docCurr = docCurr->next;
+	}
+	return count;
+}
+
+//打印诊室下医生列表
+static void printDoctorsBySubDeptId(HIS_System* sys, const char* subDeptId, int count) {
+	if (sys == NULL || subDeptId == NULL) return;
+	if(count == 0) {
+		printf("    - 该诊室下没有医生 -\n");
+		return;
+	}
+	int newCount = 1;
+	Docter* docCurr = sys->docHead;
+	while (docCurr != NULL) {
+		if (strcmp(docCurr->subDeptId, subDeptId) == 0) {
+			if(newCount > count) {
+				printf(">>> 警告: 统计的医生数量与实际不符，可能存在数据异常，请联系管理员！\n");
+				return;
+			}
+			printf("    - #%d: 医生编号: %s, 医生姓名: %s -\n", newCount++, docCurr->docterId, docCurr->docterName);
+		}
+		docCurr = docCurr->next;
+	}
+}
+
+// 当二级科室编号修改时，联动更新医生端绑定字段
+static void rebindDoctorsSubDeptId(HIS_System* sys, const char* oldSubDeptId, const char* newSubDeptId) {
+	if (sys == NULL || oldSubDeptId == NULL || newSubDeptId == NULL) return;
+	Docter* docCurr = sys->docHead;
+	while (docCurr != NULL) {
+		if (strcmp(docCurr->subDeptId, oldSubDeptId) == 0) {
+			strcpy(docCurr->subDeptId, newSubDeptId);
+		}
+		docCurr = docCurr->next;
+	}
+}
+
+// 当二级科室被删除时，清空医生端绑定（避免悬挂引用）
+static void clearDoctorsSubDeptBinding(HIS_System* sys, const char* subDeptId) {
+	if (sys == NULL || subDeptId == NULL) return;
+	Docter* docCurr = sys->docHead;
+	while (docCurr != NULL) {
+		if (strcmp(docCurr->subDeptId, subDeptId) == 0) {
+			docCurr->subDeptId[0] = '\0';
+			docCurr->department[0] = '\0';
+		}
+		docCurr = docCurr->next;
+	}
+}
+
 //打印科室信息列表的表头
 static void printDepartmentHeader() {
 	printf("\n--- 科室信息列表 ---\n");
@@ -283,6 +343,7 @@ void queryDepartment(HIS_System* sys) {
 					printf(">>> 查找到唯一结果:\n");
 					printDepartmentHeader();
 					printDepartmentInfo(curr, subCurr);
+					printf(">>> 当前关联医生数量: %d\n", countDoctorsBySubDeptId(sys, subCurr->subDeptId));
 					found = true;
 					break;
 				}
@@ -306,6 +367,7 @@ void queryDepartment(HIS_System* sys) {
 }
 
 // 修改科室模块 (处理重名逻辑)
+//TODO:支持中途取消修改操作，避免用户误操作导致数据被修改后无法恢复的情况
 void modifyDepartment(HIS_System* sys) {
 	if (sys->deptHead == NULL) {
 		printf("\n>>> 系统内没有科室数据！\n");
@@ -317,9 +379,11 @@ void modifyDepartment(HIS_System* sys) {
 	printf("1. 按一级科室名称修改\n");
 	printf("2. 按一级科室代码修改\n");
 	printf("3. 按二级科室名称修改\n");
-	printf("4. 按科室编号修改\n");
+	printf("4. 按诊室编号修改\n");
 	printf("0. 返回上一级菜单\n");
-	choice = safeGetInt("请选择修改目标: ");
+	printf("警告：修改科室信息可能会影响相关医生的绑定关系，请确保医生与诊室的绑定关系正确！\n");
+	choice = safeGetInt("请选择修改目标(输入 -1 取消): ");
+	if (choice == -1 || choice == 0) return;
 
 	char queryStr[STR_LEN];
 	Department* curr = sys->deptHead;
@@ -330,7 +394,8 @@ void modifyDepartment(HIS_System* sys) {
 	int matchCount = 0;
 
 	if (choice == 1) {
-		safeGetString("请输入要修改的一级科室名称: ", queryStr, STR_LEN);
+		safeGetString("请输入要修改的一级科室名称(输入 -1 取消): ", queryStr, STR_LEN);
+		if (strcmp(queryStr, "-1") == 0) return;
 		while (curr != NULL) {
 			if (strcmp(curr->categoryName, queryStr) == 0) {
 				deptMatches[matchCount++] = curr;
@@ -354,7 +419,8 @@ void modifyDepartment(HIS_System* sys) {
 
 			if (confirmFunc("修改", "一级科室名称")) {
 				char newName[STR_LEN];
-				safeGetString("请输入新的一级科室名称: ", newName, STR_LEN);
+				safeGetString("请输入新的一级科室名称(输入 -1 取消): ", newName, STR_LEN);
+				if (strcmp(newName, "-1") == 0) { printf(">>> 已取消修改。\n"); break; }
 
 				if (modifyMode == 1) {
 					// 修改所有匹配项
@@ -402,7 +468,8 @@ void modifyDepartment(HIS_System* sys) {
 		}
 	}
 	else if (choice == 2) { //一级科室代码，代码唯一，直接修改所有匹配项，无需区分批量/精确修改
-		safeGetString("请输入要修改的一级科室代码: ", queryStr, ID_LEN);
+		safeGetString("请输入要修改的一级科室代码(输入 -1 取消): ", queryStr, ID_LEN);
+		if (strcmp(queryStr, "-1") == 0) return;
 		while (curr != NULL) {
 			if (strcmp(curr->categoryId, queryStr) == 0) {
 				deptMatches[matchCount++] = curr;
@@ -415,7 +482,8 @@ void modifyDepartment(HIS_System* sys) {
 		}
 		while (1) {
 			char newId[ID_LEN];
-			safeGetString("请输入新的一级科室代码: ", newId, ID_LEN);
+			safeGetString("请输入新的一级科室代码(输入 -1 取消): ", newId, ID_LEN);
+			if (strcmp(newId, "-1") == 0) { printf(">>> 已取消修改。\n"); break; }
 			if (isCategoryIdExist(sys->deptHead, newId)) {
 				printf(">>> 错误：新一级科室代码已存在，修改失败！\n");
 				continue;
@@ -429,7 +497,8 @@ void modifyDepartment(HIS_System* sys) {
 	}
 	else if (choice == 3) {
 		// ========== 修改二级科室名称 ==========
-		safeGetString("请输入要修改的二级科室名称: ", queryStr, STR_LEN);
+		safeGetString("请输入要修改的二级科室名称(输入 -1 取消): ", queryStr, STR_LEN);
+		if (strcmp(queryStr, "-1") == 0) return;
 		while (curr != NULL) {
 			SubDepartment* subCurr = curr->subDeptHead;
 			while (subCurr != NULL) {
@@ -457,7 +526,8 @@ void modifyDepartment(HIS_System* sys) {
 		}
 
 		char newName[STR_LEN];
-		safeGetString("请输入新的二级科室名称: ", newName, STR_LEN);
+		safeGetString("请输入新的二级科室名称(输入 -1 取消): ", newName, STR_LEN);
+		if (strcmp(newName, "-1") == 0) { printf(">>> 已取消修改。\n"); return; }
 
 		if (modifyMode == 1) {
 			for (int i = 0; i < matchCount; i++) {
@@ -484,7 +554,8 @@ void modifyDepartment(HIS_System* sys) {
 	}
 	else if (choice == 4) {
 		//按科室编号修改,由于编号全局唯一，无需区分批量/精确修改
-		safeGetString("请输入要修改的科室编号: ", queryStr, ID_LEN);
+		safeGetString("请输入要修改的科室编号(输入 -1 取消): ", queryStr, ID_LEN);
+		if (strcmp(queryStr, "-1") == 0) return;
 		SubDepartment* targetSubDept = NULL;
 		Department* targetParentDept = NULL;
 
@@ -513,23 +584,30 @@ void modifyDepartment(HIS_System* sys) {
 
 		printf("\n1. 修改该科室名称\n");
 		printf("2. 修改该科室编号\n");
-		int subChoice = safeGetInt("请选择要修改的内容: ");
+		int subChoice = safeGetInt("请选择要修改的内容(输入 -1 取消): ");
+		if (subChoice == -1) return;
 
 		if (subChoice == 1) {
 			char newName[STR_LEN];
-			safeGetString("请输入新的二级科室名称: ", newName, STR_LEN);
-			strcpy(targetSubDept->subDeptName, newName);
-			printf(">>> 修改成功！\n");
+			safeGetString("请输入新的二级科室名称(输入 -1 取消): ", newName, STR_LEN);
+			if (strcmp(newName, "-1") != 0) {
+				strcpy(targetSubDept->subDeptName, newName);
+				printf(">>> 修改成功！\n");
+			}
 		}
 		else if (subChoice == 2) {
 			char newId[ID_LEN];
-			safeGetString("请输入新的科室编号: ", newId, ID_LEN);
+			safeGetString("请输入新的科室编号(输入 -1 取消): ", newId, ID_LEN);
+			if (strcmp(newId, "-1") == 0) return;
 			if (isDepartmentIdExist(sys->deptHead, newId)) {
 				printf(">>> 错误：新编号已存在，修改失败！\n");
 			}
 			else {
+				char oldId[ID_LEN];
+				strcpy(oldId, targetSubDept->subDeptId);
 				strcpy(targetSubDept->subDeptId, newId);
-				printf(">>> 编号修改成功！\n");
+				rebindDoctorsSubDeptId(sys, oldId, newId);
+				printf(">>> 编号修改成功！并已自动同步医生端绑定关系。\n");
 			}
 		}
 		else {
@@ -542,7 +620,6 @@ void modifyDepartment(HIS_System* sys) {
 	else {
 		printf(">>> 无效的选择！\n");
 	}
-	printf("严重错误：未正确处理修改流程，已退出修改模块！\n");
 }
 
 // 辅助函数：安全删除一个一级科室节点 (会级联删除其下属的所有二级科室)
@@ -567,6 +644,8 @@ static void executeDeleteDepartment(HIS_System** sys, Department* targetDept) {
 	while (currSub != NULL) {
 		SubDepartment* tempSub = currSub;
 		currSub = currSub->next;
+		// 释放前清空医生端绑定
+		clearDoctorsSubDeptBinding(*sys, tempSub->subDeptId);
 		free(tempSub);
 	}
 	// 最后释放一级科室节点内存
@@ -574,7 +653,7 @@ static void executeDeleteDepartment(HIS_System** sys, Department* targetDept) {
 }
 
 // 辅助函数：安全删除一个二级科室节点 (仅删除该节点，不影响父节点和兄弟节点)
-static void executeDeleteSubDepartment(Department* parentDept, SubDepartment* targetSub) {
+static void executeDeleteSubDepartment(HIS_System* sys, Department* parentDept, SubDepartment* targetSub) {
 	if (parentDept == NULL || targetSub == NULL) return;
 
 	//断开一、二级科室
@@ -590,11 +669,11 @@ static void executeDeleteSubDepartment(Department* parentDept, SubDepartment* ta
 			prevSub->next = targetSub->next;
 		}
 	}
-
+	// 释放前清空医生端绑定
+	clearDoctorsSubDeptBinding(sys, targetSub->subDeptId);
 	//释放二级科室节点内存
 	free(targetSub);
 }
-
 
 //删除科室模块
 void deleteDepartment(HIS_System** sys) {
@@ -725,7 +804,7 @@ void deleteDepartment(HIS_System** sys) {
 			if (deleteMode == 1) {
 				// 批量删除
 				for (int i = 0; i < matchCount; i++) {
-					executeDeleteSubDepartment(deptMatches[i], subDeptMatches[i]);
+					executeDeleteSubDepartment(*sys, deptMatches[i], subDeptMatches[i]);
 				}
 				printf(">>> 成功删除了 %d 个二级科室！\n", matchCount);
 			}
@@ -741,7 +820,7 @@ void deleteDepartment(HIS_System** sys) {
 				while (1) {
 					int sel = safeGetInt("请输入对应的序号: ");
 					if (sel >= 1 && sel <= matchCount) {
-						executeDeleteSubDepartment(deptMatches[sel - 1], subDeptMatches[sel - 1]);
+						executeDeleteSubDepartment(*sys, deptMatches[sel - 1], subDeptMatches[sel - 1]);
 						printf(">>> 成功删除指定的二级科室！\n");
 						break;
 					}
@@ -786,7 +865,7 @@ void deleteDepartment(HIS_System** sys) {
 
 		if (confirmFunc("删除", "该科室")) {
 			// 直接调用辅助函数断开并释放内存
-			executeDeleteSubDepartment(targetParentDept, targetSubDept);
+			executeDeleteSubDepartment(*sys, targetParentDept, targetSubDept);
 			printf(">>> 科室编号 %s 已成功删除！\n", queryStr);
 		}
 		else {
@@ -801,7 +880,6 @@ void deleteDepartment(HIS_System** sys) {
 		return;
 	}
 }
-
 // 显示系统内所有科室信息
 void displayAllDepartments(HIS_System* sys) {
 	if (sys->deptHead == NULL) {
@@ -820,6 +898,9 @@ void displayAllDepartments(HIS_System* sys) {
 		while (subCurr != NULL) {
 			printf("#%d:-------------------------------------------------------------\n", ++totalcount);
 			printDepartmentInfo(curr, subCurr);
+			int doctorCount = countDoctorsBySubDeptId(sys, subCurr->subDeptId);
+			printf("   关联医生数量: %d\n", doctorCount);
+			printDoctorsBySubDeptId(sys, subCurr->subDeptId, doctorCount);
 			subCurr = subCurr->next;
 		}
 		curr = curr->next;
@@ -847,7 +928,7 @@ void departmentManageMenu(HIS_System* sys) {
 		printf("5. 删除科室\n");
 		printf("6. 显示所有科室\n");
 		printf("7. 保存科室数据\n");
-		printf("0. 返回主菜单\n");
+		printf("0. 返回上一级菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请输入您的选择: ");
 

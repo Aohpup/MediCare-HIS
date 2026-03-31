@@ -2,7 +2,6 @@
 #ifndef DRUGMANAGE_H
 #define DRUGMANAGE_H
 #include "HIS_System.h"
-#include "HIS_System.h"
 #include <stdbool.h>
 #include <string.h>
 

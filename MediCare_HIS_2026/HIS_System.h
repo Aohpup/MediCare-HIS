@@ -6,6 +6,9 @@
 #include<stdlib.h>
 #include"ProjectLimits.h"
 
+//测试信息
+#define TSET_SYSTEM_DETAILS true		//是否启用测试（true启用，false禁用）
+
 //S链表存储数据
 //S.1药品
 typedef struct Drug {
@@ -24,7 +27,8 @@ typedef struct Drug {
 typedef struct Docter {
 	char docterId[ID_LEN];			//医生编号
 	char docterName[STR_LEN];		//医生姓名
-	char department[STR_LEN];		//医生所在科室
+	char department[STR_LEN];		//所属一级科室名称
+	char subDeptId[ID_LEN];		//所属诊室编号(二级科室唯一编码)
 	int consultationCount;			//诊号数量
 	struct Docter* next;
 }Docter;
@@ -44,28 +48,28 @@ typedef struct Department {
 
 //S.3病床&病房
 	//S.3.1病床
-typedef struct Bed {
-	char bedId[ID_LEN];			//病房编号
-	bool isOccupied;			//是否被使用
-	char patient[ID_LEN];		//患者编号
-	struct Bed* next;
-}Bed;
+	typedef struct Bed {
+		char bedId[ID_LEN];			//病床编号 (病房内唯一编号，格式可自定义，如：Z15101，其中Z151表示病房编号，01表示床位编号)
+		bool isOccupied;			//是否被使用
+		char patient[ID_LEN];		//患者编号
+		struct Bed* next;
+	}Bed;
 
-//S.3.2病房种类
-typedef enum {
-	WARD_NORMAL = 1,			// 普通病房 (设为1便于在终端上调用)
-	WARD_VIP,					// VIP病房
-	WARD_ICU					// ICU病房
-} WardType;
+	//S.3.2病房种类
+	typedef enum {
+		WARD_NORMAL = 1,			// 普通病房 (设为1便于在终端上调用)
+		WARD_VIP,					// VIP病房
+		WARD_ICU					// ICU病房
+	} WardType;
 
-//S.3.3病房
-typedef struct Ward {
-	char wardId[ID_LEN];		//病房编号
-	WardType type;				//病房种类
-	char department[STR_LEN];	//病房所属科室
-	Bed* bedListHead;			//病房内床位数
-	struct Ward* next;
-} Ward;
+	//S.3.3病房
+	typedef struct Ward {
+		char wardId[ID_LEN];		//病房编号
+		WardType type;				//病房种类
+		char department[STR_LEN];	//病房所属科室
+		Bed* bedListHead;			//病房内床位数
+		struct Ward* next;
+	} Ward;
 
 //S.4医疗记录
 	//挂号、看诊、检查、住院

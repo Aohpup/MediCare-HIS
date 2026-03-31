@@ -1,30 +1,31 @@
-DOC001 张明伟 内科 50
-DOC030 薛华 外科 33
-DOC029 崔力健 妇科 50
-DOC028 谭晶 儿科 45
-DOC027 廖星辉 内科 40
-DOC026 钟诚 外科 35
-DOC025 夏雪 妇科 28
-DOC024 戴钟伟 儿科 30
-DOC023 杜宇飞 内科 25
-DOC022 余敏娜 外科 22
-DOC021 蒋东轩 妇科 16
-DOC020 魏晨 儿科 19
-DOC019 蔡琴 内科 13
-DOC018 曾付敏 外科 17
-DOC017 彭博 妇科 14
-DOC016 韩梅 儿科 11
-DOC015 宋平阳 内科 6
-DOC014 沈静杨 外科 1
-DOC013 孙鹏 妇科 2
-DOC012 唐丽丽 儿科 9
-DOC011 郭志远 内科 18
-DOC010 林山华 外科 4
-DOC009 郑原洁 妇科 0
-DOC008 吴刚 内科 10
-DOC007 周婷 儿科 7
-DOC006 陈晓伟 外科 3
-DOC005 刘敏 妇科 15
-DOC004 赵志强 内科 20
-DOC003 王芳 儿科 5
-DOC002 李建国 外科 8
+//帮我补全NULL
+DOC002 李建国 外科 NULL 8
+DOC003 王芳 儿科 NULL 5
+DOC004 赵志强 内科 NULL 20
+DOC005 刘敏 妇科 NULL 15
+DOC006 陈晓伟 外科 NULL 3
+DOC007 周婷 儿科 NULL 7
+DOC008 吴刚 内科 NULL 10
+DOC009 郑原洁 妇科 NULL 0
+DOC010 林山华 外科 NULL 4
+DOC011 郭志远 内科 NULL 18
+DOC012 唐丽丽 儿科 NULL 9
+DOC013 孙鹏 妇科 NULL 2
+DOC014 沈静杨 外科 NULL 1
+DOC015 宋平阳 内科 NULL 6
+DOC016 韩梅 儿科 NULL 11
+DOC017 彭博 妇科 NULL 14
+DOC018 曾付敏 外科 NULL 17
+DOC019 蔡琴 内科 NULL 13
+DOC020 魏晨 儿科 NULL 19
+DOC021 蒋东轩 妇科 NULL 16
+DOC022 余敏娜 外科 NULL 22
+DOC023 杜宇飞 内科 NULL 25
+DOC024 戴钟伟 儿科 NULL 30
+DOC025 夏雪 妇科 NULL 28
+DOC026 钟诚 外科 NULL 35
+DOC027 廖星辉 内科 NULL 40
+DOC028 谭晶 儿科 NULL 45
+DOC029 崔力健 妇科 NULL 50
+DOC030 薛华 外科 NULL 33
+DOC001 张明伟 内科 A234 50

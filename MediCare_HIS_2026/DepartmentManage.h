@@ -16,7 +16,7 @@ void departmentManageMenu(HIS_System* sys);
 void addDepartment(HIS_System* sys);
 
 //打印单条科室详细信息
-void printDepartmentInfo(Department* department);
+void printDepartmentInfo(Department* department, SubDepartment* subDepartment);
 
 //查询科室信息
 void queryDepartment(HIS_System* sys);

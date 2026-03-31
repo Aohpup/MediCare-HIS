@@ -11,6 +11,7 @@
 #define DRUG_FILE "HIS_drugs.txt"				//药品数据文件
 #define DOCTOR_FILE "HIS_doctors.txt"			//医生数据文件
 #define DEPARTMENT_FILE "HIS_departments.txt"	//科室数据文件
+#define WARD_FILE "HIS_wards.txt"				//病房数据文件
 #define PATIENT_FILE "HIS_patients.txt"			//患者数据文件
 
 #endif // !LIMITS_H

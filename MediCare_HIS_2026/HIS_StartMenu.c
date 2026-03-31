@@ -6,9 +6,19 @@
 #include"DocterFileManage.h"
 #include"DepartmentManage.h"
 #include"DepartmentFileManage.h"
+#include"WardManage.h"
+#include"WardFileManage.h"
+#include"WardSort.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
 #include <stdio.h>
+
+static void messageBox(const char* message) {
+	if (TSET_SYSTEM_DETAILS)
+		printf("\n>>> %s\n", message);
+	else
+		return;
+}
 
 // 管理员/系统维护视角菜单
 void adminMenu(HIS_System* sys) {
@@ -30,7 +40,7 @@ void adminMenu(HIS_System* sys) {
 		case 1: drugManageMenu(sys); break;
 		case 2: doctorManageMenu(sys); break; 
 		case 3: departmentManageMenu(sys); break;	
-		case 4: printf(">>> 模块待开发: 3种病房与床位分配...\n"); break;
+		case 4: wardManageMenu(sys); break;
 		case 5: printf(">>> 模块待开发: 多维数据报表统计...\n"); break;
 		case 6: /*test saveSystemData(sys); */break;
 		case 0: 
@@ -100,9 +110,17 @@ void patientMenu(HIS_System* sys) {
 
 // 主菜单入口
 void showMainMenu(HIS_System* sys) {
+	messageBox("目前仅支持管理员登录功能，医生和患者登录功能待开发。");
+	messageBox("请使用管理员登录进入系统，管理员系统只支持药品管理功能、医生管理功能和科室管理功能。");
+	messageBox("药品信息格式：ID 国标码 通用名 商品名 别名 库存 价格");
+	messageBox("例如：DRG001 86900001000012 阿莫西林胶囊 阿莫仙 阿莫 100 25.50");
+	messageBox("医生信息格式：ID 姓名 所在科室 诊号数量");
+	messageBox("例如：DOC001 张明伟 内科 50");
+	messageBox("科室信息格式：一级科室名称 一级科室代码 二级科室名称 科室编号");
+	messageBox("例如：内科 V100201 心内科 A234");
 	int choice;
 	while (1) {
-		printf("\n******** 医疗管理系统 (HIS) ********\n");
+		printf("\n*********** 医疗管理系统 (HIS) ***********\n");
 		printf("1. 管理员登录 (系统维护与数据统计)\n");
 		printf("2. 医生登录 (门诊看病与病房管理)\n");
 		printf("3. 患者登录 (挂号与信息查询)\n");
@@ -113,8 +131,8 @@ void showMainMenu(HIS_System* sys) {
 
 		switch (choice) {
 		case 1: adminMenu(sys); break;
-	  //case 2: doctorMenu(sys); break;
-	  //case 3: patientMenu(sys); break;
+	    case 2: printf(">>> 模块待开发: 医生登录...\n"); /* doctorMenu(sys); */ break;
+		case 3: printf(">>> 模块待开发: 患者登录...\n"); /* patientMenu(sys); */ break;
 		case 0:
 			/*test
 			saveSystemData(sys);*/

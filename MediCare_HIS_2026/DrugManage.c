@@ -384,8 +384,230 @@ void modifyDrug(HIS_System* sys) {
 		printf(">>> 系统内没有药品数据！\n");
 		return;
 	}
-	//TODO: 这里的修改功能实现较为复杂，涉及到数据验证和防止重复等逻辑，暂时以提示代替具体实现
-	printf(">>> 修改药品信息功能正在开发中，敬请期待！\n");
+
+	int choice;
+	printf("\n--- 修改药品信息 ---\n");
+	printf("1. 按药品编号修改\n");
+	printf("2. 按国标码修改\n");
+	printf("3. 按名称(通用名/商品名/别名)修改\n");
+	printf("0. 返回上一级菜单\n");
+	choice = safeGetInt("请选择修改目标: ");
+
+	if (choice == 0) return;
+	if (choice != 1 && choice != 2 && choice != 3) {
+		printf(">>> 无效选择，请重试。\n");
+		return;
+	}
+
+	char queryStr[STR_LEN];
+	Drug* matches[100];
+	int matchCount = 0;
+	Drug* curr = sys->drugHead;
+
+	switch (choice) {
+	case 1:
+		safeGetString("请输入要修改的药品编号(输入 -1 取消): ", queryStr, ID_LEN);
+		if (strcmp(queryStr, "-1") == 0) return;
+		while (curr != NULL) {
+			if (strcmp(curr->drugId, queryStr) == 0 && matchCount < 100) {
+				matches[matchCount++] = curr;
+			}
+			curr = curr->next;
+		}
+		break;
+	case 2:
+		safeGetString("请输入要修改的国家药品本位码(16位国标码，输入 -1 取消): ", queryStr, 16);
+		if (strcmp(queryStr, "-1") == 0) return;
+		while (curr != NULL) {
+			if (strcmp(curr->drugGbCode, queryStr) == 0 && matchCount < 100) {
+				matches[matchCount++] = curr;
+			}
+			curr = curr->next;
+		}
+		break;
+	case 3:
+		safeGetString("请输入要修改的名称(通用名/商品名/别名，输入 -1 取消): ", queryStr, STR_LEN);
+		if (strcmp(queryStr, "-1") == 0) return;
+		while (curr != NULL) {
+			if ((strcmp(curr->genericName, queryStr) == 0 || strcmp(curr->tradeName, queryStr) == 0 || strcmp(curr->alias, queryStr) == 0) && matchCount < 100) {
+				matches[matchCount++] = curr;
+			}
+			curr = curr->next;
+		}
+		break;
+	}
+
+	if (matchCount == 0) {
+		printf(">>> 没有找到匹配的药品信息！\n");
+		return;
+	}
+
+	Drug* target = NULL;
+	if (matchCount == 1) {
+		target = matches[0];
+		printf(">>> 已定位到目标药品：\n");
+		printDrugInfo(target);
+	}
+	else {
+		printf("\n>>> 发现 %d 条匹配记录，请选择要修改的目标：\n", matchCount);
+		for (int i = 0; i < matchCount; i++) {
+			printf("\n#[%d]\n", i + 1);
+			printDrugInfo(matches[i]);
+		}
+		while (1) {
+			int sel = safeGetInt("请输入对应序号(输入 -1 取消): ");
+			if (sel == -1) return;
+			if (sel >= 1 && sel <= matchCount) {
+				target = matches[sel - 1];
+				break;
+			}
+			printf(">>> 序号无效，请重试。\n");
+		}
+	}
+
+	printf("\n1. 修改药品编号\n");
+	printf("2. 修改国标码\n");
+	printf("3. 修改通用名\n");
+	printf("4. 修改商品名\n");
+	printf("5. 修改别名\n");
+	printf("6. 修改库存\n");
+	printf("7. 修改价格\n");
+	int modChoice = safeGetInt("请选择要修改的字段(输入 -1 取消): ");
+	if (modChoice == -1) { printf(">>> 已取消修改。\n"); return; }
+
+	if (!confirmFunc("修改", "药品信息")) {
+		printf(">>> 已取消修改。\n");
+		return;
+	}
+
+	switch (modChoice) {
+	case 1: {
+		char newId[ID_LEN];
+		while (1) {
+			safeGetString("请输入新的药品编号(输入 -1 取消): ", newId, ID_LEN);
+			if (strcmp(newId, "-1") == 0) break;
+			if (strcmp(newId, target->drugId) == 0) {
+				printf(">>> 新编号与原编号一致，无需修改。\n");
+				break;
+			}
+			if (isDrugIdExist(sys->drugHead, newId)) {
+				printf(">>> 错误：该药品编号已存在，请重新输入！\n");
+				continue;
+			}
+			strcpy(target->drugId, newId);
+			printf(">>> 药品编号修改成功！\n");
+			break;
+		}
+		break;
+	}
+	case 2: {
+		char newGb[16];
+		while (1) {
+			safeGetString("请输入新的国家药品本位码(16位国标码，输入 -1 取消): ", newGb, 16);
+			if (strcmp(newGb, "-1") == 0) break;
+			if (strcmp(newGb, target->drugGbCode) == 0) {
+				printf(">>> 新国标码与原国标码一致，无需修改。\n");
+				break;
+			}
+			if (isDrugGbCodeExist(sys->drugHead, newGb)) {
+				printf(">>> 错误：该国标码已存在，请重新输入！\n");
+				continue;
+			}
+			strcpy(target->drugGbCode, newGb);
+			printf(">>> 国标码修改成功！\n");
+			break;
+		}
+		break;
+	}
+	case 3: {
+		char newName[STR_LEN];
+		while (1) {
+			safeGetString("请输入新的通用名(输入 -1 取消): ", newName, STR_LEN);
+			if (strcmp(newName, "-1") == 0) break;
+			if (strcmp(newName, target->genericName) == 0) {
+				printf(">>> 新通用名与原通用名一致，无需修改。\n");
+				break;
+			}
+			if (isDrugGenNameExist(sys->drugHead, newName) || isDrugTraNameExist(sys->drugHead, newName) || isDrugAliNameExist(sys->drugHead, newName)) {
+				printf(">>> 错误：该名称与系统内已有名称冲突，请重新输入！\n");
+				continue;
+			}
+			strcpy(target->genericName, newName);
+			printf(">>> 通用名修改成功！\n");
+			break;
+		}
+		break;
+	}
+	case 4: {
+		char newName[STR_LEN];
+		while (1) {
+			safeGetString("请输入新的商品名(输入 -1 取消): ", newName, STR_LEN);
+			if (strcmp(newName, "-1") == 0) break;
+			if (strcmp(newName, target->tradeName) == 0) {
+				printf(">>> 新商品名与原商品名一致，无需修改。\n");
+				break;
+			}
+			if (isDrugGenNameExist(sys->drugHead, newName) || isDrugTraNameExist(sys->drugHead, newName) || isDrugAliNameExist(sys->drugHead, newName)) {
+				printf(">>> 错误：该名称与系统内已有名称冲突，请重新输入！\n");
+				continue;
+			}
+			strcpy(target->tradeName, newName);
+			printf(">>> 商品名修改成功！\n");
+			break;
+		}
+		break;
+	}
+	case 5: {
+		char newAlias[STR_LEN];
+		while (1) {
+			safeGetString("请输入新的别名(输入 -1 取消): ", newAlias, STR_LEN);
+			if (strcmp(newAlias, "-1") == 0) break;
+			if (strcmp(newAlias, target->alias) == 0) {
+				printf(">>> 新别名与原别名一致，无需修改。\n");
+				break;
+			}
+			if (isDrugGenNameExist(sys->drugHead, newAlias) || isDrugTraNameExist(sys->drugHead, newAlias) || isDrugAliNameExist(sys->drugHead, newAlias)) {
+				printf(">>> 错误：该名称与系统内已有名称冲突，请重新输入！\n");
+				continue;
+			}
+			strcpy(target->alias, newAlias);
+			printf(">>> 别名修改成功！\n");
+			break;
+		}
+		break;
+	}
+	case 6: {
+		while (1) {
+			int newStock = safeGetInt("请输入新的库存量(输入 -1 取消): ");
+			if (newStock == -1) break;
+			if (newStock < 0) {
+				printf(">>> 错误：库存量不能为负数！\n");
+				continue;
+			}
+			target->stock = newStock;
+			printf(">>> 库存修改成功！\n");
+			break;
+		}
+		break;
+	}
+	case 7: {
+		while (1) {
+			double newPrice = safeGetDouble("请输入新的单价(输入 -1 取消): ");
+			if (newPrice <= -1.00 + 1e-6 && newPrice >= -1.00 - 1e-6) break;
+			if (newPrice < 0) {
+				printf(">>> 错误：价格不能为负数！\n");
+				continue;
+			}
+			target->price = newPrice;
+			printf(">>> 单价修改成功！\n");
+			break;
+		}
+		break;
+	}
+	default:
+		printf(">>> 无效选择，已取消修改。\n");
+		break;
+	}
 }
 
 //显示所有药品信息

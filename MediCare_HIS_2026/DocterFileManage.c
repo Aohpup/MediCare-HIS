@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include"DocterFileManage.h"
 #include"DocterManage.h"
+#include<string.h>
 
 // 从txt文件加载系统数据
 void loadDoctorSystemData(HIS_System* sys) {
@@ -18,14 +19,37 @@ void loadDoctorSystemData(HIS_System* sys) {
 			fclose(fp);
 			return;
 		}
-		// txt文件中格式为: ID 姓名 所在科室 诊号数量
-		if (sscanf(buffer, "%s %s %s %d", newDoctor->docterId, newDoctor->docterName, newDoctor->department, &newDoctor->consultationCount) == 4) {
-			newDoctor->next = sys->docHead;
-			sys->docHead = newDoctor;
+
+		char id[ID_LEN];
+		char name[STR_LEN];
+		char deptName[STR_LEN];
+		char roomId[ID_LEN];
+		int count = 0;
+
+		int parsed = sscanf(buffer, "%s %s %s %s %d", id, name, deptName, roomId, &count);
+		if (parsed == 5) {
+			strcpy(newDoctor->docterId, id);
+			strcpy(newDoctor->docterName, name);
+			strcpy(newDoctor->department, deptName);
+			if (strcmp(roomId, "NULL") == 0 || strcmp(roomId, "-") == 0) roomId[0] = '\0';
+			strcpy(newDoctor->subDeptId, roomId);
+			newDoctor->consultationCount = count;
 		}
 		else {
-			free(newDoctor);
+			parsed = sscanf(buffer, "%s %s %s %d", id, name, deptName, &count);
+			if (parsed != 4) {
+				free(newDoctor);
+				continue;
+			}
+			strcpy(newDoctor->docterId, id);
+			strcpy(newDoctor->docterName, name);
+			strcpy(newDoctor->department, deptName);
+			newDoctor->subDeptId[0] = '\0';
+			newDoctor->consultationCount = count;
 		}
+
+		newDoctor->next = sys->docHead;
+		sys->docHead = newDoctor;
 	}
 	fclose(fp);
 	printf(">>> 数据加载完成！\n");
@@ -40,7 +64,8 @@ void saveDoctorSystemData(HIS_System* sys) {
 	}
 	Docter* curr = sys->docHead;
 	while (curr != NULL) {
-		fprintf(fp, "%s %s %s %d\n", curr->docterId, curr->docterName, curr->department, curr->consultationCount);
+		const char* persistedRoom = (curr->subDeptId[0] != '\0') ? curr->subDeptId : "NULL";
+		fprintf(fp, "%s %s %s %s %d\n", curr->docterId, curr->docterName, curr->department, persistedRoom, curr->consultationCount);
 		curr = curr->next;
 	}
 	fclose(fp);

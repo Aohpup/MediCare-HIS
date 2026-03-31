@@ -139,12 +139,15 @@
     <ClCompile Include="InputUtils.c" />
     <ClCompile Include="MediCare_HIS_2026.c" />
     <ClCompile Include="PrintFormattedStr.c" />
+    <ClCompile Include="WardFileManage.c" />
+    <ClCompile Include="WardManage.c" />
+    <ClCompile Include="WardSort.c" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="C:\Users\27918\Desktop\要求\程序设计基础课程设计（2025级）自拟题签.txt" />
     <Text Include="HIS_departments.txt" />
     <Text Include="HIS_doctors.txt" />
     <Text Include="HIS_drugs.txt" />
+    <Text Include="程序设计基础课程设计（2025级）自拟题签.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfirmFunc.h" />
@@ -163,6 +166,9 @@
     <ClInclude Include="PrintFormattedStr.h" />
     <ClInclude Include="ProjectLimits.h" />
     <ClInclude Include="HIS_System.h" />
+    <ClInclude Include="WardFileManage.h" />
+    <ClInclude Include="WardManage.h" />
+    <ClInclude Include="WardSort.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

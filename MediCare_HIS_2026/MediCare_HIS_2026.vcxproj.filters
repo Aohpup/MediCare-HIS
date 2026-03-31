@@ -63,12 +63,21 @@
     <ClCompile Include="DepartmentSort.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="WardManage.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="WardFileManage.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="WardSort.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="HIS_drugs.txt" />
     <Text Include="HIS_doctors.txt" />
     <Text Include="HIS_departments.txt" />
-    <Text Include="C:\Users\27918\Desktop\要求\程序设计基础课程设计（2025级）自拟题签.txt">
+    <Text Include="程序设计基础课程设计（2025级）自拟题签.txt">
       <Filter>资源文件</Filter>
     </Text>
   </ItemGroup>
@@ -119,6 +128,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="DepartmentSort.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WardManage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WardFileManage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WardSort.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
