@@ -36,5 +36,11 @@ void deleteDoctorFunc(Docter** head, const char* queryStr, int mode);
 //显示所有医生信息
 void displayAllDoctors(HIS_System* sys);
 
+//医生排班管理
+void doctorScheduleMenu(HIS_System* sys);
+
+//医生叫号
+void doctorCallQueueMenu(HIS_System* sys);
+
 
 #endif // !DOCTERMANAGE_H

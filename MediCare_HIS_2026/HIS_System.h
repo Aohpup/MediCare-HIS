@@ -4,10 +4,11 @@
 #include<stdio.h>
 #include<stdbool.h>
 #include<stdlib.h>
+#include"DayTimeUtils.h"
 #include"ProjectLimits.h"
 
 //测试信息
-#define TSET_SYSTEM_DETAILS true		//是否启用测试（true启用，false禁用）
+extern bool TEST_SYSTEM_DEBUG;		//是否启用测试（true启用，false禁用）
 
 //S链表存储数据
 //S.1药品
@@ -49,7 +50,7 @@ typedef struct Department {
 //S.3病床&病房
 	//S.3.1病床
 	typedef struct Bed {
-		char bedId[ID_LEN];			//病床编号 (病房内唯一编号，格式可自定义，如：Z15101，其中Z151表示病房编号，01表示床位编号)
+		char bedId[BED_ID_LEN];			//病床编号 (病房内唯一编号，格式可自定义，如：Z15101，其中Z151表示病房编号，01表示床位编号)
 		bool isOccupied;			//是否被使用
 		char patient[ID_LEN];		//患者编号
 		struct Bed* next;
@@ -80,28 +81,102 @@ typedef enum {
 	REC_STAY        // 住院 Hospitalization
 } RecordType;
 
-typedef struct MedicalRecord {
+typedef enum {
+	PATIENT_GENERAL = 1,	// 普通患者
+	PATIENT_VIP,			// VIP患者
+	PATIENT_EMERGENCY		// 急诊患者
+} PatientType;
+
+//初步患者编号生成规则,TODO: 之后根据实际需求调整生成规则，增加日期前缀、患者类别等
+#define STARTING_PATIENT_ID 10000000	//患者编号起始值
+extern int currentPatientId;			//当前患者编号计数器（全局变量，初始值为STARTING_PATIENT_ID）
+
+typedef struct RegistrationRecord {
+	char recordId[ID_LEN];			// 挂号记录编号
+	char department[STR_LEN];		// 挂号科室
+	char doctorId[ID_LEN];			// 挂号医生编号
+	char date[ID_LEN];				// 挂号日期
+	char time[ID_LEN];				// 挂号时间
+	//RegistrationRecord* currRegTail;//当前患者挂号记录链表的末尾指针（仅在加载数据时使用，其他时候保持为NULL）
+	struct RegistrationRecord* next;
+} RegistrationRecord;
+
+typedef struct ConsultationRecord {
 	char recordId[ID_LEN];			// 医疗记录编号
-	RecordType record;
+	RecordType record;				// 记录类型（看诊 / 检查）
 	char details[512];				//报告细节内容
 	char date[ID_LEN];				//日期
 	char doctorId[ID_LEN];			//所属医生编号
-	struct MedicalRecord* next;
-} MedicalRecord;
+	struct ConsultationRecord* next;
+} ConsultationRecord;
 
-//S.5患者节点 //TODO: 四项该怎么建链表?
+typedef struct StayRecord {
+	char recordId[ID_LEN];			// 住院记录编号
+	char details[512];				// 住院细节内容
+	char startDate[ID_LEN];			// 住院开始日期
+	char duration[ID_LEN];			// 住院时长
+	char endDate[ID_LEN];			// 住院结束日期，如果仍在住院则为"未出院"或类似标识
+	char doctorId[ID_LEN];			// 所属医生编号
+	char wardId[ID_LEN];			// 关联病房编号
+	struct StayRecord* next;
+} StayRecord;
+
+//S.5患者节点
 typedef struct Patient {
 	char patientId[ID_LEN];			//患者编号
 	char name[STR_LEN];				//患者姓名
 	char phone[ID_LEN];				//患者电话
-	int type;						//患者类别
-	//	MedicalRecord* recordsHead;		//患者所属医疗记录
-	MedicalRecord* regHead;			// 挂号记录链表
-	MedicalRecord* viewHead;		// 看诊记录链表
-	MedicalRecord* examHead;		// 检查记录链表
-	MedicalRecord* stayHead;		// 住院记录链表
+	char idCard[18 + 3];			//患者身份证号
+	char gender[STR_LEN];			//患者性别
+	PatientType type;				//患者类别 (普通/VIP/急诊)
+
+	RegistrationRecord* regHead;		// 挂号记录链表头
+	ConsultationRecord* viewHead;		// 看诊记录链表头
+	ConsultationRecord* examHead;		// 检查记录链表头
+	StayRecord* stayHead;				// 住院记录链表头
+
+	RegistrationRecord* currRegTail;			// 当前患者挂号记录链表的末尾指针
+	ConsultationRecord* currViewTail;		// 当前患者看诊记录链表的末尾指针
+	ConsultationRecord* currExamTail;		// 当前患者检查记录链表的末尾指针
+	StayRecord* currStayTail;				// 当前患者住院记录链表的末尾指针
+
 	struct Patient* next;
 } Patient;
+
+
+extern const char* slot_names[SLOT_COUNT];		// 挂号预约时间段列表
+
+typedef enum {
+	SLOT_INVALID = 0,	// 无效时间段
+	SLOT_0800_0830, SLOT_0830_0900, SLOT_0900_0930, SLOT_0930_1000,
+	SLOT_1000_1030, SLOT_1030_1100, SLOT_1100_1130,
+	SLOT_1330_1400, SLOT_1400_1430, SLOT_1430_1500,
+	SLOT_1500_1530, SLOT_1530_1600, SLOT_1600_1630
+} TimeSlot;
+
+
+//extern Patient* appointmentSlots[13 + 1][MAX_APP];	// 预约挂号表，第一维为时间段，第二维为该时段的挂号列表
+
+
+//患者排队状态枚举
+typedef enum {
+	STATUS_WAITING,    // 等待叫号
+	STATUS_CALLED,     // 已叫号（但未进入诊室）
+	STATUS_IN_ROOM,    // 就诊中
+	STATUS_FINISHED,   // 就诊结束
+	STATUS_MISSED,     // 过号未应
+	STATUS_CANCELLED   // 爽约/取消
+} PatientStatus;
+
+
+//医生排班信息结构体
+typedef struct DoctorSchedule {
+	char day[DATE_STR_LEN];				//排班日期 (格式: XXXX-XX-XX)
+	char timeSlot[SLOT_COUNT + 1];		//排班时间段 格式: SLOT_0800_0830等
+	int bookingCount[SLOT_COUNT + 1];	//已预约挂号数量
+	struct DoctorSchedule* next;
+} DoctorSchedule;
+
 
 typedef struct HIS_System {
 	Drug* drugHead;
@@ -110,10 +185,16 @@ typedef struct HIS_System {
 	Department* deptHead;
 	Ward* wardHead;
 	Patient* patientHead;
+	Patient* patientTail;
 } HIS_System;
+
 
 // 初始化医疗管理系统底座
 void initSystem(HIS_System* sys);
 //Warning: 添加数据前请务必先调用 initSystem() 初始化系统底座，否则可能会导致严重错误！！！
+
+
+//保存系统数据到文件
+void saveSystemData(HIS_System* sys);
 
 #endif // HIS_SYSTEM_H

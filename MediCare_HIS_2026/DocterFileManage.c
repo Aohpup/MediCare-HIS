@@ -2,6 +2,7 @@
 #include"DocterFileManage.h"
 #include"DocterManage.h"
 #include<string.h>
+bool is_Doctor_File_Loaded = false;		//标记是否加载过医生数据
 
 // 从txt文件加载系统数据
 void loadDoctorSystemData(HIS_System* sys) {
@@ -11,6 +12,7 @@ void loadDoctorSystemData(HIS_System* sys) {
 		printf(">>> 警告: 找不到 %s，将作为新系统启动。\n", DOCTOR_FILE);
 		return;
 	}
+
 	char buffer[512];
 	while (fgets(buffer, sizeof(buffer), fp) != NULL) {
 		Docter* newDoctor = (Docter*)malloc(sizeof(Docter));
@@ -53,6 +55,8 @@ void loadDoctorSystemData(HIS_System* sys) {
 	}
 	fclose(fp);
 	printf(">>> 数据加载完成！\n");
+	is_Doctor_File_Loaded = true;	//标记已加载过医生数据
+
 }
 
 // 将系统数据保存到txt文件
@@ -69,6 +73,6 @@ void saveDoctorSystemData(HIS_System* sys) {
 		curr = curr->next;
 	}
 	fclose(fp);
-	printf(">>> 系统数据保存成功！\n");
+	printf(">>> 医生数据保存成功！\n");
 }
 

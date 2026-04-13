@@ -6,6 +6,7 @@
 #include"DepartmentFileManage.h"
 #include"ConfirmFunc.h"
 #include"DocterSort.h"
+#include"QueueManage.h"
 #include"InputUtils.h"
 #include<string.h>
 
@@ -530,6 +531,68 @@ void displayAllDoctors(HIS_System* sys) {
 	printf(">>> 共计 %d 位医生信息显示完毕！\n", count);
 }
 
+void doctorScheduleMenu(HIS_System* sys) {
+	char doctorId[ID_LEN];
+	char date[DATE_STR_LEN];
+	safeGetString(">>> 请输入需要排班的医生编号: ", doctorId, ID_LEN);
+	Docter* doctor = sys->docHead;
+	while (doctor != NULL && strcmp(doctor->docterId, doctorId) != 0) {
+		doctor = doctor->next;
+	}
+	if (doctor == NULL) {
+		printf(">>> 未找到该医生，无法排班。\n");
+		return;
+	}
+	safeGetString(">>> 请输入排班日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+	if (!isValidDate(date)) {
+		printf(">>> 日期格式无效。\n");
+		return;
+	}
+	printf("请选择要开放的时段(输入0结束)：\n");
+	while (1) {
+		printAllTimeSlots();
+		int slotNo = safeGetInt(">>> 时段编号: ");
+		if (slotNo == 0) {
+			break;
+		}
+		if (slotNo < 1 || slotNo > SLOT_COUNT) {
+			printf(">>> 时段无效，请重试。\n");
+			continue;
+		}
+		if (openDoctorScheduleSlot(doctorId, date, (TimeSlot)slotNo)) {
+			printf(">>> 已开放 [%s] 的号源。\n", slot_names[slotNo - 1]);
+		}
+	}
+}
+
+void doctorCallQueueMenu(HIS_System* sys) {
+	(void)sys;
+	char doctorId[ID_LEN];
+	char date[DATE_STR_LEN];
+	safeGetString(">>> 请输入叫号医生编号: ", doctorId, ID_LEN);
+	safeGetString(">>> 请输入叫号日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+	if (!isValidDate(date)) {
+		printf(">>> 日期格式无效。\n");
+		return;
+	}
+	printAllTimeSlots();
+	int slotNo = safeGetInt(">>> 请选择叫号时段: ");
+	if (slotNo < 1 || slotNo > SLOT_COUNT) {
+		printf(">>> 时段编号无效。\n");
+		return;
+	}
+	TimeSlot slot = (TimeSlot)slotNo;
+	printSlotQueue(doctorId, date, slot);
+	if (!confirmFunc("执行", "下一位患者叫号")) {
+		return;
+	}
+	Patient* called = callNextPatient(doctorId, date, slot);
+	if (called != NULL) {
+		printf(">>> 请患者 %s (%s) 到诊室就诊。\n", called->name, called->patientId);
+	}
+	printSlotQueue(doctorId, date, slot);
+}
+
 void doctorManageMenu(HIS_System* sys) {
 	if (sys == NULL) {
 		printf(">>> 严重错误: 系统底座未初始化！！！\n");
@@ -558,7 +621,9 @@ void doctorManageMenu(HIS_System* sys) {
 		printf("4. 排序医生列表\n");
 		printf("5. 删除医生记录\n");
 		printf("6. 显示所有医生信息\n");
-		printf("7. 保存系统数据\n");
+		printf("7. 医生排班\n");
+		printf("8. 医生叫号\n");
+		printf("9. 保存系统数据\n");
 		printf("0. 返回上一级菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择医生管理操作: ");
@@ -582,6 +647,12 @@ void doctorManageMenu(HIS_System* sys) {
 			displayAllDoctors(sys);
 			break;
 		case 7:
+			doctorScheduleMenu(sys);
+			break;
+		case 8:
+			doctorCallQueueMenu(sys);
+			break;
+		case 9:
 			if (confirmFunc("保存", "医生系统数据")) {
 				saveDoctorSystemData(sys);
 			}

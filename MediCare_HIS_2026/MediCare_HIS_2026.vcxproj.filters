@@ -13,131 +13,230 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="头文件\include">
+      <UniqueIdentifier>{077919de-ebd2-41ac-b044-4e4f21ae0c58}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\data">
+      <UniqueIdentifier>{066647de-b7b7-4f2e-b487-e4b6851f9d1f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\utils">
+      <UniqueIdentifier>{8b2a6464-d8b3-4a78-9a87-72687ce4e4eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\core">
+      <UniqueIdentifier>{4cd6db02-8a4e-424b-b372-7583235b2fe2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\modules">
+      <UniqueIdentifier>{5089f23f-4fe8-42ab-bf6d-8167f433de2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\modules\Department">
+      <UniqueIdentifier>{f953077c-b5f1-4acf-934a-0e3a19e4f07e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\modules\Drug">
+      <UniqueIdentifier>{ecd0f88d-af42-4409-8685-bf5823a5cf9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\modules\Docter">
+      <UniqueIdentifier>{1de84d8c-cfaa-43e3-952a-9d13a22e7cfc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\modules\Ward">
+      <UniqueIdentifier>{8d8ac95f-6c5a-4eea-b4e8-7e53467a0dc5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.">
+      <UniqueIdentifier>{dabf0266-72d3-4266-886a-a7a68c5d5ed3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.\core">
+      <UniqueIdentifier>{3987bc0a-fcea-49c9-b83b-85638f9a5741}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.\utils">
+      <UniqueIdentifier>{4e9b4b08-7e9f-4f8c-a979-f7f79c091a06}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.\Docter">
+      <UniqueIdentifier>{cc831381-e667-46db-8b39-c505b6bd54dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.\Drug">
+      <UniqueIdentifier>{891d6711-1814-4601-894c-33ee868fa758}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.\Ward">
+      <UniqueIdentifier>{c1f6fd7a-04f4-4b59-8f32-096f7fc53ad7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.\Department">
+      <UniqueIdentifier>{1ede5c94-50c5-4faa-a079-744a6f90f393}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.\Patient">
+      <UniqueIdentifier>{b74c3980-a93c-435b-84b3-f008f9ea2615}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\modules\Patient">
+      <UniqueIdentifier>{bbcfee3f-5c10-4a56-918d-fb6ded11f66a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.\Queue">
+      <UniqueIdentifier>{c600907a-ae09-4ed2-864e-6c19e387e9e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\modules\Queue">
+      <UniqueIdentifier>{66989878-c7c2-4ea6-87e8-b82e5c32db81}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MediCare_HIS_2026.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="DrugManage.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="BufferClear.c">
-      <Filter>源文件</Filter>
+    <ClCompile Include="main.c">
+      <Filter>源文件\src.</Filter>
     </ClCompile>
     <ClCompile Include="HIS_System.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="InputUtils.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="DrugFileManage.c">
-      <Filter>源文件</Filter>
+      <Filter>源文件\src.\core</Filter>
     </ClCompile>
     <ClCompile Include="HIS_StartMenu.c">
-      <Filter>源文件</Filter>
+      <Filter>源文件\src.\core</Filter>
     </ClCompile>
-    <ClCompile Include="DrugSort.c">
-      <Filter>源文件</Filter>
+    <ClCompile Include="InputUtils.c">
+      <Filter>源文件\src.\utils</Filter>
     </ClCompile>
-    <ClCompile Include="PrintFormattedStr.c">
-      <Filter>源文件</Filter>
+    <ClCompile Include="BufferClear.c">
+      <Filter>源文件\src.\utils</Filter>
     </ClCompile>
     <ClCompile Include="ConfirmFunc.c">
-      <Filter>源文件</Filter>
+      <Filter>源文件\src.\utils</Filter>
     </ClCompile>
-    <ClCompile Include="DocterManage.c">
-      <Filter>源文件</Filter>
+    <ClCompile Include="PrintFormattedStr.c">
+      <Filter>源文件\src.\utils</Filter>
     </ClCompile>
     <ClCompile Include="DocterFileManage.c">
-      <Filter>源文件</Filter>
+      <Filter>源文件\src.\Docter</Filter>
     </ClCompile>
-    <ClCompile Include="DepartmentFileManage.c">
-      <Filter>源文件</Filter>
+    <ClCompile Include="DocterManage.c">
+      <Filter>源文件\src.\Docter</Filter>
     </ClCompile>
     <ClCompile Include="DocterSort.c">
-      <Filter>源文件</Filter>
+      <Filter>源文件\src.\Docter</Filter>
     </ClCompile>
-    <ClCompile Include="DepartmentManage.c">
-      <Filter>源文件</Filter>
+    <ClCompile Include="DrugSort.c">
+      <Filter>源文件\src.\Drug</Filter>
     </ClCompile>
-    <ClCompile Include="DepartmentSort.c">
-      <Filter>源文件</Filter>
+    <ClCompile Include="DrugFileManage.c">
+      <Filter>源文件\src.\Drug</Filter>
+    </ClCompile>
+    <ClCompile Include="DrugManage.c">
+      <Filter>源文件\src.\Drug</Filter>
     </ClCompile>
     <ClCompile Include="WardManage.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="WardFileManage.c">
-      <Filter>源文件</Filter>
+      <Filter>源文件\src.\Ward</Filter>
     </ClCompile>
     <ClCompile Include="WardSort.c">
-      <Filter>源文件</Filter>
+      <Filter>源文件\src.\Ward</Filter>
+    </ClCompile>
+    <ClCompile Include="WardFileManage.c">
+      <Filter>源文件\src.\Ward</Filter>
+    </ClCompile>
+    <ClCompile Include="DepartmentFileManage.c">
+      <Filter>源文件\src.\Department</Filter>
+    </ClCompile>
+    <ClCompile Include="DepartmentManage.c">
+      <Filter>源文件\src.\Department</Filter>
+    </ClCompile>
+    <ClCompile Include="DepartmentSort.c">
+      <Filter>源文件\src.\Department</Filter>
+    </ClCompile>
+    <ClCompile Include="PatientManage.c">
+      <Filter>源文件\src.\Patient</Filter>
+    </ClCompile>
+    <ClCompile Include="PatientFileManage.c">
+      <Filter>源文件\src.\Patient</Filter>
+    </ClCompile>
+    <ClCompile Include="PatientSort.c">
+      <Filter>源文件\src.\Patient</Filter>
+    </ClCompile>
+    <ClCompile Include="DayTimeUtils.c">
+      <Filter>源文件\src.\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="QueueManage.c">
+      <Filter>源文件\src.\Queue</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="HIS_drugs.txt" />
-    <Text Include="HIS_doctors.txt" />
-    <Text Include="HIS_departments.txt" />
-    <Text Include="程序设计基础课程设计（2025级）自拟题签.txt">
+    <Text Include="HIS_wards.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="HIS_drugs.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="HIS_doctors.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="HIS_departments.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="C:\Users\27918\Desktop\要求\README.txt">
       <Filter>资源文件</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DrugManage.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ProjectLimits.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="HIS_System.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="BufferClear.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="ConfirmFunc.h">
+      <Filter>头文件\include\utils</Filter>
     </ClInclude>
     <ClInclude Include="InputUtils.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DrugFileManage.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="HIS_StartMenu.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DrugSort.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\include\utils</Filter>
     </ClInclude>
     <ClInclude Include="PrintFormattedStr.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\include\utils</Filter>
     </ClInclude>
-    <ClInclude Include="ConfirmFunc.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="BufferClear.h">
+      <Filter>头文件\include\utils</Filter>
     </ClInclude>
-    <ClInclude Include="DocterManage.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="HIS_System.h">
+      <Filter>头文件\include\core</Filter>
     </ClInclude>
-    <ClInclude Include="DocterFileManage.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="HIS_StartMenu.h">
+      <Filter>头文件\include\core</Filter>
     </ClInclude>
-    <ClInclude Include="DepartmentManage.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DepartmentFileManage.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DocterSort.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="ProjectLimits.h">
+      <Filter>头文件\include\core</Filter>
     </ClInclude>
     <ClInclude Include="DepartmentSort.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\include\modules\Department</Filter>
     </ClInclude>
-    <ClInclude Include="WardManage.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="DepartmentManage.h">
+      <Filter>头文件\include\modules\Department</Filter>
+    </ClInclude>
+    <ClInclude Include="DepartmentFileManage.h">
+      <Filter>头文件\include\modules\Department</Filter>
+    </ClInclude>
+    <ClInclude Include="DrugSort.h">
+      <Filter>头文件\include\modules\Drug</Filter>
+    </ClInclude>
+    <ClInclude Include="DrugManage.h">
+      <Filter>头文件\include\modules\Drug</Filter>
+    </ClInclude>
+    <ClInclude Include="DrugFileManage.h">
+      <Filter>头文件\include\modules\Drug</Filter>
+    </ClInclude>
+    <ClInclude Include="DocterFileManage.h">
+      <Filter>头文件\include\modules\Docter</Filter>
+    </ClInclude>
+    <ClInclude Include="DocterManage.h">
+      <Filter>头文件\include\modules\Docter</Filter>
+    </ClInclude>
+    <ClInclude Include="DocterSort.h">
+      <Filter>头文件\include\modules\Docter</Filter>
     </ClInclude>
     <ClInclude Include="WardFileManage.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\include\modules\Ward</Filter>
+    </ClInclude>
+    <ClInclude Include="WardManage.h">
+      <Filter>头文件\include\modules\Ward</Filter>
     </ClInclude>
     <ClInclude Include="WardSort.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\include\modules\Ward</Filter>
+    </ClInclude>
+    <ClInclude Include="PatientManage.h">
+      <Filter>头文件\include\modules\Patient</Filter>
+    </ClInclude>
+    <ClInclude Include="PatientFileManage.h">
+      <Filter>头文件\include\modules\Patient</Filter>
+    </ClInclude>
+    <ClInclude Include="PatientSort.h">
+      <Filter>头文件\include\modules\Patient</Filter>
+    </ClInclude>
+    <ClInclude Include="DayTimeUtils.h">
+      <Filter>头文件\include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="QueueManage.h">
+      <Filter>头文件\include\modules\Queue</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

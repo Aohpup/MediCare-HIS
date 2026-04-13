@@ -14,7 +14,7 @@
 #include <stdio.h>
 
 static void messageBox(const char* message) {
-	if (TSET_SYSTEM_DETAILS)
+	if (TEST_SYSTEM_DEBUG)
 		printf("\n>>> %s\n", message);
 	else
 		return;
@@ -42,9 +42,10 @@ void adminMenu(HIS_System* sys) {
 		case 3: departmentManageMenu(sys); break;	
 		case 4: wardManageMenu(sys); break;
 		case 5: printf(">>> 模块待开发: 多维数据报表统计...\n"); break;
-		case 6: /*test saveSystemData(sys); */break;
+		case 6: saveSystemData(sys); break;
 		case 0: 
 			if (confirmFunc("退出", "管理员控制台")) {
+					saveSystemData(sys);
 				printf(">>> 退出成功！正在返回主菜单...\n");
 				return;
 			}

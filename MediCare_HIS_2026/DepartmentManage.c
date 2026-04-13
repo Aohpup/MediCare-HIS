@@ -48,7 +48,7 @@ bool isDepartmentIdExist(Department* head, const char* id) {
 }
 
 // 检查一级科室代码是否存在
-static bool isCategoryIdExist(Department* head, const char* id) {
+bool isCategoryIdExist(Department* head, const char* id) {
 	Department* curr = head;
 	while (curr != NULL) {
 		if (strcmp(curr->categoryId, id) == 0) return true;
@@ -58,7 +58,7 @@ static bool isCategoryIdExist(Department* head, const char* id) {
 }
 
 // 统计某二级科室编号下的医生数量（为可能的“多医生-单科室”扩展预留）
-static int countDoctorsBySubDeptId(HIS_System* sys, const char* subDeptId) {
+int countDoctorsBySubDeptId(HIS_System* sys, const char* subDeptId) {
 	if (sys == NULL || subDeptId == NULL) return 0;
 	int count = 0;
 	Docter* docCurr = sys->docHead;
@@ -367,7 +367,6 @@ void queryDepartment(HIS_System* sys) {
 }
 
 // 修改科室模块 (处理重名逻辑)
-//TODO:支持中途取消修改操作，避免用户误操作导致数据被修改后无法恢复的情况
 void modifyDepartment(HIS_System* sys) {
 	if (sys->deptHead == NULL) {
 		printf("\n>>> 系统内没有科室数据！\n");
@@ -382,7 +381,7 @@ void modifyDepartment(HIS_System* sys) {
 	printf("4. 按诊室编号修改\n");
 	printf("0. 返回上一级菜单\n");
 	printf("警告：修改科室信息可能会影响相关医生的绑定关系，请确保医生与诊室的绑定关系正确！\n");
-	choice = safeGetInt("请选择修改目标(输入 -1 取消): ");
+	choice = safeGetInt("请选择修改目标: ");
 	if (choice == -1 || choice == 0) return;
 
 	char queryStr[STR_LEN];
@@ -394,7 +393,7 @@ void modifyDepartment(HIS_System* sys) {
 	int matchCount = 0;
 
 	if (choice == 1) {
-		safeGetString("请输入要修改的一级科室名称(输入 -1 取消): ", queryStr, STR_LEN);
+		safeGetString("请输入要修改的一级科室名称:(在任意输入环节输入 '-1' 可取消本次修改) ", queryStr, STR_LEN);
 		if (strcmp(queryStr, "-1") == 0) return;
 		while (curr != NULL) {
 			if (strcmp(curr->categoryName, queryStr) == 0) {
@@ -419,7 +418,7 @@ void modifyDepartment(HIS_System* sys) {
 
 			if (confirmFunc("修改", "一级科室名称")) {
 				char newName[STR_LEN];
-				safeGetString("请输入新的一级科室名称(输入 -1 取消): ", newName, STR_LEN);
+				safeGetString("请输入新的一级科室名称: ", newName, STR_LEN);
 				if (strcmp(newName, "-1") == 0) { printf(">>> 已取消修改。\n"); break; }
 
 				if (modifyMode == 1) {
@@ -468,7 +467,7 @@ void modifyDepartment(HIS_System* sys) {
 		}
 	}
 	else if (choice == 2) { //一级科室代码，代码唯一，直接修改所有匹配项，无需区分批量/精确修改
-		safeGetString("请输入要修改的一级科室代码(输入 -1 取消): ", queryStr, ID_LEN);
+		safeGetString("请输入要修改的一级科室代码: (在任意输入环节输入 '-1' 可取消本次修改)", queryStr, ID_LEN);
 		if (strcmp(queryStr, "-1") == 0) return;
 		while (curr != NULL) {
 			if (strcmp(curr->categoryId, queryStr) == 0) {
@@ -482,7 +481,7 @@ void modifyDepartment(HIS_System* sys) {
 		}
 		while (1) {
 			char newId[ID_LEN];
-			safeGetString("请输入新的一级科室代码(输入 -1 取消): ", newId, ID_LEN);
+			safeGetString("请输入新的一级科室代码: ", newId, ID_LEN);
 			if (strcmp(newId, "-1") == 0) { printf(">>> 已取消修改。\n"); break; }
 			if (isCategoryIdExist(sys->deptHead, newId)) {
 				printf(">>> 错误：新一级科室代码已存在，修改失败！\n");
@@ -496,8 +495,8 @@ void modifyDepartment(HIS_System* sys) {
 		}
 	}
 	else if (choice == 3) {
-		// ========== 修改二级科室名称 ==========
-		safeGetString("请输入要修改的二级科室名称(输入 -1 取消): ", queryStr, STR_LEN);
+		// 修改二级科室名称 
+		safeGetString("请输入要修改的二级科室名称(在任意输入环节输入 '-1' 可取消本次修改): ", queryStr, STR_LEN);
 		if (strcmp(queryStr, "-1") == 0) return;
 		while (curr != NULL) {
 			SubDepartment* subCurr = curr->subDeptHead;
@@ -526,7 +525,7 @@ void modifyDepartment(HIS_System* sys) {
 		}
 
 		char newName[STR_LEN];
-		safeGetString("请输入新的二级科室名称(输入 -1 取消): ", newName, STR_LEN);
+		safeGetString("请输入新的二级科室名称: ", newName, STR_LEN);
 		if (strcmp(newName, "-1") == 0) { printf(">>> 已取消修改。\n"); return; }
 
 		if (modifyMode == 1) {
@@ -554,7 +553,7 @@ void modifyDepartment(HIS_System* sys) {
 	}
 	else if (choice == 4) {
 		//按科室编号修改,由于编号全局唯一，无需区分批量/精确修改
-		safeGetString("请输入要修改的科室编号(输入 -1 取消): ", queryStr, ID_LEN);
+		safeGetString("请输入要修改的科室编号(在任意输入环节输入 '-1' 可取消本次修改): ", queryStr, ID_LEN);
 		if (strcmp(queryStr, "-1") == 0) return;
 		SubDepartment* targetSubDept = NULL;
 		Department* targetParentDept = NULL;
@@ -584,12 +583,12 @@ void modifyDepartment(HIS_System* sys) {
 
 		printf("\n1. 修改该科室名称\n");
 		printf("2. 修改该科室编号\n");
-		int subChoice = safeGetInt("请选择要修改的内容(输入 -1 取消): ");
+		int subChoice = safeGetInt("请选择要修改的内容: ");
 		if (subChoice == -1) return;
 
 		if (subChoice == 1) {
 			char newName[STR_LEN];
-			safeGetString("请输入新的二级科室名称(输入 -1 取消): ", newName, STR_LEN);
+			safeGetString("请输入新的二级科室名称: ", newName, STR_LEN);
 			if (strcmp(newName, "-1") != 0) {
 				strcpy(targetSubDept->subDeptName, newName);
 				printf(">>> 修改成功！\n");
@@ -597,7 +596,7 @@ void modifyDepartment(HIS_System* sys) {
 		}
 		else if (subChoice == 2) {
 			char newId[ID_LEN];
-			safeGetString("请输入新的科室编号(输入 -1 取消): ", newId, ID_LEN);
+			safeGetString("请输入新的科室编号: ", newId, ID_LEN);
 			if (strcmp(newId, "-1") == 0) return;
 			if (isDepartmentIdExist(sys->deptHead, newId)) {
 				printf(">>> 错误：新编号已存在，修改失败！\n");

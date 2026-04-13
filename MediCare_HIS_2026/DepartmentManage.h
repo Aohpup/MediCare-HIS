@@ -9,6 +9,15 @@ bool isDepartmentIdExist(Department* head, const char* id);
 //检查科室名称是否存在
 bool isDepartmentNameExist(Department* head, const char* name);
 
+//检查二级科室名称是否存在
+bool isSubDepartmentNameExist(Department* head, const char* name);
+
+//检查一级科室代码是否存在
+bool isCategoryIdExist(Department* head, const char* id);
+
+//统计某二级科室编号下的医生数量（为可能的“多医生-单科室”扩展预留）
+int countDoctorsBySubDeptId(HIS_System* sys, const char* subDeptId);
+
 //科室管理菜单界面
 void departmentManageMenu(HIS_System* sys);
 

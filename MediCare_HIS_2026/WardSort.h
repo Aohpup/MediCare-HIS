@@ -23,6 +23,9 @@ typedef enum {
 	WARD_ORDER_EXIT = 0			// 退出排序
 } WardSortOrder;
 
+//对病床链表按床位编号排序（升序）
+void sortBedList(Bed** head);
+
 //病房排序菜单界面
 void wardSortMenu(HIS_System* sys);
 

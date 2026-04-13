@@ -4,6 +4,8 @@
 
 #include"HIS_System.h"
 
+extern bool is_Department_File_Loaded;	//标记是否加载过科室数据
+
 //从txt文件加载科室系统数据
 void loadDepartmentSystemData(HIS_System* sys);
 

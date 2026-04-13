@@ -15,6 +15,9 @@
 #define ORDER_ASC  1			//升序
 #define ORDER_DESC 2			//降序
 
+// 对病床链表按床位编号排序（升序）
+void sortBedList(Bed** head);
+
 // 排序方式常量定义
 bool needToSortDepartment(Department* a, Department* b, int choice, int order);
 

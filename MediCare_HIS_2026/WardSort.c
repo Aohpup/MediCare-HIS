@@ -3,6 +3,16 @@
 #include "InputUtils.h"
 #include <string.h>
 
+static void swapWards(Ward* a, Ward* b) {
+	Ward temp = *a;
+	*a = *b;
+	*b = temp;
+	// 交换后需要修正next指针
+	Ward* tempNext = a->next;
+	a->next = b->next;
+	b->next = tempNext;
+}
+
 static int countBeds(Ward* ward) {
 	int c = 0; Bed* b = ward->bedListHead;
 	while (b) { c++; b = b->next; }
@@ -33,7 +43,31 @@ static int needSwap(Ward* a, Ward* b, int choice, int order) {
 	default:
 		return 0;
 	}
-	return (order == WARD_ORDER_ASC) ? (cmp > 0) : (cmp < 0);
+	return (order == WARD_ORDER_ASC) ? (cmp > 0) : (cmp < 0);	// 升序时a>b需要交换，降序时a<b需要交换
+}
+
+// 使用冒泡排序算法对病房链表进行排序
+static void swapWardList(Ward* head, Ward* tail, int choice, int order) {
+	if (head == NULL) {
+		printf("\n>>> 系统内没有病房数据！\n");
+		return;
+	}
+	else if(head->next == NULL) {
+		return; // 只有一个节点，无需排序
+	}
+	bool swapped;
+	do {
+		swapped = false;
+		Ward* curr = head;
+		while (curr->next != tail) {
+			if (needSwap(curr, curr->next, choice, order)) {
+				swapWards(curr, curr->next);
+				swapped = true;
+			}
+			curr = curr->next; // 只有不交换时才移动到下一个节点
+		}
+		tail = curr; // 每次冒泡后，最后一个节点是最大/最小的，不需要再比较
+	} while (swapped);
 }
 
 void wardSortMenu(HIS_System* sys) {
@@ -65,25 +99,11 @@ void wardSortMenu(HIS_System* sys) {
 			continue;
 		}
 
-		Ward* tail = NULL;
-		int swapped;
-		do {
-			swapped = 0;
-			Ward* cur = sys->wardHead;
-			while (cur && cur->next != tail) {
-				if (needSwap(cur, cur->next, choice, order)) {
-					Ward temp = *cur;
-					*cur = *(cur->next);
-					*(cur->next) = temp;
-					Ward* tmpNext = cur->next->next;
-					cur->next->next = cur->next;
-					cur->next = tmpNext;
-					swapped = 1;
-				}
-				cur = cur->next;
-			}
-			tail = cur;
-		} while (swapped);
+		const char* options[] = { "按病房编号", "按病房种类", "按所属科室", "按床位总数", "按剩余床位数", "按已使用床位数" };
+		printf("\n>>> 已选择排序方式：%s\n", options[choice - 1]);
+		printf(">>> 已选择排序顺序：%s\n\n", (order == WARD_ORDER_ASC) ? "升序" : "降序");
+
+		swapWardList(sys->wardHead, NULL, choice, order);
 
 		printf(">>> 病房排序完成！\n");
 		return;

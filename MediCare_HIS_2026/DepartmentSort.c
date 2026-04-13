@@ -3,6 +3,45 @@
 #include<string.h>
 #include"InputUtils.h"
 
+// 对病房内床位链表按床位编号排序（升序）
+void sortBedList(Bed** head) {
+	// 如果链表为空或只有一个节点，无需排序
+	if (*head == NULL || (*head)->next == NULL) return;
+
+	bool swapped;
+	Bed* tail = NULL; // 标记已排好序的尾部
+	do {
+		swapped = false;
+		Bed* curr = *head;
+		Bed* prev = NULL; 
+
+		while (curr->next != tail) {
+			Bed* nextNode = curr->next;
+			int cmp = strcmp(curr->bedId, nextNode->bedId);
+
+			if (cmp > 0) { 
+				curr->next = nextNode->next;
+				nextNode->next = curr;
+
+				if (prev == NULL) {
+					*head = nextNode;
+				}
+				else {
+					prev->next = nextNode;
+				}
+				prev = nextNode;
+
+				swapped = true;
+			}
+			else {
+				prev = curr;
+				curr = curr->next;
+			}
+		}
+		tail = curr;
+	} while (swapped);
+}
+
 // 根据用户选择的排序方式和顺序，确定是否需要交换两个科室节点
 bool needToSortDepartment(Department* a, Department* b, int choice, int order) {
 	if (choice == SORT_BY_CATEGORY) {
@@ -89,6 +128,7 @@ static void sortSubDepartmentList(SubDepartment* head, SubDepartment* tail, int 
 // 并在需要时增加二级科室链表排序
 void sortDepartmentList(Department* head, Department* tail, int choice, int order) {
 	if (head == NULL) {
+		printf("\n>>> 系统内没有科室数据！\n");
 		return;
 	}
 
@@ -103,10 +143,12 @@ void sortDepartmentList(Department* head, Department* tail, int choice, int orde
 	if (head->next == NULL) {
 		return;
 	}
+	
 	bool swapped;
 	do {
 		swapped = false;
 		Department* curr = head;
+		// 只有一个节点时直接返回
 		while (curr->next != tail) {
 			if (needToSortDepartment(curr, curr->next, choice, order)) {
 				swapDepartments(curr, curr->next);

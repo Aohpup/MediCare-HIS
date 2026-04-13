@@ -54,18 +54,31 @@ static Bed* findBed(Ward* ward, const char* bedId) {
 //录入新病房
 void addWard(HIS_System* sys) {
 	while (1) {
-		printf("\n--- 录入新病房 (输入 -1 取消) ---\n");
+		printf("\n--- 录入新病房 (在任意输入环节输入 '-1' 可取消本次修改) ---\n");
 		Ward* newWard = (Ward*)malloc(sizeof(Ward));
-		if (!newWard) { printf(">>> 内存分配失败！\n"); return; }
+		if (!newWard) { 
+			printf(">>> 内存分配失败！\n");
+			return; 
+		}
 		bool cancel = false;
 
 		while (1) {
 			safeGetString("请输入病房编号: ", newWard->wardId, ID_LEN);
-			if (strcmp(newWard->wardId, "-1") == 0) { cancel = true; break; }
-			if (isWardIdExist(sys->wardHead, newWard->wardId)) { printf(">>> 病房编号已存在！\n"); continue; }
+			if (strcmp(newWard->wardId, "-1") == 0) {
+				cancel = true;
+				break; 
+			}
+			if (isWardIdExist(sys->wardHead, newWard->wardId)) {
+				printf(">>> 病房编号已存在！\n");
+				continue; 
+			}
 			break;
 		}
-		if (cancel) { free(newWard); printf(">>> 已取消录入。\n"); return; }
+		if (cancel) {
+			free(newWard);
+			printf(">>> 已取消录入。\n");
+			return; 
+		}
 
 		while (1) {
 			int t = safeGetInt("请选择病房种类 (1普通 2VIP 3ICU): ");
@@ -74,39 +87,70 @@ void addWard(HIS_System* sys) {
 			newWard->type = (WardType)t;
 			break;
 		}
-		if (cancel) { free(newWard); printf(">>> 已取消录入。\n"); return; }
+		if (cancel) {
+			free(newWard);
+			printf(">>> 已取消录入。\n");
+			return; 
+		}
 
 		while (1) {
 			safeGetString("请输入所属科室: ", newWard->department, STR_LEN);
-			if (strcmp(newWard->department, "-1") == 0) { cancel = true; break; }
+			if (strcmp(newWard->department, "-1") == 0) {
+				cancel = true;
+				break; 
+			}
 			if (!isDepartmentNameExist(sys->deptHead, newWard->department)) {
 				printf(">>> 提示：系统内未找到该科室，请确认是否已在科室模块创建。\n");
 			}
 			break;
 		}
-		if (cancel) { free(newWard); printf(">>> 已取消录入。\n"); return; }
+		if (cancel) {
+			free(newWard);
+			printf(">>> 已取消录入。\n");
+			return; 
+		}
 
 		newWard->bedListHead = NULL;
 		int bedCount = 0;
 		while (1) {
 			bedCount = safeGetInt("请输入要录入的床位数量: ");
-			if (bedCount == -1) { cancel = true; break; }
-			if (bedCount <= 0) { printf(">>> 床位数量需大于0！\n"); continue; }
+			if (bedCount == -1) {
+				cancel = true;
+				break; 
+			}
+			if (bedCount <= 0) {
+				printf(">>> 床位数量需大于0！\n");
+				continue; 
+			}
 			break;
 		}
-		if (cancel) { free(newWard); printf(">>> 已取消录入。\n"); return; }
+		if (cancel) { 
+			free(newWard);
+			printf(">>> 已取消录入。\n");
+			return;
+		}
 
 		for (int i = 0; i < bedCount; ++i) {
 			Bed* b = (Bed*)malloc(sizeof(Bed));
-			if (!b) { printf(">>> 床位内存分配失败，已中断。\n"); cancel = true; break; }
+			if (!b) {
+				printf(">>> 床位内存分配失败，已中断。\n");
+				cancel = true;
+				break; 
+			}
 			while (1) {
 				char prompt[64]; sprintf(prompt, "请输入第%d个床位编号: ", i + 1);
 				safeGetString(prompt, b->bedId, ID_LEN);
-				if (strcmp(b->bedId, "-1") == 0) { cancel = true; break; }
+				if (strcmp(b->bedId, "-1") == 0) {
+					cancel = true;
+					break; 
+				}
 				if (isBedIdExist(newWard->bedListHead, b->bedId)) { printf(">>> 床位编号重复！\n"); continue; }
 				break;
 			}
-			if (cancel) { free(b); break; }
+			if (cancel) {
+				free(b);
+				break; 
+			}
 			b->isOccupied = false;
 			b->patient[0] = '\0';
 			b->next = newWard->bedListHead;
@@ -117,6 +161,8 @@ void addWard(HIS_System* sys) {
 			Bed* b = newWard->bedListHead; while (b) { Bed* tmp = b; b = b->next; free(tmp); }
 			free(newWard); printf(">>> 已取消录入。\n"); return;
 		}
+
+		sortBedList(&newWard->bedListHead);	// 对床位列表排序(取地址)
 
 		newWard->next = sys->wardHead;
 		sys->wardHead = newWard;
@@ -191,7 +237,8 @@ void queryWard(HIS_System* sys) {
 				printWardInfo(curr);
 				found = true;
 			} 
-			curr = curr->next; }
+			curr = curr->next; 
+		}
 		break; 
 	}
 	case 3:
@@ -237,7 +284,10 @@ void queryWard(HIS_System* sys) {
 		safeGetString("请输入床位编号: ", strBuf, ID_LEN);
 		while (curr) {
 			Bed* b = findBed(curr, strBuf);
-			if (b) { printWardInfo(curr); found = true; }
+			if (b) { 
+				printWardInfo(curr);
+				found = true; 
+			}
 			curr = curr->next;
 		}
 		break;
@@ -246,28 +296,41 @@ void queryWard(HIS_System* sys) {
 		while (curr) {
 			Bed* b = curr->bedListHead;
 			while (b) {
-				if (b->isOccupied && strcmp(b->patient, strBuf) == 0) { printWardInfo(curr); found = true; break; }
+				if (b->isOccupied && strcmp(b->patient, strBuf) == 0) {
+					printWardInfo(curr);
+					found = true;
+					break; 
+				}
 				b = b->next;
 			}
 			curr = curr->next;
 		}
 		break;
 	case 0: return;
-	default: printf(">>> 无效选择！\n"); return;
+	default: printf(">>> 无效选择！\n"); 
+		return;
 	}
 	if (!found) printf(">>> 没有找到匹配的病房信息！\n");
 }
 
 //修改病房信息
 void modifyWard(HIS_System* sys) {
-	if (sys->wardHead == NULL) { printf("\n>>> 系统内没有病房数据！\n"); return; }
+	if (sys->wardHead == NULL) { 
+		printf("\n>>> 系统内没有病房数据！\n");
+		return; 
+	}
 	char wardId[ID_LEN];
 	while (1) {
 		safeGetString("请输入要修改的病房编号 (输入 -1 取消): ", wardId, ID_LEN);
-		if (strcmp(wardId, "-1") == 0) { return; }
+		if (strcmp(wardId, "-1") == 0)  return; 
 		Ward* target = sys->wardHead;	
-		while (target && strcmp(target->wardId, wardId) != 0) target = target->next;
-		if (!target) { printf(">>> 未找到该病房！\n"); continue; }
+		while (target && strcmp(target->wardId, wardId) != 0) 
+			target = target->next;
+
+		if (!target) {
+			printf(">>> 未找到该病房！\n");
+			continue; 
+		}
 
 		printWardInfo(target);
 		printf("\n1. 修改病房编号\n");
@@ -278,7 +341,10 @@ void modifyWard(HIS_System* sys) {
 		printf("6. 床位占用/释放\n");
 		int ch = safeGetInt("请选择要修改的内容 (输入 -1 取消): ");
 		if (ch == -1) return;
-		if (!confirmFunc("修改", "病房信息")) { printf(">>> 已取消修改。\n"); return; }
+		if (!confirmFunc("修改", "病房信息")) {
+			printf(">>> 已取消修改。\n");
+			return; 
+		}
 
 		switch (ch) {
 		case 1: {
@@ -286,7 +352,10 @@ void modifyWard(HIS_System* sys) {
 			while (1) {
 				safeGetString("请输入新的病房编号 (输入 -1 取消): ", newId, ID_LEN);
 				if (strcmp(newId, "-1") == 0) break;
-				if (isWardIdExist(sys->wardHead, newId)) { printf(">>> 编号已存在！\n"); continue; }
+				if (isWardIdExist(sys->wardHead, newId)) {
+					printf(">>> 编号已存在！\n");
+					continue; 
+				}
 				strcpy(target->wardId, newId);
 				printf(">>> 病房编号修改成功！\n");
 				break;
@@ -296,8 +365,13 @@ void modifyWard(HIS_System* sys) {
 			while (1) {
 				int t = safeGetInt("请选择病房种类 (1普通 2VIP 3ICU，-1取消): ");
 				if (t == -1) break;
-				if (t < 1 || t > 3) { printf(">>> 无效种类！\n"); continue; }
-				target->type = (WardType)t; printf(">>> 病房种类已修改！\n"); break;
+				if (t < 1 || t > 3) {
+					printf(">>> 无效种类！\n");
+					continue; 
+				}
+				target->type = (WardType)t; 
+				printf(">>> 病房种类已修改！\n");
+				break;
 			}
 			break; }
 		case 3: {
@@ -312,11 +386,21 @@ void modifyWard(HIS_System* sys) {
 			break; }
 		case 4: {
 			Bed* b = (Bed*)malloc(sizeof(Bed));
-			if (!b) { printf(">>> 内存分配失败！\n"); break; }
+			if (!b) {
+				printf(">>> 内存分配失败！\n");
+				break; 
+			}
 			while (1) {
 				safeGetString("请输入新床位编号 (输入 -1 取消): ", b->bedId, ID_LEN);
-				if (strcmp(b->bedId, "-1") == 0) { free(b); b = NULL; break; }
-				if (isBedIdExist(target->bedListHead, b->bedId)) { printf(">>> 编号重复！\n"); continue; }
+				if (strcmp(b->bedId, "-1") == 0) {
+					free(b);
+					b = NULL;
+					break; 
+				}
+				if (isBedIdExist(target->bedListHead, b->bedId)) {
+					printf(">>> 编号重复！\n");
+					continue; 
+				}
 				break;
 			}
 			if (b) {
@@ -324,29 +408,62 @@ void modifyWard(HIS_System* sys) {
 				b->next = target->bedListHead; target->bedListHead = b;
 				printf(">>> 床位添加成功！\n");
 			}
+
+			sortBedList(&target->bedListHead);	// 添加后排序
+
 			break; }
 		case 5: {
 			char delId[ID_LEN];
 			safeGetString("请输入要删除的床位编号 (输入 -1 取消): ", delId, ID_LEN);
 			if (strcmp(delId, "-1") == 0) break;
 			Bed* b = target->bedListHead; Bed* prev = NULL;
-			while (b && strcmp(b->bedId, delId) != 0) { prev = b; b = b->next; }
-			if (!b) { printf(">>> 未找到该床位！\n"); break; }
-			if (prev) prev->next = b->next; else target->bedListHead = b->next;
-			free(b); printf(">>> 床位删除成功！\n");
+			while (b && strcmp(b->bedId, delId) != 0) {
+				prev = b; 
+				b = b->next; 
+			}
+			if (!b) {
+				printf(">>> 未找到该床位！\n");
+				break; 
+			}
+			if (prev)
+				prev->next = b->next;
+			else 
+				target->bedListHead = b->next;
+
+			free(b); 
+			printf(">>> 床位删除成功！\n");
+
 			break; }
 		case 6: {
 			char bedId[ID_LEN];
 			safeGetString("请输入床位编号 (输入 -1 取消): ", bedId, ID_LEN);
 			if (strcmp(bedId, "-1") == 0) break;
+
 			Bed* b = findBed(target, bedId);
-			if (!b) { printf(">>> 未找到该床位！\n"); break; }
+
+			if (!b) {
+				printf(">>> 未找到该床位！\n"); 
+				break; 
+			}
+
 			printf("当前状态:%s\n", b->isOccupied ? "已占用" : "空闲");
+
 			int op = safeGetInt("1-设为空闲 2-设为占用 (-1取消): ");
 			if (op == -1) break;
-			if (op == 1) { b->isOccupied = false; b->patient[0] = '\0'; printf(">>> 已释放！\n"); }
-			else if (op == 2) { safeGetString("请输入患者编号 (输入 -1 取消): ", b->patient, ID_LEN); if (strcmp(b->patient, "-1") == 0) break; b->isOccupied = true; printf(">>> 已设置占用！\n"); }
-			else { printf(">>> 无效操作！\n"); }
+
+			if (op == 1) {
+				b->isOccupied = false;
+				b->patient[0] = '\0';
+				printf(">>> 已释放！\n"); 
+			}
+			else if (op == 2) {
+				safeGetString("请输入患者编号 (输入 -1 取消): ", b->patient, ID_LEN);
+				if (strcmp(b->patient, "-1") == 0) break;
+				b->isOccupied = true;
+				printf(">>> 已设置占用！\n"); 
+			}
+			else 
+				printf(">>> 无效操作！\n");
 			break; }
 		default:
 			printf(">>> 无效选择。\n");
@@ -358,14 +475,20 @@ void modifyWard(HIS_System* sys) {
 //删除病房记录
 void deleteWard(HIS_System** sys) {
 	while (1) {
-		if ((*sys)->wardHead == NULL) { printf("\n>>> 系统内没有病房数据！\n"); return; }
+		if ((*sys)->wardHead == NULL) {
+			printf("\n>>> 系统内没有病房数据！\n");
+			return;
+		}
 		printf("\n--- 删除病房 ---\n");
 		printf("1. 按病房编号删除\n");
 		printf("2. 按所属科室删除(将删除该科室下所有病房)\n");
 		printf("0. 返回\n");
 		int ch = safeGetInt("请选择: ");
 		if (ch == 0) return;
-		if (ch != 1 && ch != 2) { printf(">>> 无效选择！\n"); continue; }
+		if (ch != 1 && ch != 2) {
+			printf(">>> 无效选择！\n");
+			continue; 
+		}
 		char q[STR_LEN];
 		switch (ch) {
 		case 1:
@@ -383,7 +506,10 @@ void deleteWard(HIS_System** sys) {
 //根据删除方式和查询字符串的删除工具
 void deleteWardFunc(Ward** head, const char* queryStr, int mode) {
 	Ward* curr = *head; Ward* prev = NULL; bool deleted = false;
-	if (!confirmFunc("删除", "病房")) { printf(">>> 已取消删除。\n"); return; }
+	if (!confirmFunc("删除", "病房")) {
+		printf(">>> 已取消删除。\n");
+		return; 
+	}
 	while (curr) {
 		bool match = false;
 		switch (mode) {
@@ -393,16 +519,29 @@ void deleteWardFunc(Ward** head, const char* queryStr, int mode) {
 		}
 		if (match) {
 			// delete
-			Bed* b = curr->bedListHead; while (b) { Bed* tmp = b; b = b->next; free(tmp); }
+			Bed* b = curr->bedListHead; while (b) {
+				Bed* tmp = b;
+				b = b->next;
+				free(tmp); 
+			}
 			if (prev) prev->next = curr->next; else *head = curr->next;
 			printf(">>> 病房 <%s> 已删除。\n", curr->wardId);
-			Ward* tmpW = curr; curr = curr->next; free(tmpW); deleted = true;
-			if (mode == 1) break; // 单条
-			else continue;
+
+			Ward* tmpW = curr;
+			curr = curr->next;
+			free(tmpW);
+			deleted = true;
+
+			if (mode == 1) 
+				break; // 单条
+			else 
+				continue;
 		}
-		prev = curr; curr = curr->next;
+		prev = curr;
+		curr = curr->next;
 	}
-	if (!deleted) printf(">>> 未找到匹配的病房。\n");
+	if (!deleted) 
+		printf(">>> 未找到匹配的病房。\n");
 }
 
 //显示所有病房信息
@@ -430,7 +569,7 @@ void wardManageMenu(HIS_System* sys) {
 			return;
 		}
 	}
-	loadWardData(sys);
+	loadWardSystemData(sys);
 
 	int choice;
 	while (1) {
@@ -452,7 +591,7 @@ void wardManageMenu(HIS_System* sys) {
 		case 4: wardSortMenu(sys); break;
 		case 5: deleteWard(&sys); break;
 		case 6: displayAllWards(sys); break;
-		case 7: saveWardData(sys); break;
+		case 7: saveWardSystemData(sys); break;
 		case 0: return;
 		default: printf(">>> 无效选择，请重试。\n"); break;
 		}

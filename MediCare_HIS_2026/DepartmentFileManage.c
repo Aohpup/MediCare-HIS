@@ -2,6 +2,7 @@
 #include"HIS_System.h"
 #include"DepartmentFileManage.h"
 #include"string.h"
+bool is_Department_File_Loaded = false;	//标记是否加载过科室数据
 
 void loadDepartmentSystemData(HIS_System* sys) {
 	printf(">>> 正在从科室文件中加载数据...\n");
@@ -10,6 +11,7 @@ void loadDepartmentSystemData(HIS_System* sys) {
 		printf(">>> 警告: 找不到 %s，将作为新系统启动。\n", DEPARTMENT_FILE);
 		return;
 	}
+
 	char buffer[1024];
 	char tempCategory[STR_LEN];		// 一级科室名称
 	char tempCategoryId[ID_LEN];	// 一级科室代码
@@ -69,6 +71,8 @@ void loadDepartmentSystemData(HIS_System* sys) {
 	}
 	fclose(fp);
 	printf(">>> 数据加载完成！\n");
+	is_Department_File_Loaded = true;	//标记已加载过科室数据
+
 }
 
 void saveDepartmentSystemData(HIS_System* sys) {
@@ -89,6 +93,6 @@ void saveDepartmentSystemData(HIS_System* sys) {
 	}
 
 	fclose(fp);
-	printf(">>> 系统数据保存成功！\n");
+	printf(">>> 科室数据保存成功！\n");
 
 }
