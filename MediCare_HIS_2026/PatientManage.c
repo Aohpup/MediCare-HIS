@@ -1,6 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include"HIS_System.h"
 #include"QueueManage.h"
+#include"DrugFileManage.h"
+#include"DocterFileManage.h"
+#include"DepartmentFileManage.h"
+#include"WardFileManage.h"
 #include"PatientManage.h"
 #include"PatientFileManage.h"
 #include"DepartmentManage.h"
@@ -11,17 +15,31 @@
 
 bool is_Patient_Logged_In = false;	//标记患者是否已登录
 
+void loadFileAllData(HIS_System* sys) {
+	if(TEST_SYSTEM_DEBUG)
+		printf(">>> 正在加载所有系统数据...\n");
+	loadDepartmentSystemData(sys);
+	loadDoctorSystemData(sys);
+	loadDrugSystemData(sys);
+	loadWardSystemData(sys);
+	loadPatientsSystemData(sys);
+}
+
 static Patient* currentPatient = NULL;
 
 static Patient* getCurrentPatient(void) {
 	return currentPatient;
 }
 
+// 设置当前登录的患者信息指针，并根据指针是否为NULL更新登录状态标志
 static void setCurrentPatient(Patient* patient) {
 	currentPatient = patient;
 	is_Patient_Logged_In = (patient != NULL);	//如果传入的患者指针不为NULL，说明患者已登录；如果为NULL，说明患者已退出登录
 }
 
+// 根据医生编号在系统中查找对应的医生信息
+// 区别于Docter文件内的findDoctorById函数，这里可以返回医生信息指针，供挂号时使用；
+// 而Docter文件内的函数主要用于验证医生编号是否存在，无法返回医生信息指针
 static Docter* findDoctorById(HIS_System* sys, const char* doctorId) {
 	Docter* curr = sys->docHead;
 	while (curr != NULL) {
@@ -33,6 +51,7 @@ static Docter* findDoctorById(HIS_System* sys, const char* doctorId) {
 	return NULL;
 }
 
+// 打印所有可选的挂号预约时间段列表，并提示患者输入选择的时段编号，返回对应的TimeSlot枚举值
 static TimeSlot inputTimeSlotChoice(void) {
 	printAllTimeSlots();
 	int slotNo = safeGetInt(">>> 请选择时段编号(1-13): ");
@@ -42,13 +61,14 @@ static TimeSlot inputTimeSlotChoice(void) {
 	return (TimeSlot)slotNo;
 }
 
+// 将新的挂号记录追加到患者的挂号记录链表末尾
 static void appendRegistrationRecord(Patient* patient, const char* doctorId, const char* department, const char* date, TimeSlot slot) {
 	RegistrationRecord* reg = (RegistrationRecord*)malloc(sizeof(RegistrationRecord));
 	if (reg == NULL) {
 		printf(">>> 内存不足，挂号记录写入失败。\n");
 		return;
 	}
-	sprintf(reg->recordId, "R%s%03d", patient->patientId, rand() % 1000);
+	sprintf(reg->recordId, "R%s%03d", patient->patientId, rand() % 1000);	//生成挂号记录编号，格式为R+患者编号+3位随机数（如R10000001001）TODO: 可以改进为更有规律的编号生成方式，如使用全局挂号记录计数器，确保编号唯一且有序
 	strcpy(reg->doctorId, doctorId);
 	strcpy(reg->department, department);
 	strcpy(reg->date, date);
@@ -64,6 +84,7 @@ static void appendRegistrationRecord(Patient* patient, const char* doctorId, con
 	}
 }
 
+// 生成新的患者编号，格式为P+8位数字（如P10000001），并返回编号字符串指针
 static char* generatePatientId() {
 	static char id[ID_LEN];
 	sprintf(id, "P%08d", currentPatientId++);	//生成患者编号，格式为P+8位数字（如P10000001）
@@ -109,6 +130,7 @@ void registerPatient(HIS_System* sys, const char* remainIdCard) {
 		while (1) {
 			if(remainIdCard != NULL) {
 				if (confirmFunc("使用", "上次输入的身份证号")) {
+					printf(">>> 已使用上次输入的身份证号: %s\n", remainIdCard);
 					strcpy(newPatient->idCard, remainIdCard);
 				}
 				else {
@@ -171,6 +193,7 @@ void registerPatient(HIS_System* sys, const char* remainIdCard) {
 				sys->patientTail = newPatient;	//更新末尾指针
 			}
 			printf(">>> 患者 <%s> 注册成功！\n", newPatient->name);
+			savePatientsSystemData(sys);	// 注册成功后立即保存数据到文件，确保数据持久化
 			//注册成功后询问是否直接登录
 			if(confirmFunc("登录", "患者账户")) {
 				setCurrentPatient(newPatient); // 设置当前登录的患者
@@ -191,7 +214,7 @@ void logInPatient(HIS_System* sys) {
 			printf(">>> 已登录患者账户 %s，无需重复登录！正在返回患者服务台...\n", getCurrentPatient()->name);
 			return;
 		}
-		printf("\n--- 患者登录（输入 '-1' 可取消本次注册) ---\n");
+		printf("\n--- 患者登录（输入 '-1' 可取消本次登录) ---\n");
 		char idCard[18 + 3];
 		safeGetString("请输入患者身份证号: ", idCard, 18 + 3);
 		if (strcmp(idCard, "-1") == 0) {
@@ -199,6 +222,14 @@ void logInPatient(HIS_System* sys) {
 			return;
 		}
 		Patient* curr = sys->patientHead;
+		if(curr == NULL) {
+			if (!TEST_SYSTEM_DEBUG) {
+				printf("严重错误: 当前没有患者数据，请查询权限或联系管理员。\n");
+				exit(EXIT_FAILURE);
+			}
+			printf(">>> 当前没有患者数据，请先进行患者注册！正在返回操作菜单...\n");
+			return;
+		}
 		while (curr) {
 			if (strcmp(curr->idCard, idCard) == 0) {
 				printf(">>> 登录成功！欢迎您，%s！正在返回患者服务台...\n", curr->name);
@@ -212,6 +243,7 @@ void logInPatient(HIS_System* sys) {
 		printf(">>> 如果该身份证号还没有被注册，请先进行患者注册。\n");
 		if (confirmFunc("注册", "患者")) {	//如果用户选择注册，直接调用注册函数，并直接利用患者输入的身份证
 			registerPatient(sys, idCard);
+			return;
 		}
 	}
 }
@@ -221,20 +253,21 @@ void registerAppointment(HIS_System* sys) {
 		printf(">>> 请先登录患者账户后再进行挂号预约！正在返回操作菜单...\n\n");
 		return;
 	}
-	if (sys->docHead == NULL) {
-		printf(">>> 当前没有医生数据，请先在医生管理模块录入医生。\n");
-		return;
+	if (sys->docHead == NULL && !TEST_SYSTEM_DEBUG) {
+		printf("严重错误: 当前没有医生数据，请查询权限或联系管理员。\n");
+		exit(EXIT_FAILURE);
 	}
 	while (1) {
 		printf("\n--- 挂号与签到 ---\n");
-		printf("1. 提前预约挂号\n");
+		printf("1. 预约挂号\n");
 		printf("2. 当场挂号\n");
-		printf("3. 预约签到\n");
+		printf("3. 预约签到排队\n");
 		printf("0. 返回上一级菜单\n");
 		int choice = safeGetInt("请选择操作: ");
 		if (choice == 0) {
 			return;
 		}
+
 		if (choice == 3) {
 			char doctorId[ID_LEN];
 			safeGetString(">>> 请输入预约医生编号: ", doctorId, ID_LEN);
@@ -244,12 +277,16 @@ void registerAppointment(HIS_System* sys) {
 				continue;
 			}
 			char signTime[TIME_STR_LEN];
-			if (confirmFunc("使用", "当前系统时间签到")) {
-				strcpy(signTime, getCurrentTimeStr());
-			}
-			else {
-				safeGetString(">>> 请输入签到时间(HH:MM): ", signTime, TIME_STR_LEN);
-			}
+				if(TEST_SYSTEM_DEBUG) {
+					if (confirmFunc("使用", "自定义时间")) 
+						setTestTime(signTime);
+					else
+						strcpy(signTime, getCurrentTimeStr());
+				}
+				else
+					strcpy(signTime, getCurrentTimeStr());
+
+				//检查当前患者是否有符合条件的预约挂号记录，并且已经签到成功，如果满足条件则打印当前时段的排队情况
 			if (checkInQueueTicket(getCurrentPatient()->patientId, doctorId, getCurrentDateStr(), slot, signTime)) {
 				printSlotQueue(doctorId, getCurrentDateStr(), slot);
 			}
@@ -264,7 +301,7 @@ void registerAppointment(HIS_System* sys) {
 			continue;
 		}
 		TimeSlot slot = inputTimeSlotChoice();
-		if (slot == SLOT_INVALID) {
+		if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
 			printf(">>> 时段编号无效。\n");
 			continue;
 		}
@@ -277,57 +314,38 @@ void registerAppointment(HIS_System* sys) {
 			strcpy(date, getCurrentDateStr());
 			printf(">>> 当场挂号默认日期为 %s\n", date);
 		}
+
 		if (!isValidDate(date)) {
 			printf(">>> 日期格式无效。\n");
 			continue;
 		}
+		
+		if (TEST_SYSTEM_DEBUG) {
+			printf(">>> 测试模式下，可以选择使用自定义日期或当前日期。\n");
+			if (confirmFunc("使用", "自定义日期")) {
+				safeGetString(">>> 请输入自定义日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+				if (!isValidDate(date)) {
+					printf(">>> 日期格式无效。\n");
+					continue;
+				}
+			}
+			else {
+				strcpy(date, getCurrentDateStr());
+				printf(">>> 已使用当前日期: %s\n", date);
+			}
+		}
 
+		//尝试挂号，如果挂号成功则追加挂号记录并打印挂号成功信息和当前时段剩余号源数量；如果是当场挂号且挂号成功，则自动进行签到并打印相关信息
 		if (bookQueueTicket(getCurrentPatient(), doctor, date, slot, choice == 2)) {
 			appendRegistrationRecord(getCurrentPatient(), doctor->docterId, doctor->department, date, slot);
 			printf(">>> 挂号成功：医生[%s] 日期[%s] 时段[%s]。\n", doctor->docterName, date, slot_names[slot - 1]);
 			printf(">>> 当前时段剩余号源：%d\n", getDoctorSlotRemain(doctor->docterId, date, slot));
 			if (choice == 2) {
 				if (checkInQueueTicket(getCurrentPatient()->patientId, doctor->docterId, date, slot, getCurrentTimeStr())) {
-					printf(">>> 当场挂号已自动签到。\n");
+					printf(">>> 当场挂号已自动签到，请及时就诊。\n");
 					printSlotQueue(doctor->docterId, date, slot);
 				}
 			}
-		}
-	}
-}
-
-void patientManageMenu(HIS_System* sys) {
-	int choice;
-	while (1) {
-		printf("\n========== 患者服务台 ==========\n");
-		printf("1. 患者注册\n");
-		printf("2. 患者登录\n");
-		printf("3. 挂号预约\n");
-		printf("4. 住院登记\n");
-		printf("5. 病房查询\n");
-		printf("6. 医生信息查询\n");
-		printf("7. 药品信息查询\n");
-		printf("0. 返回主菜单\n");
-		printf("==================================\n");
-		choice = safeGetInt("请选择患者服务操作: ");
-		switch (choice) {
-		case 1: registerPatient(sys, NULL); break;
-		case 2:	logInPatient(sys); break;
-		case 3: registerAppointment(sys); break;
-		case 4: printf(">>> 模块待开发: 住院登记系统...\n"); break;
-		case 5: printf(">>> 模块待开发: 病房查询系统...\n"); break;
-		case 6: printf(">>> 模块待开发: 医生信息查询系统...\n"); break;
-		case 7: printf(">>> 模块待开发: 药品信息查询系统...\n"); break;
-		case 0:
-			if (confirmFunc("退出", "患者服务台")) {
-				printf(">>> 退出成功！正在返回主菜单...\n");
-				return;
-			}
-			else {
-				printf(">>> 已取消退出！正在返回操作菜单...\n");
-				break;
-			}
-		default: printf(">>> 无效选择，请重试。\n");
 		}
 	}
 }

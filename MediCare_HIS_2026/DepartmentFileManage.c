@@ -5,9 +5,14 @@
 bool is_Department_File_Loaded = false;	//标记是否加载过科室数据
 
 void loadDepartmentSystemData(HIS_System* sys) {
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 正在从科室文件中加载数据...\n");
 	FILE* fp = fopen(DEPARTMENT_FILE, "r");
 	if (!fp) {
+		if(!TEST_SYSTEM_DEBUG) {
+			printf("严重错误: 科室数据不存在！请确保文件存在或联系管理员。\n");
+			exit(EXIT_FAILURE); // 直接退出程序，避免后续操作导致更严重的错误
+		}
 		printf(">>> 警告: 找不到 %s，将作为新系统启动。\n", DEPARTMENT_FILE);
 		return;
 	}
@@ -78,6 +83,10 @@ void loadDepartmentSystemData(HIS_System* sys) {
 void saveDepartmentSystemData(HIS_System* sys) {
 	FILE* fp = fopen(DEPARTMENT_FILE, "w");
 	if (!fp) {
+		if (!TEST_SYSTEM_DEBUG) {
+			printf("严重错误: 无法保存文件！请确保文件权限或联系管理员。\n");
+			exit(EXIT_FAILURE); // 直接退出程序，避免数据丢失或后续操作导致更严重的错误
+		}
 		printf(">>> 错误: 无法创建或打开保存文件！\n");
 		return;
 	}

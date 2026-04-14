@@ -153,6 +153,7 @@
     <Text Include="HIS_departments.txt" />
     <Text Include="HIS_doctors.txt" />
     <Text Include="HIS_drugs.txt" />
+    <Text Include="HIS_patients.txt" />
     <Text Include="HIS_wards.txt" />
   </ItemGroup>
   <ItemGroup>

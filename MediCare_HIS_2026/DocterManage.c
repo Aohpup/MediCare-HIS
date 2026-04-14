@@ -144,7 +144,6 @@ void addDoctor(HIS_System* sys) {
 			return;
 		}
 
-		newDoctor->consultationCount = 0;
 		newDoctor->next = sys->docHead;
 		sys->docHead = newDoctor;
 
@@ -163,7 +162,7 @@ void printDoctorInfo(Docter* doctor) {
 	printf("医生姓名: %s\n", doctor->docterName);
 	printf("所属一级科室: %s\n", deptName);
 	printf("所属诊室编号: %s\n", roomId);
-	printf("诊号数量: %d\n", doctor->consultationCount);
+	//printf("诊号数量: %d\n", doctor->consultationCount);
 	printf("=============================\n");
 }
 
@@ -330,7 +329,6 @@ void modifyDoctor(HIS_System* sys) {
 	printf("\n1. 修改医生编号\n");
 	printf("2. 修改医生姓名\n");
 	printf("3. 修改所属诊室编号\n");
-	printf("4. 修改诊号数量\n");
 	int modChoice = safeGetInt("请选择要修改的字段(输入 -1 取消): ");
 	if (modChoice == -1) { printf(">>> 已取消修改。\n"); return; }
 
@@ -391,20 +389,6 @@ void modifyDoctor(HIS_System* sys) {
 				printf(">>> 医生所属科室/诊室修改成功！\n");
 				break;
 			}
-			break;
-		}
-		break;
-	}
-	case 4: {
-		while (1) {
-			int newCount = safeGetInt("请输入新的诊号数量(输入 -1 取消): ");
-			if (newCount == -1) break;
-			if (newCount < 0) {
-				printf(">>> 错误：诊号数量不能为负数！\n");
-				continue;
-			}
-			target->consultationCount = newCount;
-			printf(">>> 诊号数量修改成功！\n");
 			break;
 		}
 		break;
@@ -593,6 +577,26 @@ void doctorCallQueueMenu(HIS_System* sys) {
 	printSlotQueue(doctorId, date, slot);
 }
 
+void doctorViewScheduleBoardMenu(HIS_System* sys) {
+	(void)sys;
+	char doctorId[ID_LEN];
+	char date[DATE_STR_LEN];
+	safeGetString(">>> 请输入医生编号: ", doctorId, ID_LEN);
+	safeGetString(">>> 请输入查看日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+	if (!isValidDate(date)) {
+		printf(">>> 日期格式无效。\n");
+		return;
+	}
+	printDoctorScheduleTable(doctorId, date);
+	if (confirmFunc("查看", "指定时段候诊队列")) {
+		printAllTimeSlots();
+		int slotNo = safeGetInt(">>> 请选择时段编号: ");
+		if (slotNo >= 1 && slotNo <= SLOT_COUNT) {
+			printSlotQueue(doctorId, date, (TimeSlot)slotNo);
+		}
+	}
+}
+
 void doctorManageMenu(HIS_System* sys) {
 	if (sys == NULL) {
 		printf(">>> 严重错误: 系统底座未初始化！！！\n");
@@ -600,9 +604,13 @@ void doctorManageMenu(HIS_System* sys) {
 	}
 
 	if (sys->deptHead == NULL) {
+		if(TEST_SYSTEM_DEBUG) {
 		printf(">>> 提示：当前内存中尚无科室数据，医生需要绑定一级科室+诊室编号。\n");
 		printf("没有同步科室数据，医生模块将无法正常使用，建议载入科室数据！\n");
-		if (confirmFunc("同步", "科室数据到医生模块")) {
+		}
+		// 同步科室数据到病房模块
+		// 在测试模式下直接提示用户是否同步，在正式模式下强制同步（因为没有科室数据病房模块无法使用）
+		if (!TEST_SYSTEM_DEBUG || adminConfirmFunc("同步", "科室数据到医生模块")) {
 			loadDepartmentSystemData(sys);
 		}
 		else {
@@ -622,8 +630,9 @@ void doctorManageMenu(HIS_System* sys) {
 		printf("5. 删除医生记录\n");
 		printf("6. 显示所有医生信息\n");
 		printf("7. 医生排班\n");
-		printf("8. 医生叫号\n");
-		printf("9. 保存系统数据\n");
+		printf("8. 查看排班表与候诊队列\n");
+		printf("9. 医生叫号\n");
+		printf("10. 保存系统数据\n");
 		printf("0. 返回上一级菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择医生管理操作: ");
@@ -650,9 +659,12 @@ void doctorManageMenu(HIS_System* sys) {
 			doctorScheduleMenu(sys);
 			break;
 		case 8:
-			doctorCallQueueMenu(sys);
+			doctorViewScheduleBoardMenu(sys);
 			break;
 		case 9:
+			doctorCallQueueMenu(sys);
+			break;
+		case 10:
 			if (confirmFunc("保存", "医生系统数据")) {
 				saveDoctorSystemData(sys);
 			}

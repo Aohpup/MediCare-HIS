@@ -4,6 +4,7 @@
 #include"DrugFileManage.h"
 #include"DocterFileManage.h"
 #include"DepartmentFileManage.h"
+#include"PatientFileManage.h"
 #include"WardFileManage.h"
 
 //git push -u origin main
@@ -36,7 +37,7 @@ void initSystem(HIS_System* sys) {
 // 从文件保存系统数据
 void saveSystemData(HIS_System* sys) {
 
-	if (confirmFunc("保存", "系统数据")) {
+	if (adminConfirmFunc("保存", "系统数据")) {
 
 		if(is_Drug_File_Loaded)
 			saveDrugSystemData(sys);
@@ -44,17 +45,24 @@ void saveSystemData(HIS_System* sys) {
 			printf(">>> 警告: 药品数据未加载，无法保存！\n");
 
 		if(is_Doctor_File_Loaded)
-		saveDoctorSystemData(sys);
+			saveDoctorSystemData(sys);
 		else
 			printf(">>> 警告: 医生数据未加载，无法保存！\n");
+
 		if(is_Department_File_Loaded)
-		saveDepartmentSystemData(sys);
+			saveDepartmentSystemData(sys);
 		else
 			printf(">>> 警告: 科室数据未加载，无法保存！\n");
+
 		if(is_Ward_File_Loaded)
-		saveWardSystemData(sys);
+			saveWardSystemData(sys);
 		else
 			printf(">>> 警告: 病房数据未加载，无法保存！\n");
+
+		if(is_Patient_File_Loaded)
+			savePatientsSystemData(sys);
+		else
+			printf(">>> 警告: 患者数据未加载，无法保存！\n");
 
 		printf(">>> 所有系统数据已处理完毕。\n");
 	}

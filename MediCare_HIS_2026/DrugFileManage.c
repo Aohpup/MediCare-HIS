@@ -5,9 +5,14 @@ bool is_Drug_File_Loaded = false;	//标记是否加载过药品数据
 
 // 从txt文件加载系统数据
 void loadDrugSystemData(HIS_System* sys) {
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 正在从药品文件中加载数据...\n");
 	FILE* fp = fopen(DRUG_FILE, "r");
 	if (!fp) {
+		if (!TEST_SYSTEM_DEBUG) {
+			printf("严重错误: 药品数据不存在！请确保文件存在或联系管理员。\n");
+			exit(EXIT_FAILURE); // 直接退出程序，避免后续操作导致更严重的错误
+		}
 		printf(">>> 警告: 找不到 %s，将作为新系统启动。\n", DRUG_FILE);
 		return;
 	}
@@ -34,6 +39,7 @@ void loadDrugSystemData(HIS_System* sys) {
 	}
 
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 数据加载完成！\n");
 	is_Drug_File_Loaded = true;	//标记已加载过药品数据
 }
@@ -41,6 +47,10 @@ void loadDrugSystemData(HIS_System* sys) {
 void saveDrugSystemData(HIS_System* sys) {
 	FILE* fp = fopen(DRUG_FILE, "w");
 	if (!fp) {
+		if (!TEST_SYSTEM_DEBUG) {
+			printf("严重错误: 无法保存文件！请确保文件权限或联系管理员。\n");
+			exit(EXIT_FAILURE); // 直接退出程序，避免数据丢失或后续操作导致更严重的错误
+		}
 		printf(">>> 错误: 无法创建或打开保存文件！\n");
 		return;
 	}

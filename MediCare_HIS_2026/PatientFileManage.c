@@ -16,7 +16,7 @@ bool is_Patient_File_Loaded = false;	//标记是否加载过患者数据
 //尾插法
 //patientTail用于快速查找最后一名患者
 //RegTail等用于快速查找对应患者对应项目的最后一条项目
-void loadPatientsFromFile(HIS_System* sys) {
+void loadPatientsSystemData(HIS_System* sys) {
 	printf(">>> 正在从患者文件中加载数据...\n");
 	FILE* fp = fopen(PATIENT_FILE, "r");
 	if (!fp) {
@@ -169,7 +169,7 @@ void loadPatientsFromFile(HIS_System* sys) {
 }
 
 
-void savePatientsToFile(HIS_System* sys) {
+void savePatientsSystemData(HIS_System* sys) {
 	FILE* fp = fopen(PATIENT_FILE, "w");
 	if (!fp) {
 		printf(">>> 错误: 无法打开 %s 进行写入！\n", PATIENT_FILE);

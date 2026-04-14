@@ -13,9 +13,14 @@ bool is_Ward_File_Loaded = false;	//标记是否加载过病房数据
 
 //从文件加载病房数据到系统
 void loadWardSystemData(HIS_System* sys) {
+	if(TEST_SYSTEM_DEBUG)
 	printf("正在从病房文件中加载数据...\n");
 	FILE* fp = fopen(WARD_FILE, "r");
 	if (!fp) {
+		if(!TEST_SYSTEM_DEBUG) {
+			printf("严重错误: 病房数据不存在！请确保文件存在或联系管理员。\n");
+			exit(EXIT_FAILURE); // 直接退出程序，避免后续操作导致更严重的错误
+		}
 		printf(">>> 警告: 找不到 %s，将作为新系统启动。\n", WARD_FILE);
 		return;
 	}
@@ -86,6 +91,10 @@ void loadWardSystemData(HIS_System* sys) {
 void saveWardSystemData(HIS_System* sys) {
 	FILE* fp = fopen(WARD_FILE, "w");
 	if (!fp) {
+		if (!TEST_SYSTEM_DEBUG) {
+			printf("严重错误: 无法保存文件！请确保文件权限或联系管理员。\n");
+			exit(EXIT_FAILURE); // 直接退出程序，避免数据丢失或后续操作导致更严重的错误
+		}
 		printf(">>> 错误: 无法打开 %s 进行写入！\n", WARD_FILE);
 		return;
 	}

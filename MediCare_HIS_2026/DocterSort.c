@@ -26,9 +26,9 @@ bool needToSortDoctor(Docter* a, Docter* b, int choice, int order) {
 	case SORT_BY_DEPT:		//根据医生所在科室排序
 		cmpResult = strcmp(a->department, b->department);
 		break;
-	case SORT_BY_CONSULT:	//根据诊号数量排序
-		cmpResult = (a->consultationCount > b->consultationCount) - (a->consultationCount < b->consultationCount);	// 结果为1表示a>b，-1表示a<b，0表示相等
-		break;
+	//case SORT_BY_CONSULT:	//根据诊号数量排序
+	//	cmpResult = (a->consultationCount > b->consultationCount) - (a->consultationCount < b->consultationCount);	// 结果为1表示a>b，-1表示a<b，0表示相等
+	//	break;
 	default:
 		printf(">>> 无效的排序方式选择！\n");
 		return false; 

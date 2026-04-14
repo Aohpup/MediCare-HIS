@@ -25,12 +25,24 @@ typedef struct Drug {
 
 //S.2医生&科室
 	//S.2.1医生
+	
+//医生排班信息结构体
+typedef struct DoctorSchedule {
+	char day[DATE_STR_LEN];				//排班日期 (格式: XXXX-XX-XX)
+	int quota[SLOT_COUNT + 1];			//排班时间段预约限额，0表示该时段未排班，正整数表示该时段的最大挂号数，默认为0、最大值为MAX_APP（每时段最多5人）
+	int bookedCount[SLOT_COUNT + 1];	//已预约挂号数量
+	struct DoctorSchedule* next;
+} DoctorSchedule;
+
+//医生信息结构体
 typedef struct Docter {
 	char docterId[ID_LEN];			//医生编号
 	char docterName[STR_LEN];		//医生姓名
 	char department[STR_LEN];		//所属一级科室名称
 	char subDeptId[ID_LEN];		//所属诊室编号(二级科室唯一编码)
-	int consultationCount;			//诊号数量
+
+	DoctorSchedule* scheduleHead;	//医生排班链表头
+
 	struct Docter* next;
 }Docter;
 	//S.2.2科室 (修改为一级科类->二级科室层级结构)
@@ -148,10 +160,10 @@ extern const char* slot_names[SLOT_COUNT];		// 挂号预约时间段列表
 
 typedef enum {
 	SLOT_INVALID = 0,	// 无效时间段
-	SLOT_0800_0830, SLOT_0830_0900, SLOT_0900_0930, SLOT_0930_1000,
-	SLOT_1000_1030, SLOT_1030_1100, SLOT_1100_1130,
-	SLOT_1330_1400, SLOT_1400_1430, SLOT_1430_1500,
-	SLOT_1500_1530, SLOT_1530_1600, SLOT_1600_1630
+	SLOT_0800_0830, SLOT_0830_0900, SLOT_0900_0930, SLOT_0930_1000 = 4,
+	SLOT_1000_1030, SLOT_1030_1100, SLOT_1100_1130 = 7,
+	SLOT_1330_1400, SLOT_1400_1430, SLOT_1430_1500 = 10,
+	SLOT_1500_1530, SLOT_1530_1600, SLOT_1600_1630 = 13
 } TimeSlot;
 
 
@@ -167,16 +179,6 @@ typedef enum {
 	STATUS_MISSED,     // 过号未应
 	STATUS_CANCELLED   // 爽约/取消
 } PatientStatus;
-
-
-//医生排班信息结构体
-typedef struct DoctorSchedule {
-	char day[DATE_STR_LEN];				//排班日期 (格式: XXXX-XX-XX)
-	char timeSlot[SLOT_COUNT + 1];		//排班时间段 格式: SLOT_0800_0830等
-	int bookingCount[SLOT_COUNT + 1];	//已预约挂号数量
-	struct DoctorSchedule* next;
-} DoctorSchedule;
-
 
 typedef struct HIS_System {
 	Drug* drugHead;

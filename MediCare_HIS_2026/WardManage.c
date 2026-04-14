@@ -560,9 +560,13 @@ void wardManageMenu(HIS_System* sys) {
 	}
 
 	if (sys->deptHead == NULL) {
-		printf(">>> 提示：当前内存中尚无科室数据，病房模块需要绑定科室信息。\n");
-		printf("没有同步科室数据，病房模块将无法正常使用，建议载入科室数据！\n");
-		if (confirmFunc("同步", "科室数据到病房模块")) {
+		if (TEST_SYSTEM_DEBUG) {
+			printf(">>> 提示：当前内存中尚无科室数据，病房模块需要绑定科室信息。\n");
+			printf("没有同步科室数据，病房模块将无法正常使用，建议载入科室数据！\n");
+		}
+		// 同步科室数据到病房模块
+		// 在测试模式下直接提示用户是否同步，在正式模式下强制同步（因为没有科室数据病房模块无法使用）
+		if (!TEST_SYSTEM_DEBUG || adminConfirmFunc("同步", "科室数据到病房模块")) {
 			loadDepartmentSystemData(sys);
 		}
 		else {

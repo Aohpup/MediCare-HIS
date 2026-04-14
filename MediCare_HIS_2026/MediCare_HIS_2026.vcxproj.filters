@@ -164,6 +164,9 @@
     <Text Include="C:\Users\27918\Desktop\要求\README.txt">
       <Filter>资源文件</Filter>
     </Text>
+    <Text Include="HIS_patients.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfirmFunc.h">

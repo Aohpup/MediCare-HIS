@@ -9,6 +9,8 @@
 // 操作名称，操作对象描述
 bool confirmFunc(const char* function, const char* message);
 
+// 管理员确认函数，专门用于管理员视角的操作确认
+bool adminConfirmFunc(const char* function, const char* message);
 #endif // !confirmFunc_H
 
 

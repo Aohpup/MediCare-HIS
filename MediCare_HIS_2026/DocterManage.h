@@ -42,5 +42,8 @@ void doctorScheduleMenu(HIS_System* sys);
 //医生叫号
 void doctorCallQueueMenu(HIS_System* sys);
 
+//查看医生排班表与候诊信息
+void doctorViewScheduleBoardMenu(HIS_System* sys);
+
 
 #endif // !DOCTERMANAGE_H

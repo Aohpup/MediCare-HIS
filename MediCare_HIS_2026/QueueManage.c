@@ -2,32 +2,13 @@
 #include"QueueManage.h"
 #include<string.h>
 
-typedef struct QueueTicket {
-	Patient* patient;
-	Docter* doctor;
-	char date[DATE_STR_LEN];
-	TimeSlot slot;
-	bool isOnsite;
-	bool checkedIn;
-	int signSeq;
-	int lateMinutes;
-	PatientStatus status;
-	struct QueueTicket* next;
-} QueueTicket;
-
-typedef struct DoctorDaySchedule {
-	char doctorId[ID_LEN];
-	char date[DATE_STR_LEN];
-	bool openSlots[SLOT_COUNT + 1];
-	int bookingCount[SLOT_COUNT + 1];
-	struct DoctorDaySchedule* next;
-} DoctorDaySchedule;
-
+// 全局链表：医生排班、挂号单、候诊队列
 static DoctorDaySchedule* g_scheduleHead = NULL;
 static QueueTicket* g_ticketHead = NULL;
 static WaitingQueue* g_waitingQueueHead = NULL;
 static int g_signSeq = 1;
 
+// 根据患者类别返回优先级数值，急诊最高（3），VIP次之（2），普通最低（1）
 static int patientPriority(const Patient* patient) {
 	if (patient == NULL) {
 		return 0;
@@ -41,6 +22,7 @@ static int patientPriority(const Patient* patient) {
 	return 1;
 }
 
+// 比较函数：先按优先级比较，优先级相同则按签到顺序比较（签到越早signSeq越小）
 static int comparePriorityThenSign(const void* lhs, const void* rhs) {
 	const QueueTicket* a = *(const QueueTicket**)lhs;
 	const QueueTicket* b = *(const QueueTicket**)rhs;
@@ -52,12 +34,14 @@ static int comparePriorityThenSign(const void* lhs, const void* rhs) {
 	return a->signSeq - b->signSeq;
 }
 
+// 比较函数：仅按签到顺序比较（签到越早signSeq越小）
 static int compareSignOnly(const void* lhs, const void* rhs) {
 	const QueueTicket* a = *(const QueueTicket**)lhs;
 	const QueueTicket* b = *(const QueueTicket**)rhs;
 	return a->signSeq - b->signSeq;
 }
 
+// 获取时间段的开始分钟数（相对于当天0点），如8:00对应480，8:30对应510，以此类推
 static int slotStartMinute(TimeSlot slot) {
 	static const int starts[SLOT_COUNT + 1] = {
 		0,
@@ -81,12 +65,13 @@ static int slotStartMinute(TimeSlot slot) {
 	return starts[slot];
 }
 
+// 将时间字符串（格式为"HH:MM"）转换为当天的分钟数，返回-1表示格式错误或时间无效
 static int parseMinuteOfDay(const char* timeStr) {
 	if (timeStr == NULL || strlen(timeStr) < 5) {
 		return -1;
 	}
-	int hour = 0;
-	int min = 0;
+	int hour = -1;
+	int min = -1;
 	if (sscanf(timeStr, "%d:%d", &hour, &min) != 2) {
 		return -1;
 	}
@@ -96,6 +81,7 @@ static int parseMinuteOfDay(const char* timeStr) {
 	return hour * 60 + min;
 }
 
+// 获取医生某天的排班信息，如果createIfMissing为true且不存在则创建新记录
 static DoctorDaySchedule* getSchedule(const char* doctorId, const char* date, bool createIfMissing) {
 	DoctorDaySchedule* curr = g_scheduleHead;
 	while (curr != NULL) {
@@ -122,6 +108,7 @@ static DoctorDaySchedule* getSchedule(const char* doctorId, const char* date, bo
 	return created;
 }
 
+// 获取医生某天某时段的候诊队列，如果createIfMissing为true且不存在则创建新记录
 static WaitingQueue* getWaitingQueue(const char* doctorId, const char* date, TimeSlot slot, bool createIfMissing) {
 	WaitingQueue* curr = g_waitingQueueHead;
 	while (curr != NULL) {
@@ -147,6 +134,7 @@ static WaitingQueue* getWaitingQueue(const char* doctorId, const char* date, Tim
 	return created;
 }
 
+// 查找患者在某医生某天某时段的挂号记录，返回指向该挂号记录的指针，如果未找到或已取消则返回NULL
 static QueueTicket* findTicket(const char* patientId, const char* doctorId, const char* date, TimeSlot slot) {
 	QueueTicket* curr = g_ticketHead;
 	while (curr != NULL) {
@@ -164,6 +152,7 @@ static QueueTicket* findTicket(const char* patientId, const char* doctorId, cons
 	return NULL;
 }
 
+// 释放排队队列中的所有节点内存，并重置队列状态
 static void clearQueueNodes(Queue* q) {
 	QueueNode* curr = q->front;
 	while (curr != NULL) {
@@ -184,7 +173,7 @@ void initQueue(Queue* q) {
 
 void enqueue(Queue* q, Patient* patient) {
 	QueueNode* newNode = (QueueNode*)malloc(sizeof(QueueNode));
-	if (!newNode) {
+	if (newNode == NULL) {
 		printf(">>> 内存分配失败，无法将患者加入排队队列！\n");
 		return;
 	}
@@ -239,6 +228,28 @@ int getDoctorSlotRemain(const char* doctorId, const char* date, TimeSlot slot) {
 	return MAX_APP - schedule->bookingCount[slot];
 }
 
+bool isDoctorSlotOpen(const char* doctorId, const char* date, TimeSlot slot) {
+	if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+		return false;
+	}
+	DoctorDaySchedule* schedule = getSchedule(doctorId, date, false);
+	if (schedule == NULL) {
+		return false;
+	}
+	return schedule->openSlots[slot];
+}
+
+int getDoctorSlotBooked(const char* doctorId, const char* date, TimeSlot slot) {
+	if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+		return 0;
+	}
+	DoctorDaySchedule* schedule = getSchedule(doctorId, date, false);
+	if (schedule == NULL || !schedule->openSlots[slot]) {
+		return 0;
+	}
+	return schedule->bookingCount[slot];
+}
+
 bool bookQueueTicket(Patient* patient, Docter* doctor, const char* date, TimeSlot slot, bool isOnsite) {
 	if (patient == NULL || doctor == NULL || date == NULL || slot <= SLOT_INVALID || slot > SLOT_COUNT) {
 		return false;
@@ -256,6 +267,7 @@ bool bookQueueTicket(Patient* patient, Docter* doctor, const char* date, TimeSlo
 		printf(">>> 您在该时段已有挂号记录，请勿重复挂号。\n");
 		return false;
 	}
+
 	QueueTicket* ticket = (QueueTicket*)malloc(sizeof(QueueTicket));
 	if (ticket == NULL) {
 		return false;
@@ -271,6 +283,7 @@ bool bookQueueTicket(Patient* patient, Docter* doctor, const char* date, TimeSlo
 	ticket->status = STATUS_WAITING;
 	ticket->next = g_ticketHead;
 	g_ticketHead = ticket;
+
 	schedule->bookingCount[slot]++;
 	return true;
 }
@@ -285,12 +298,14 @@ bool checkInQueueTicket(const char* patientId, const char* doctorId, const char*
 		printf(">>> 该挂号记录已完成签到。\n");
 		return true;
 	}
+
 	int slotMinute = slotStartMinute(slot);
 	int signMinute = parseMinuteOfDay(signInTime);
 	if (slotMinute < 0 || signMinute < 0) {
 		printf(">>> 签到时间格式错误，应为 HH:MM。\n");
 		return false;
 	}
+
 	int delta = signMinute - slotMinute;
 	ticket->checkedIn = true;
 	ticket->signSeq = g_signSeq++;
@@ -308,14 +323,14 @@ bool checkInQueueTicket(const char* patientId, const char* doctorId, const char*
 	else {
 		if (ticket->slot < SLOT_COUNT) {
 			ticket->slot = (TimeSlot)(ticket->slot + 1);
-			ticket->lateMinutes = 120;
 			printf(">>> 迟到超过60分钟，已顺延至下一班次末尾。\n");
 		}
 		else {
-			ticket->lateMinutes = 120;
 			printf(">>> 迟到超过60分钟，当前已是末班次，将排在本班次末尾。\n");
 		}
+		ticket->lateMinutes = 120;
 	}
+
 	refreshSlotQueue(doctorId, date, ticket->slot);
 	return true;
 }
@@ -407,6 +422,7 @@ Patient* callNextPatient(const char* doctorId, const char* date, TimeSlot slot) 
 		printf(">>> 当前时段暂无可叫号患者。\n");
 		return NULL;
 	}
+
 	Patient* nextPatient = waiting->queue.front->patient;
 	QueueTicket* ticket = findTicket(nextPatient->patientId, doctorId, date, slot);
 	if (ticket != NULL) {
@@ -434,6 +450,59 @@ void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot) {
 	if (idx == 1) {
 		printf(">>> 当前时段暂无已签到患者。\n");
 	}
+}
+
+void printDoctorScheduleTable(const char* doctorId, const char* date) {
+	printf("\n========== 医生排班表 ==========\n医生: %s\n日期: %s\n--------------------------------\n", doctorId, date);
+	for (int i = 1; i <= SLOT_COUNT; ++i) {
+		if (!isDoctorSlotOpen(doctorId, date, (TimeSlot)i)) {
+			printf("[%s] 未排班\n", slot_names[i - 1]);
+		}
+		else {
+			int booked = getDoctorSlotBooked(doctorId, date, (TimeSlot)i);
+			printf("[%s] 已挂号:%d 剩余:%d\n", slot_names[i - 1], booked, MAX_APP - booked);
+		}
+	}
+	printf("================================\n");
+}
+
+void exportDoctorSchedules(FILE* fp, const char* doctorId) {
+	if (fp == NULL || doctorId == NULL) {
+		return;
+	}
+	DoctorDaySchedule* curr = g_scheduleHead;
+	while (curr != NULL) {
+		if (strcmp(curr->doctorId, doctorId) == 0) {
+			for (int slot = 1; slot <= SLOT_COUNT; ++slot) {
+				if (curr->openSlots[slot]) {
+					fprintf(fp, "S %s %d %d\n", curr->date, slot, curr->bookingCount[slot]);
+				}
+			}
+		}
+		curr = curr->next;
+	}
+}
+
+void importDoctorSchedule(const char* doctorId, const char* date, TimeSlot slot, int bookingCount) {
+	if (doctorId == NULL || date == NULL || slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+		printf(">>> 导入数据格式错误，无法设置医生排班。\n");
+		return;
+	}
+	DoctorDaySchedule* schedule = getSchedule(doctorId, date, true);
+	if (schedule == NULL) {
+		printf(">>> 内存分配失败，无法设置医生排班。\n");
+		return;
+	}
+	// 导入时默认将该时段设置为已排班，并根据bookingCount设置已挂号数量
+	schedule->openSlots[slot] = true;
+	if (bookingCount < 0) {
+		bookingCount = 0;
+	}
+	if (bookingCount > MAX_APP) {
+		printf(">>> 导入数据中挂号数量超过每时段最大值，已自动调整为%d。\n", MAX_APP);
+		bookingCount = MAX_APP;
+	}
+	schedule->bookingCount[slot] = bookingCount;
 }
 
 void printAllTimeSlots(void) {
