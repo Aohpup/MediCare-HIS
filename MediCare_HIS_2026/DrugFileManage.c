@@ -17,6 +17,9 @@ void loadDrugSystemData(HIS_System* sys) {
 		return;
 	}
 
+	char dummyLine[512]; // 用于读取和丢弃文件开头的注释行
+	fgets(dummyLine, sizeof(dummyLine), fp); // 读取并丢弃第一行注释
+
 	char buffer[512];
 	while (fgets(buffer, sizeof(buffer), fp) != NULL) {
 		Drug* newDrug = (Drug*)malloc(sizeof(Drug));
@@ -54,6 +57,8 @@ void saveDrugSystemData(HIS_System* sys) {
 		printf(">>> 错误: 无法创建或打开保存文件！\n");
 		return;
 	}
+
+	fprintf(fp, "# HIS DRUG DATA FILE\n");
 
 	Drug* curr = sys->drugHead;
 	while (curr != NULL) {

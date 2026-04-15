@@ -4,6 +4,7 @@
 #include"DocterManage.h"
 #include"DepartmentManage.h"
 #include"DepartmentFileManage.h"
+#include"QueueManage.h"
 #include"ConfirmFunc.h"
 #include"DocterSort.h"
 #include"QueueManage.h"
@@ -515,9 +516,7 @@ void displayAllDoctors(HIS_System* sys) {
 	printf(">>> 共计 %d 位医生信息显示完毕！\n", count);
 }
 
-void doctorScheduleMenu(HIS_System* sys) {
-	char doctorId[ID_LEN];
-	char date[DATE_STR_LEN];
+static void setDoctorSchedule(HIS_System* sys, const char* doctorId, const char* date) {
 	safeGetString(">>> 请输入需要排班的医生编号: ", doctorId, ID_LEN);
 	Docter* doctor = sys->docHead;
 	while (doctor != NULL && strcmp(doctor->docterId, doctorId) != 0) {
@@ -532,21 +531,70 @@ void doctorScheduleMenu(HIS_System* sys) {
 		printf(">>> 日期格式无效。\n");
 		return;
 	}
-	printf("请选择要开放的时段(输入0结束)：\n");
+	printf("请选择要开放的时段(输入 0 或 -1 结束)：\n");
 	while (1) {
 		printAllTimeSlots();
 		int slotNo = safeGetInt(">>> 时段编号: ");
-		if (slotNo == 0) {
+		if (slotNo == 0 || slotNo == -1) {
+			printf(">>> 已结束排班设置。\n");
 			break;
 		}
 		if (slotNo < 1 || slotNo > SLOT_COUNT) {
 			printf(">>> 时段无效，请重试。\n");
 			continue;
 		}
+		if (isDoctorSlotOpen(doctorId, date, (TimeSlot)slotNo)) {
+			printf(">>> 时段 [%s] 已经开放过了，无需重复开放。\n", slot_names[slotNo - 1]);
+			continue;
+		}
 		if (openDoctorScheduleSlot(doctorId, date, (TimeSlot)slotNo)) {
 			printf(">>> 已开放 [%s] 的号源。\n", slot_names[slotNo - 1]);
 		}
 	}
+}
+
+void doctorScheduleMenu(HIS_System* sys, const char* currentDoctorId) {
+	if(sys == NULL) {
+		if(TEST_SYSTEM_DEBUG){
+			printf(">>> 严重错误: 系统底座未初始化！！！\n");
+			return;
+		}
+		else {
+			printf(">>> 严重错误: 系统底座未初始化！！！请联系管理员！\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	char doctorId[ID_LEN];
+	char date[DATE_STR_LEN];
+	int choice = -1;
+	printf("\n--- 医生排班设置 ---\n");
+	printf("1. 显示当前排班\n");
+	printf("2. 设置排班\n");
+	printf("3. 取消排班\n");
+	printf("0. 返回上一级菜单\n");
+	choice = safeGetInt(">>> 请选择操作: ");
+	switch (choice)
+	{
+	case 1: {
+		if(TEST_SYSTEM_DEBUG)
+		safeGetString(">>> 请输入医生编号: ", doctorId, ID_LEN);
+		else {
+			printf(">>> 提示：测试模式下可输入医生编号查看排班，正式模式下默认查看当前登录医生的排班。\n");
+			strcpy(doctorId, "curr_logged_in_doctor_id"); // TODO:这里需要替换成实际获取当前登录医生ID的逻辑
+		}
+		safeGetString(">>> 请输入查看日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+		if (!isValidDate(date)) {
+			printf(">>> 日期格式无效。\n");
+			return;
+		}
+		printDoctorScheduleTable(doctorId, date);
+		break;
+	}
+	case 2:	setDoctorSchedule(sys, doctorId, date); break;
+	case 0:	break;
+	default: printf(">>> 无效选择，请重试！\n"); return;
+	}
+
 }
 
 void doctorCallQueueMenu(HIS_System* sys) {
@@ -656,7 +704,7 @@ void doctorManageMenu(HIS_System* sys) {
 			displayAllDoctors(sys);
 			break;
 		case 7:
-			doctorScheduleMenu(sys);
+			doctorScheduleMenu(sys, NULL);
 			break;
 		case 8:
 			doctorViewScheduleBoardMenu(sys);

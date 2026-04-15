@@ -67,20 +67,39 @@ void doctorMenu(HIS_System* sys) {
 	while (1) {
 		printf("\n========== 医生工作站 ==========\n");
 		printf("1. 查看挂号候诊队列\n");
-		printf("2. 患者看诊与开具处方 (包含药品搜索)\n");
-		printf("3. 开具检查单\n");
-		printf("4. 安排患者住院 (病房分配)\n");
+		printf("2. 排队叫号\n");
+		printf("3. 患者看诊与开具处方 (包含药品搜索)\n");
+		printf("4. 开具检查单\n");
+		printf("5. 查看患者病历\n");
+		printf("6. 医生排班管理\n");
+		printf("7. 查看患者检查结果\n");
+		printf("8. 安排患者住院 (病房分配)\n");
+		printf("9. 医生信息查询与修改\n");
 		printf("0. 返回主菜单\n");
 		printf("================================\n");
 		choice = safeGetInt("请选择医护操作: ");
 
 		//TODO: 这里的功能实现需要访问患者记录链表，医生信息链表，以及病房床位链表等，涉及较多数据结构操作，暂时以提示代替具体实现
 		switch (choice) {
-		case 1: printf(">>> 模块待开发: 读取排队记录...\n"); break;
-		case 2: printf(">>> 模块待开发: 生成看诊记录，管理处方发药...\n"); break;
-		case 3: printf(">>> 模块待开发: 生成检查记录...\n"); break;
-		case 4: printf(">>> 模块待开发: 生成住院记录并关联床位...\n"); break;
-		case 0: return;
+		case 1: printf(">>> 模块待开发: 挂号候诊队列管理...\n"); break;
+		case 2: printf(">>> 模块待开发: 排队叫号系统...\n"); break;
+		case 3: printf(">>> 模块待开发: 看诊与处方系统...\n"); break;
+		case 4: printf(">>> 模块待开发: 检查单开具系统...\n"); break;
+		case 5: printf(">>> 模块待开发: 病历查看系统...\n"); break;
+		case 6: doctorScheduleMenu(sys, "curr_logged_in_doctor_id"); break; //TODO:这里需要替换成实际获取当前登录医生ID的逻辑
+			//printf(">>> 模块待开发: 医生排班管理系统...\n"); break;
+		case 7: printf(">>> 模块待开发: 检查结果查看系统...\n"); break;
+		case 8: printf(">>> 模块待开发: 住院安排与病房分配系统...\n"); break;
+		case 0:
+			if (confirmFunc("退出", "医生工作站")) {
+				printf(">>> 退出成功！正在返回主菜单...\n");
+				return;
+			}
+			else {
+				printf(">>> 已取消退出！正在返回操作菜单...\n");
+				break;
+			}
+			break;
 		default: printf(">>> 无效选择，请重试。\n");
 		}
 	}
@@ -147,7 +166,7 @@ void showMainMenu(HIS_System* sys) {
 
 		switch (choice) {
 		case 1: adminMenu(sys); break;
-	    case 2: printf(">>> 模块待开发: 医生登录...\n"); /* doctorMenu(sys); */ break;
+	    case 2: doctorMenu(sys); break;
 		case 3: patientMenu(sys); break;
 		case 0:
 			saveSystemData(sys);

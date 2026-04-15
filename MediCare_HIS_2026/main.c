@@ -7,10 +7,8 @@
 int main() {
 	HIS_System sys;
 	initSystem(&sys);      // 底座初始化
-	/*
-	TODO: 这里可以选择性地调用loadSystemData函数来加载本地数据文件，目前注释掉以便每次运行都从空系统开始，方便测试功能模块
-	loadSystemData(&sys);  // 读取本地.txt数据文件
-	*/
+
+	//TODO:可以在这里选择性地加载数据文件，或者在系统启动时自动加载（如果文件存在）
 
 	// 进入主菜单系统
 	showMainMenu(&sys);

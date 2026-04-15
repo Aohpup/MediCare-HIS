@@ -287,8 +287,17 @@ void registerAppointment(HIS_System* sys) {
 					strcpy(signTime, getCurrentTimeStr());
 
 				//检查当前患者是否有符合条件的预约挂号记录，并且已经签到成功，如果满足条件则打印当前时段的排队情况
-			if (checkInQueueTicket(getCurrentPatient()->patientId, doctorId, getCurrentDateStr(), slot, signTime)) {
-				printSlotQueue(doctorId, getCurrentDateStr(), slot);
+				char usingDate[DATE_STR_LEN];
+				if (TEST_SYSTEM_DEBUG) {
+					printf(">>> 测试模式下，可以选择使用自定义签到时间或当前时间。\n");
+					if (confirmFunc("使用", "自定义日期")) {
+						safeGetString(">>> 请输入自定义日期(YYYY-MM-DD): ", usingDate, DATE_STR_LEN);
+					}
+				}
+				else
+					strcpy(usingDate, getCurrentDateStr());
+			if (checkInQueueTicket(getCurrentPatient()->patientId, doctorId, usingDate, slot, signTime)) {
+				printSlotQueue(doctorId, usingDate, slot);
 			}
 			continue;
 		}
@@ -341,7 +350,17 @@ void registerAppointment(HIS_System* sys) {
 			printf(">>> 挂号成功：医生[%s] 日期[%s] 时段[%s]。\n", doctor->docterName, date, slot_names[slot - 1]);
 			printf(">>> 当前时段剩余号源：%d\n", getDoctorSlotRemain(doctor->docterId, date, slot));
 			if (choice == 2) {
-				if (checkInQueueTicket(getCurrentPatient()->patientId, doctor->docterId, date, slot, getCurrentTimeStr())) {
+				char signTime[TIME_STR_LEN];
+					if(TEST_SYSTEM_DEBUG) {
+						if (confirmFunc("使用", "自定义时间")) {
+							safeGetString(">>> 请输入自定义时间(HH:MM): ", signTime, TIME_STR_LEN);
+						}
+						else
+							strcpy(signTime, getCurrentTimeStr());
+					}
+					else
+						strcpy(signTime, getCurrentTimeStr());
+				if (checkInQueueTicket(getCurrentPatient()->patientId, doctor->docterId, date, slot, signTime)) {
 					printf(">>> 当场挂号已自动签到，请及时就诊。\n");
 					printSlotQueue(doctor->docterId, date, slot);
 				}

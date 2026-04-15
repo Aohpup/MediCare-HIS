@@ -42,6 +42,9 @@ void loadDoctorSystemData(HIS_System* sys) {
 		return;
 	}
 
+	char dummyLine[512]; // 用于读取和丢弃文件开头的注释行
+	fgets(dummyLine, sizeof(dummyLine), fp); // 读取并丢弃第一行注释
+
 	char line[512];	// 用于读取文件行的缓冲区
 	Docter* currentDoctor = NULL;
 	while (fgets(line, sizeof(line), fp) != NULL) {
@@ -118,6 +121,9 @@ void saveDoctorSystemData(HIS_System* sys) {
 		printf(">>> 错误: 无法创建或打开保存文件！\n");
 		return;
 	}
+
+	fprintf(fp, "# HIS DOCTER DATA FILE\n");
+
 	Docter* curr = sys->docHead;
 	while (curr != NULL) {
 		const char* persistedRoom = (curr->subDeptId[0] != '\0') ? curr->subDeptId : "NULL";

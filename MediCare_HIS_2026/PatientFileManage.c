@@ -24,6 +24,9 @@ void loadPatientsSystemData(HIS_System* sys) {
 		return;
 	}
 
+	char dummyLine[512]; // 用于读取和丢弃文件开头的注释行
+	fgets(dummyLine, sizeof(dummyLine), fp); // 读取并丢弃第一行注释
+
 	sys->patientTail = sys->patientHead;	//找到当前患者链表的末尾
 	while (sys->patientTail != NULL && sys->patientTail->next != NULL) {	//如果链表不空，继续往后找
 		sys->patientTail = sys->patientTail->next;
@@ -175,6 +178,9 @@ void savePatientsSystemData(HIS_System* sys) {
 		printf(">>> 错误: 无法打开 %s 进行写入！\n", PATIENT_FILE);
 		return;
 	}
+
+	fprintf(fp, "# HIS PATIENT DATA FILE\n");
+
 	Patient* patient = sys->patientHead;
 	while (patient) {
 		fprintf(fp, "P %s %s %s %s %s %d\n", patient->patientId, patient->name, patient->phone,

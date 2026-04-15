@@ -25,6 +25,9 @@ void loadWardSystemData(HIS_System* sys) {
 		return;
 	}
 
+	char dummyLine[512]; // 用于读取和丢弃文件开头的注释行
+	fgets(dummyLine, sizeof(dummyLine), fp); // 读取并丢弃第一行注释
+
 	char tag[8] = "0";	//比对行首标签（W/B/END）
 	while (fscanf(fp, "%5s", tag) == 1) {	//读标签
 		if (strcmp(tag, "W") == 0) {	//病房信息行
@@ -98,6 +101,9 @@ void saveWardSystemData(HIS_System* sys) {
 		printf(">>> 错误: 无法打开 %s 进行写入！\n", WARD_FILE);
 		return;
 	}
+
+	fprintf(fp, "# HIS WARD DATA FILE\n");
+
 	Ward* ward = sys->wardHead;
 	while (ward) {
 		fprintf(fp, "W %s %d %s\n", ward->wardId, ward->type, ward->department);

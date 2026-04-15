@@ -17,6 +17,9 @@ void loadDepartmentSystemData(HIS_System* sys) {
 		return;
 	}
 
+	char dummyLine[512]; // 用于读取和丢弃文件开头的注释行
+	fgets(dummyLine, sizeof(dummyLine), fp); // 读取并丢弃第一行注释
+
 	char buffer[1024];
 	char tempCategory[STR_LEN];		// 一级科室名称
 	char tempCategoryId[ID_LEN];	// 一级科室代码
@@ -90,6 +93,8 @@ void saveDepartmentSystemData(HIS_System* sys) {
 		printf(">>> 错误: 无法创建或打开保存文件！\n");
 		return;
 	}
+
+	fprintf(fp, "# HIS DEPARTMENT DATA FILE\n");
 
 	Department* curr = sys->deptHead;
 	while (curr != NULL) {

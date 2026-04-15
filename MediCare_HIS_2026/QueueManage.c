@@ -294,8 +294,9 @@ bool checkInQueueTicket(const char* patientId, const char* doctorId, const char*
 		printf(">>> 未找到对应挂号记录，签到失败。\n");
 		return false;
 	}
+	// 已签到的记录不允许重复签到
 	if (ticket->checkedIn) {
-		printf(">>> 该挂号记录已完成签到。\n");
+		printf(">>> 该挂号记录已完成签到，请勿重复签到，注意查看叫号情况。\n");
 		return true;
 	}
 
@@ -510,5 +511,4 @@ void printAllTimeSlots(void) {
 		printf("%d. %s\n", i + 1, slot_names[i]);
 	}
 }
-
 
