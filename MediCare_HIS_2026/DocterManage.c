@@ -7,8 +7,8 @@
 #include"QueueManage.h"
 #include"ConfirmFunc.h"
 #include"DocterSort.h"
-#include"QueueManage.h"
 #include"InputUtils.h"
+#include"ConfirmFunc.h"
 #include<string.h>
 
 bool isDoctorIdExist(Docter* head, const char* id) {
@@ -553,62 +553,108 @@ static void setDoctorSchedule(HIS_System* sys, const char* doctorId, const char*
 	}
 }
 
+static void cancelDoctorSchedule(HIS_System* sys, const char* doctorId, const char* date) {
+	safeGetString(">>> 请输入需要取消排班的医生编号: ", doctorId, ID_LEN);
+	Docter* doctor = sys->docHead;
+	while (doctor != NULL && strcmp(doctor->docterId, doctorId) != 0) {
+		doctor = doctor->next;
+	}
+	if (doctor == NULL) {
+		printf(">>> 未找到该医生，无法取消排班。\n");
+		return;
+	}
+	safeGetString(">>> 请输入取消排班的日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+	if (!isValidDate(date)) {
+		printf(">>> 日期格式无效。\n");
+		return;
+	}
+	printf("请选择要取消的时段(输入 0 或 -1 结束)：\n");
+	while (1) {
+		printAllTimeSlots();
+		int slotNo = safeGetInt(">>> 时段编号: ");
+		if (slotNo == 0 || slotNo == -1) {
+			printf(">>> 已结束排班取消。\n");
+			break;
+		}
+		if (slotNo < 1 || slotNo > SLOT_COUNT) {
+			printf(">>> 时段无效，请重试。\n");
+			continue;
+		}
+		if (!isDoctorSlotOpen(doctorId, date, (TimeSlot)slotNo)) {
+			printf(">>> 时段 [%s] 本来就没有开放，无需取消。\n", slot_names[slotNo - 1]);
+			continue;
+		}
+		if (cancelDoctorScheduleSlot(doctorId, date, (TimeSlot)slotNo)) {
+			printf(">>> 已取消 [%s] 的号源。\n", slot_names[slotNo - 1]);
+		}
+	}
+}
+
 void doctorScheduleMenu(HIS_System* sys, const char* currentDoctorId) {
-	if(sys == NULL) {
+	if(sys->docHead->scheduleHead == NULL) {
 		if(TEST_SYSTEM_DEBUG){
-			printf(">>> 严重错误: 系统底座未初始化！！！\n");
+			printf(">>> 提示：当前内存中尚无医生排班数据，建议先设置医生排班以体验排班功能！\n");
 			return;
 		}
 		else {
-			printf(">>> 严重错误: 系统底座未初始化！！！请联系管理员！\n");
+			printf(">>> 严重错误: 系统内没有医生排班数据，无法进入排班设置界面！！！\n");
 			exit(EXIT_FAILURE);
 		}
 	}
 	char doctorId[ID_LEN];
 	char date[DATE_STR_LEN];
 	int choice = -1;
-	printf("\n--- 医生排班设置 ---\n");
-	printf("1. 显示当前排班\n");
-	printf("2. 设置排班\n");
-	printf("3. 取消排班\n");
-	printf("0. 返回上一级菜单\n");
-	choice = safeGetInt(">>> 请选择操作: ");
-	switch (choice)
-	{
-	case 1: {
-		if(TEST_SYSTEM_DEBUG)
-		safeGetString(">>> 请输入医生编号: ", doctorId, ID_LEN);
-		else {
-			printf(">>> 提示：测试模式下可输入医生编号查看排班，正式模式下默认查看当前登录医生的排班。\n");
-			strcpy(doctorId, "curr_logged_in_doctor_id"); // TODO:这里需要替换成实际获取当前登录医生ID的逻辑
+	while (1) {
+		printf("\n--- 医生排班设置 ---\n");
+		printf("1. 显示当前排班\n");
+		printf("2. 设置排班\n");
+		printf("3. 取消排班\n");
+		printf("0. 返回上一级菜单\n");
+		choice = safeGetInt(">>> 请选择操作: ");
+		switch (choice)
+		{
+		case 1: {
+			if (TEST_SYSTEM_DEBUG)
+				safeGetString(">>> 请输入医生编号: ", doctorId, ID_LEN);
+			else {
+				printf(">>> 提示：测试模式下可输入医生编号查看排班，正式模式下默认查看当前登录医生的排班。\n");
+				strcpy(doctorId, "curr_logged_in_doctor_id"); // TODO:这里需要替换成实际获取当前登录医生ID的逻辑
+			}
+			safeGetString(">>> 请输入查看日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+			if (!isValidDate(date)) {
+				printf(">>> 日期格式无效。\n");
+				return;
+			}
+			printDoctorScheduleTable(doctorId, date);
+			break;
 		}
-		safeGetString(">>> 请输入查看日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
-		if (!isValidDate(date)) {
-			printf(">>> 日期格式无效。\n");
-			return;
+		case 2:	setDoctorSchedule(sys, doctorId, date); break;
+		case 3: cancelDoctorSchedule(sys, doctorId, date); break;
+		case 0:	return;
+		default: printf(">>> 无效选择，请重试！\n"); return;
 		}
-		printDoctorScheduleTable(doctorId, date);
-		break;
 	}
-	case 2:	setDoctorSchedule(sys, doctorId, date); break;
-	case 0:	break;
-	default: printf(">>> 无效选择，请重试！\n"); return;
-	}
-
 }
 
-void doctorCallQueueMenu(HIS_System* sys) {
+void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId) {
 	(void)sys;
 	char doctorId[ID_LEN];
 	char date[DATE_STR_LEN];
-	safeGetString(">>> 请输入叫号医生编号: ", doctorId, ID_LEN);
+	if(TEST_SYSTEM_DEBUG)
+		safeGetString(">>> 请输入叫号医生编号: ", doctorId, ID_LEN);
+	else 
+		strcpy(doctorId, "currentDocterId");
 	safeGetString(">>> 请输入叫号日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
 	if (!isValidDate(date)) {
 		printf(">>> 日期格式无效。\n");
 		return;
 	}
+	int slotNo;
 	printAllTimeSlots();
-	int slotNo = safeGetInt(">>> 请选择叫号时段: ");
+	if(confirmFunc("选择","当前时间段"))
+		slotNo = getCurrentTimeSlot();
+	else
+		slotNo = safeGetInt(">>> 请选择叫号时段: ");
 	if (slotNo < 1 || slotNo > SLOT_COUNT) {
 		printf(">>> 时段编号无效。\n");
 		return;
@@ -704,13 +750,13 @@ void doctorManageMenu(HIS_System* sys) {
 			displayAllDoctors(sys);
 			break;
 		case 7:
-			doctorScheduleMenu(sys, NULL);
+			doctorScheduleMenu(sys, "curr_logged_in_doctor_id");
 			break;
 		case 8:
 			doctorViewScheduleBoardMenu(sys);
 			break;
 		case 9:
-			doctorCallQueueMenu(sys);
+			doctorCallQueueMenu(sys, "curr_logged_in_doctor_id");
 			break;
 		case 10:
 			if (confirmFunc("保存", "医生系统数据")) {

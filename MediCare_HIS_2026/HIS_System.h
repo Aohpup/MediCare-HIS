@@ -182,6 +182,7 @@ typedef enum {
 
 typedef struct HIS_System {
 	Drug* drugHead;
+	Drug* drugDisplayHead;
 	Docter* docHead;
 	SubDepartment* subDeptHead;
 	Department* deptHead;
@@ -198,5 +199,8 @@ void initSystem(HIS_System* sys);
 
 //保存系统数据到文件
 void saveSystemData(HIS_System* sys);
+
+//释放系统内存（当前至少释放药品原始链表和显示链表）
+void cleanupSystemMemory(HIS_System* sys);
 
 #endif // HIS_SYSTEM_H

@@ -92,6 +92,8 @@ void drugManageMenu(HIS_System* sys) {
 			break;
 		case 4:
 			drugSortMenu(sys);
+			if(confirmFunc("显示", "新的药品列表")) 
+				displayAllDrugs(sys);
 			break;
 		case 5:
 			deleteDrug(&sys);
@@ -104,6 +106,43 @@ void drugManageMenu(HIS_System* sys) {
 				printf(">>> 正在保存药品系统数据...\n");
 				saveDrugSystemData(sys);
 			}
+			break;
+		case 0:
+			return;
+		default:
+			printf(">>> 无效选择，请重试。\n");
+			break;
+		}
+	}
+}
+
+void drugManageMenuDoc(HIS_System* sys, const char* doctorId) {
+	if(sys == NULL) {
+		if (TEST_SYSTEM_DEBUG) {
+			printf(">>> 系统底座未初始化！！！\n");
+			return;
+		}
+		else {
+			printf(">>> 严重错误: 系统底座未初始化！！！\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	loadDrugSystemData(sys);   // 从文件加载数据
+	int choice = -1;
+	while (1) {
+		printf("\n========== 药品信息查询 ==========\n");
+		printf("1. 查询药品信息\n");
+		printf("2. 显示所有药品信息\n");
+		printf("0. 返回上一级菜单\n");
+		printf("==================================\n");
+		choice = safeGetInt("请选择操作: ");
+		switch (choice) {
+		case 1:
+			queryDrug(sys);
+			break;
+		case 2:
+			drugSortMenu(sys);
+			displayAllDrugs(sys);
 			break;
 		case 0:
 			return;
@@ -270,6 +309,7 @@ void addDrug(HIS_System* sys) {
 		// 头插法
 		newDrug->next = sys->drugHead;
 		sys->drugHead = newDrug;
+		refreshDrugDisplayList(sys);
 
 		printf(">>> 药品 <%s>(%s) 录入成功！\n", newDrug->genericName, newDrug->tradeName);
 		
@@ -317,7 +357,7 @@ void printDrugInfo(Drug* drug) {
 
 //查询药品信息
 void queryDrug(HIS_System* sys) {
-	if(sys->drugHead == NULL) {
+	if(sys->drugDisplayHead == NULL) {
 		printf(">>> 系统内没有药品数据！\n");
 		return;
 	}
@@ -329,7 +369,7 @@ void queryDrug(HIS_System* sys) {
 	printf("0. 返回上一级菜单\n");
 	choice = safeGetInt("请选择查询方式: ");
 	char queryStr[STR_LEN];
-	Drug* curr = sys->drugHead;
+	Drug* curr = sys->drugDisplayHead;
 	bool found = false;
 	switch (choice) {
 	case 1:
@@ -608,11 +648,13 @@ void modifyDrug(HIS_System* sys) {
 		printf(">>> 无效选择，已取消修改。\n");
 		break;
 	}
+
+	refreshDrugDisplayList(sys);
 }
 
 //显示所有药品信息
 void displayAllDrugs(HIS_System* sys) {
-	if (sys->drugHead == NULL) {
+	if (sys->drugDisplayHead == NULL) {
 		printf(">>> 系统内没有药品数据！\n");
 		return;
 	}
@@ -631,7 +673,7 @@ void displayAllDrugs(HIS_System* sys) {
 	printf("\n");
 	printf("----------------------------------------------------------------------------------------------------\n");
 
-	Drug* curr = sys->drugHead;
+	Drug* curr = sys->drugDisplayHead;
 	while (curr != NULL) {
 		// 内容列打印
 		printFormattedStr(curr->drugId, 12);
@@ -677,10 +719,14 @@ void deleteDrug(HIS_System** sys) {
 			case 1:
 				safeGetString("请输入要删除的药品编号: ", queryStr, ID_LEN);
 				deleteDrugFunc(&curr, queryStr, 1);
+				(*sys)->drugHead = curr;
+				refreshDrugDisplayList(*sys);
 				break;
 			case 2:
 				safeGetString("请输入要删除的国家药品本位码(16位国标码): ", queryStr, 16);
 				deleteDrugFunc(&curr, queryStr, 2);
+				(*sys)->drugHead = curr;
+				refreshDrugDisplayList(*sys);
 				break;
 			default:
 				printf(">>> 无效选择，请重试！\n");
@@ -691,6 +737,7 @@ void deleteDrug(HIS_System** sys) {
 }
 
 //根据查询字符串和模式删除药品信息
+//TODO:不正确的confirmFunc调用位置，后续需要调整
 void deleteDrugFunc(Drug** head, const char* queryStr, int mode) {
 	confirmFunc("删除", "药品信息");
 	Drug* curr = *head;

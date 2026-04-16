@@ -20,6 +20,12 @@ bool isDrugAliNameExist(Drug* head, const char* aliName);
 //药品管理菜单界面
 void drugManageMenu(HIS_System* sys);
 
+//药品管理菜单界面（医生视角）
+void drugManageMenuDoc(HIS_System* sys);
+
+//药品管理菜单界面（患者视角）
+void drugManageMenuPatient(HIS_System* sys);
+
 //录入新药品
 void addDrug(HIS_System* sys);
 

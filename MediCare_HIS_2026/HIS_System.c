@@ -24,6 +24,7 @@ const char* slot_names[SLOT_COUNT] = {
 void initSystem(HIS_System* sys) {
 	// 将所有模块的链表头指针初始化为空
 	sys->drugHead = NULL;   
+	sys->drugDisplayHead = NULL;
 	sys->docHead = NULL;	
 	sys->subDeptHead = NULL;
 	sys->deptHead = NULL;
@@ -66,4 +67,14 @@ void saveSystemData(HIS_System* sys) {
 
 		printf(">>> 所有系统数据已处理完毕。\n");
 	}
+}
+
+void cleanupSystemMemory(HIS_System* sys) {
+	if (sys == NULL) {
+		return;
+	}
+	freeDrugList(sys->drugHead);
+	sys->drugHead = NULL;
+	freeDrugList(sys->drugDisplayHead);
+	sys->drugDisplayHead = NULL;
 }

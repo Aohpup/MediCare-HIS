@@ -205,6 +205,48 @@ void dequeue(Queue* q) {
 	q->size--;
 }
 
+int getCurrentTimeSlot() {
+	int hour, min;
+	getCurrentTime(&hour, &min, NULL);
+	if (hour < 8 || (hour == 8 && min < 30)) {
+		return SLOT_0800_0830;
+	}
+	if (hour < 9 || (hour == 9 && min < 30)) {
+		return SLOT_0830_0900;
+	}
+	if (hour < 10 || (hour == 10 && min < 30)) {
+		return SLOT_0900_0930;
+	}
+	if (hour < 11 || (hour == 11 && min < 30)) {
+		return SLOT_0930_1000;
+	}
+	if (hour < 13 || (hour == 13 && min < 30)) {
+		return SLOT_1000_1030;
+	}
+	if (hour < 14 || (hour == 14 && min < 30)) {
+		return SLOT_1030_1100;
+	}
+	if (hour < 15 || (hour == 15 && min < 30)) {
+		return SLOT_1100_1130;
+	}
+	if (hour < 15 || (hour == 15 && min < 30)) {
+		return SLOT_1330_1400;
+	}
+	if (hour < 16 || (hour == 16 && min < 30)) {
+		return SLOT_1400_1430;
+	}
+	if (hour < 17 || (hour == 17 && min < 30)) {
+		return SLOT_1430_1500;
+	}
+	if (hour < 18 || (hour == 18 && min < 30)) {
+		return SLOT_1500_1530;
+	}
+	if (hour < 19 || (hour == 19 && min < 30)) {
+		return SLOT_1530_1600;
+	}
+	return SLOT_INVALID; // 超过最后一个时段
+}
+
 bool openDoctorScheduleSlot(const char* doctorId, const char* date, TimeSlot slot) {
 	if (doctorId == NULL || date == NULL || slot <= SLOT_INVALID || slot > SLOT_COUNT) {
 		return false;
@@ -214,6 +256,23 @@ bool openDoctorScheduleSlot(const char* doctorId, const char* date, TimeSlot slo
 		return false;
 	}
 	schedule->openSlots[slot] = true;
+	return true;
+}
+
+bool cancelDoctorScheduleSlot(const char* doctorId, const char* date, TimeSlot slot) {
+	if (doctorId == NULL || date == NULL || slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+		return false;
+	}
+	DoctorDaySchedule* schedule = getSchedule(doctorId, date, false);
+	if (schedule == NULL || !schedule->openSlots[slot]) {
+		return false;
+	}
+	if (schedule->bookingCount[slot] > 0) {
+		printf(">>> 当前时段已有挂号记录，无法直接取消排班。\n");
+		return false;
+	}
+	schedule->openSlots[slot] = false;
+	schedule->bookingCount[slot] = 0;
 	return true;
 }
 

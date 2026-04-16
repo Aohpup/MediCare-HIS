@@ -12,6 +12,12 @@ bool isDoctorIdExist(Docter* head, const char* id);
 //医生管理菜单界面
 void doctorManageMenu(HIS_System* sys);
 
+//医生管理菜单界面（医生视角）
+void doctorManageMenuDoc(HIS_System* sys, const char* doctorId);
+
+//医生管理菜单界面（患者视角）
+void docterManageMenuPatient(HIS_System* sys, const char* patientId);
+
 //录入新医生
 void addDoctor(HIS_System* sys);
 
@@ -40,7 +46,7 @@ void displayAllDoctors(HIS_System* sys);
 void doctorScheduleMenu(HIS_System* sys, const char* currentDoctorId);
 
 //医生叫号
-void doctorCallQueueMenu(HIS_System* sys);
+void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId);
 
 //查看医生排班表与候诊信息
 void doctorViewScheduleBoardMenu(HIS_System* sys);

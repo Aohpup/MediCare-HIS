@@ -2,6 +2,8 @@
 
 #include"DrugSort.h"
 #include"HIS_System.h"
+#include"DocterFileManage.h"
+#include"ConfirmFunc.h"
 #include <string.h>
 // 交换两个药品节点的数据和next指针
 static void swapDrugs(Drug* a, Drug* b) {
@@ -75,7 +77,7 @@ void sortDrugList(Drug* head, Drug* tail, int choice, int order) {
 
 //排序界面菜单
 void drugSortMenu(HIS_System* sys) {
-	if(sys->drugHead == NULL) {
+	if(sys->drugDisplayHead == NULL) {
 		printf(">>> 系统内没有药品数据！\n");
 		return;
 	}
@@ -118,8 +120,23 @@ void drugSortMenu(HIS_System* sys) {
 		printf("\n>>> 已选择排序方式: %s\n", sortOptions[sortFieldChoice - 1]);
 		printf(">>> 已选择排序顺序: %s\n\n", sortOrderChoice == ORDER_ASC ? "升序" : "降序");
 
-		sortDrugList(sys->drugHead, NULL, sortFieldChoice, sortOrderChoice);
-		printf(">>> 药品列表排序完成！\n");
+		sortDrugList(sys->drugDisplayHead, NULL, sortFieldChoice, sortOrderChoice);
+		printf(">>> 药品列表排序完成！\n\n");
+		
+		//管理员模式下，可以修改原始链表顺序以保持一致；医生模式下只修改显示链表顺序以不影响其他医生的显示
+		//TODO:后续可以增加一个全局变量来区分当前登录用户的权限级别，以更精确地控制排序对原始链表的影响范围
+		//is_Admin_Mode = true;
+		if (TEST_SYSTEM_DEBUG && confirmFunc("同步修改原始链表顺序", "药品系统数据")) {
+			freeDrugList(sys->drugHead);
+			Drug* newHead = copyDrugList(sys->drugDisplayHead);
+			if (newHead != NULL) {
+				sys->drugHead = newHead;
+				printf(">>> 管理员模式下: 已同步修改原始链表顺序！\n");
+			} else {
+				printf(">>> 错误: 内存分配失败，无法同步原始链表顺序！\n");
+			}	
+		}
+
 		break;
 	}
 }

@@ -75,21 +75,23 @@ void doctorMenu(HIS_System* sys) {
 		printf("7. 查看患者检查结果\n");
 		printf("8. 安排患者住院 (病房分配)\n");
 		printf("9. 医生信息查询与修改\n");
+		printf("10. 药品信息查询\n");
 		printf("0. 返回主菜单\n");
 		printf("================================\n");
 		choice = safeGetInt("请选择医护操作: ");
 
-		//TODO: 这里的功能实现需要访问患者记录链表，医生信息链表，以及病房床位链表等，涉及较多数据结构操作，暂时以提示代替具体实现
+		
 		switch (choice) {
 		case 1: printf(">>> 模块待开发: 挂号候诊队列管理...\n"); break;
-		case 2: printf(">>> 模块待开发: 排队叫号系统...\n"); break;
+		case 2: doctorCallQueueMenu(sys, "curr_logged_in_doctor_id"); break;
 		case 3: printf(">>> 模块待开发: 看诊与处方系统...\n"); break;
 		case 4: printf(">>> 模块待开发: 检查单开具系统...\n"); break;
 		case 5: printf(">>> 模块待开发: 病历查看系统...\n"); break;
 		case 6: doctorScheduleMenu(sys, "curr_logged_in_doctor_id"); break; //TODO:这里需要替换成实际获取当前登录医生ID的逻辑
-			//printf(">>> 模块待开发: 医生排班管理系统...\n"); break;
 		case 7: printf(">>> 模块待开发: 检查结果查看系统...\n"); break;
 		case 8: printf(">>> 模块待开发: 住院安排与病房分配系统...\n"); break;
+		case 9: doctorManageMenu(sys); break;	//TODO:这里需要替换成实际获取当前登录医生ID的逻辑，以限制医生只能修改自己的信息
+		case 10: drugManageMenuDoc(sys); break;	//TODO:这里需要根据医生权限调整显示内容，例如药品医生
 		case 0:
 			if (confirmFunc("退出", "医生工作站")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
@@ -127,8 +129,8 @@ void patientMenu(HIS_System* sys) {
 		case 3: registerAppointment(sys); break;
 		case 4: printf(">>> 模块待开发: 住院登记系统...\n"); break;
 		case 5: printf(">>> 模块待开发: 病房查询系统...\n"); break;
-		case 6: printf(">>> 模块待开发: 医生信息查询系统...\n"); break;
-		case 7: printf(">>> 模块待开发: 药品信息查询系统...\n"); break;
+		case 6: doctorManageMenu(sys); break;
+		case 7: drugManageMenu(sys); break;		//TODO:后续可以根据患者权限调整显示内容
 		case 0:
 			if (confirmFunc("退出", "患者服务台")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
@@ -171,6 +173,7 @@ void showMainMenu(HIS_System* sys) {
 		case 0:
 			saveSystemData(sys);
 			if (confirmFunc("退出", "系统")) {
+				cleanupSystemMemory(sys);
 				printf(">>> 感谢使用，系统已安全退出！\n");
 				exit(0);
 			}

@@ -3,8 +3,60 @@
 #include"DrugFileManage.h"
 bool is_Drug_File_Loaded = false;	//标记是否加载过药品数据
 
+// 深拷贝药品链表（用于显示副本）
+Drug* copyDrugList(Drug* src) {
+	Drug* newHead = NULL;
+	Drug* newTail = NULL;
+	Drug* curr = src;
+	while (curr != NULL) {
+		Drug* node = (Drug*)malloc(sizeof(Drug));
+		if (node == NULL) {
+			printf(">>> 错误: 内存分配失败，无法复制药品链表！\n");
+			freeDrugList(newHead);
+			return NULL;
+		}
+		*node = *curr;
+		node->next = NULL;
+		if (newHead == NULL) {
+			newHead = node;
+			newTail = node;
+		}
+		else {
+			newTail->next = node;
+			newTail = node;
+		}
+		curr = curr->next;
+	}
+	return newHead;
+}
+
+// 释放药品链表
+void freeDrugList(Drug* head) {
+	Drug* curr = head;
+	while (curr != NULL) {
+		Drug* next = curr->next;
+		free(curr);
+		curr = next;
+	}
+}
+
+// 用原始链表刷新显示链表
+void refreshDrugDisplayList(HIS_System* sys) {
+	if (sys == NULL) {
+		return;
+	}
+	freeDrugList(sys->drugDisplayHead);
+	sys->drugDisplayHead = copyDrugList(sys->drugHead);
+	if (sys->drugHead != NULL && sys->drugDisplayHead == NULL) {
+		printf(">>> 错误: 药品显示链表刷新失败（内存不足）！\n");
+	}
+}
+
 // 从txt文件加载系统数据
 void loadDrugSystemData(HIS_System* sys) {
+	if (is_Drug_File_Loaded) {
+		return;
+	}
 	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 正在从药品文件中加载数据...\n");
 	FILE* fp = fopen(DRUG_FILE, "r");
@@ -44,6 +96,7 @@ void loadDrugSystemData(HIS_System* sys) {
 	fclose(fp);
 	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 数据加载完成！\n");
+	refreshDrugDisplayList(sys);
 	is_Drug_File_Loaded = true;	//标记已加载过药品数据
 }
 
