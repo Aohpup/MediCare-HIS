@@ -61,7 +61,7 @@ bool isCategoryIdExist(Department* head, const char* id) {
 int countDoctorsBySubDeptId(HIS_System* sys, const char* subDeptId) {
 	if (sys == NULL || subDeptId == NULL) return 0;
 	int count = 0;
-	Docter* docCurr = sys->docHead;
+	doctor* docCurr = sys->docHead;
 	while (docCurr != NULL) {
 		if (strcmp(docCurr->subDeptId, subDeptId) == 0) {
 			count++;
@@ -79,14 +79,14 @@ static void printDoctorsBySubDeptId(HIS_System* sys, const char* subDeptId, int 
 		return;
 	}
 	int newCount = 1;
-	Docter* docCurr = sys->docHead;
+	doctor* docCurr = sys->docHead;
 	while (docCurr != NULL) {
 		if (strcmp(docCurr->subDeptId, subDeptId) == 0) {
 			if(newCount > count) {
 				printf(">>> 警告: 统计的医生数量与实际不符，可能存在数据异常，请联系管理员！\n");
 				return;
 			}
-			printf("    - #%d: 医生编号: %s, 医生姓名: %s -\n", newCount++, docCurr->docterId, docCurr->docterName);
+			printf("    - #%d: 医生编号: %s, 医生姓名: %s -\n", newCount++, docCurr->doctorId, docCurr->doctorName);
 		}
 		docCurr = docCurr->next;
 	}
@@ -95,7 +95,7 @@ static void printDoctorsBySubDeptId(HIS_System* sys, const char* subDeptId, int 
 // 当二级科室编号修改时，联动更新医生端绑定字段
 static void rebindDoctorsSubDeptId(HIS_System* sys, const char* oldSubDeptId, const char* newSubDeptId) {
 	if (sys == NULL || oldSubDeptId == NULL || newSubDeptId == NULL) return;
-	Docter* docCurr = sys->docHead;
+	doctor* docCurr = sys->docHead;
 	while (docCurr != NULL) {
 		if (strcmp(docCurr->subDeptId, oldSubDeptId) == 0) {
 			strcpy(docCurr->subDeptId, newSubDeptId);
@@ -107,7 +107,7 @@ static void rebindDoctorsSubDeptId(HIS_System* sys, const char* oldSubDeptId, co
 // 当二级科室被删除时，清空医生端绑定（避免悬挂引用）
 static void clearDoctorsSubDeptBinding(HIS_System* sys, const char* subDeptId) {
 	if (sys == NULL || subDeptId == NULL) return;
-	Docter* docCurr = sys->docHead;
+	doctor* docCurr = sys->docHead;
 	while (docCurr != NULL) {
 		if (strcmp(docCurr->subDeptId, subDeptId) == 0) {
 			docCurr->subDeptId[0] = '\0';

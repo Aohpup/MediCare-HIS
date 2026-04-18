@@ -6,10 +6,10 @@
 #include"time.h"
 
 //设置测试用的日期字符串（格式同验证函数要求），供单元测试调用
-char* setTestDate();
+char* setTestDate(char* dateStr);
 
 //设置测试用的时间字符串（格式同验证函数要求），供单元测试调用
-char* setTestTime();
+char* setTestTime(char* timeStr);
 
 //获取当前系统日期，格式：YYYY-MM-DD或YYYY/MM/DD
 char* getCurrentDateStr();
@@ -24,7 +24,7 @@ bool isValidDate(const char* dateStr);
 char* getCurrentTimeStr();
 
 //获取当前系统时间的时、分、秒部分，分别存储在hour、minute、second指向的字符串中
-void getCurrentTime(char** hour, char** minute, char** second);
+void getCurrentTime(int* hour, int* minute, int* second);
 
 //验证时间字符串格式和有效性（格式：HH:MM:SS）
 bool isValidTime(const char* timeStr);

@@ -32,7 +32,7 @@ typedef struct WaitingQueue {
 //排队挂号信息结构体
 typedef struct QueueTicket {
 	Patient* patient;
-	Docter* doctor;					
+	doctor* doctor;					
 	char date[DATE_STR_LEN];		//预约的日期
 	TimeSlot slot;					//预约的时段
 	bool isOnsite;					//是否当场挂号
@@ -80,7 +80,7 @@ bool isDoctorSlotOpen(const char* doctorId, const char* date, TimeSlot slot);
 int getDoctorSlotBooked(const char* doctorId, const char* date, TimeSlot slot);
 
 // 预约/当场挂号
-bool bookQueueTicket(Patient* patient, Docter* doctor, const char* date, TimeSlot slot, bool isOnsite);
+bool bookQueueTicket(Patient* patient, doctor* doctor, const char* date, TimeSlot slot, bool isOnsite);
 
 // 签到并刷新队列。返回true表示签到成功并可参与叫号
 bool checkInQueueTicket(const char* patientId, const char* doctorId, const char* date, TimeSlot slot, const char* signInTime);

@@ -48,14 +48,12 @@ char* getCurrentTimeStr() {
 	return timeStr;
 }
 
-void getCurrentTime(char** hour, char** minute, char** second) {
+void getCurrentTime(int* hour, int* minute, int* second) {
 	time_t t = time(NULL);
 	struct tm* tm_info = localtime(&t);
-	static char h[3], m[3], s[3];	//静态字符串用于返回时、分、秒部分
-	sprintf(h, "%02d", tm_info->tm_hour);
-	sprintf(m, "%02d", tm_info->tm_min);
-	sprintf(s, "%02d", tm_info->tm_sec);
-	*hour = h; *minute = m; *second = s;
+	*hour = tm_info->tm_hour;
+	*minute = tm_info->tm_min;
+	*second = tm_info->tm_sec;
 }
 
 bool isValidDate(const char* dateStr) {

@@ -1,20 +1,62 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include"HIS_System.h"
-#include"DocterFileManage.h"
-#include"DocterManage.h"
+#include"doctorFileManage.h"
+#include"doctorManage.h"
 #include"DepartmentManage.h"
 #include"DepartmentFileManage.h"
 #include"QueueManage.h"
 #include"ConfirmFunc.h"
-#include"DocterSort.h"
+#include"doctorSort.h"
 #include"InputUtils.h"
-#include"ConfirmFunc.h"
 #include<string.h>
 
-bool isDoctorIdExist(Docter* head, const char* id) {
-	Docter* curr = head;
+bool is_Doctor_Logged_In = false;	//标记医生是否已登录
+
+char currentDoctorId[ID_LEN];		//当前登录医生的编号
+
+bool logInDoctor(HIS_System* sys) {
+	if (sys == NULL) {
+		printf(">>> 错误：系统未初始化！\n");
+		return false;
+	}
+	if (sys->docHead == NULL) {
+		printf(">>> 提示：当前尚未录入医生，请先到医生管理模块录入医生后再登录。\n");
+		return false;
+	}
+	while (1) {
+		char doctorId[ID_LEN];
+		safeGetString("请输入医生编号进行登录:（输入 -1 取消登录）", doctorId, ID_LEN);
+		if (strcmp(doctorId, "-1") == 0) {
+			printf(">>> 已取消登录。\n");
+			return false;
+		}
+		doctor* curr = sys->docHead;
+		while (curr != NULL) {
+			if (strcmp(curr->doctorId, doctorId) == 0) {
+				is_Doctor_Logged_In = true;
+				strcpy(currentDoctorId, doctorId);
+				printf(">>> 医生 <%s> 登录成功！\n", curr->doctorName);
+				return true;
+			}
+			curr = curr->next;
+		}
+		printf(">>> 错误：医生编号不存在，请重新输入！\n");
+		continue;
+	}
+}
+
+char* getCurrentDoctorId(void) {
+	if (is_Doctor_Logged_In) {
+		return currentDoctorId;
+	} else {
+		return NULL;
+	}
+}
+
+bool isDoctorIdExist(doctor* head, const char* id) {
+	doctor* curr = head;
 	while (curr != NULL) {
-		if (strcmp(curr->docterId, id) == 0) return true;
+		if (strcmp(curr->doctorId, id) == 0) return true;
 		curr = curr->next;
 	}
 	return false;
@@ -22,10 +64,10 @@ bool isDoctorIdExist(Docter* head, const char* id) {
 
 // 医生姓名防重复（可选功能，根据实际需求决定是否启用）
 /*
-bool isDoctorNameExist(Docter* head, const char* name) {
-	Docter* curr = head;
+bool isDoctorNameExist(doctor* head, const char* name) {
+	doctor* curr = head;
 	while (curr != NULL) {
-		if (strcmp(curr->docterName, name) == 0) return true;
+		if (strcmp(curr->doctorName, name) == 0) return true;
 		curr = curr->next;
 	}
 	return false;
@@ -66,7 +108,7 @@ void addDoctor(HIS_System* sys) {
 
 	while (1) {
 		printf("\n--- 录入新医生 (在任意输入环节输入 '-1' 可取消本次添加) ---\n");
-		Docter* newDoctor = (Docter*)malloc(sizeof(Docter));
+		doctor* newDoctor = (doctor*)malloc(sizeof(doctor));
 		if (newDoctor == NULL) {
 			printf(">>> 内存分配失败！\n");
 			return;
@@ -75,12 +117,12 @@ void addDoctor(HIS_System* sys) {
 
 		// 输入并验证医生编号
 		while (1) {
-			safeGetString("请输入医生编号: ", newDoctor->docterId, ID_LEN);
-			if (strcmp(newDoctor->docterId, "-1") == 0) {
+			safeGetString("请输入医生编号: ", newDoctor->doctorId, ID_LEN);
+			if (strcmp(newDoctor->doctorId, "-1") == 0) {
 				hasCancelFlag = true;
 				break;
 			}
-			if (isDoctorIdExist(sys->docHead, newDoctor->docterId)) {
+			if (isDoctorIdExist(sys->docHead, newDoctor->doctorId)) {
 				printf(">>> 医生编号已存在，请重新输入！\n");
 				continue;
 			}
@@ -94,8 +136,8 @@ void addDoctor(HIS_System* sys) {
 
 		// 输入并验证医生姓名
 		while (1) {
-			safeGetString("请输入医生姓名: ", newDoctor->docterName, STR_LEN);
-			if (strcmp(newDoctor->docterName, "-1") == 0) {
+			safeGetString("请输入医生姓名: ", newDoctor->doctorName, STR_LEN);
+			if (strcmp(newDoctor->doctorName, "-1") == 0) {
 				hasCancelFlag = true;
 				break;
 			}
@@ -148,28 +190,40 @@ void addDoctor(HIS_System* sys) {
 		newDoctor->next = sys->docHead;
 		sys->docHead = newDoctor;
 
-		printf(">>> 医生 <%s> (Id: %s) 录入成功！\n", newDoctor->docterName, newDoctor->docterId);
+		printf(">>> 医生 <%s> (Id: %s) 录入成功！\n", newDoctor->doctorName, newDoctor->doctorId);
 		printf(">>> 提示：医生已与 <%s诊室: %s> 建立关联。\n", newDoctor->department, newDoctor->subDeptId);
 		printf(">>> 提示：已自动继续添加医生；可在下一个输入环节输入 '-1' 退出。\n");
 	}
 }
 
-void printDoctorInfo(Docter* doctor) {
+void printDoctorInfo(doctor* doctor) {
 	if (doctor == NULL) return;
 	const char* deptName = (doctor->department[0] != '\0') ? doctor->department : "未绑定";
 	const char* roomId = (doctor->subDeptId[0] != '\0') ? doctor->subDeptId : "未绑定";
 	printf("\n========== 医生信息 ==========\n");
-	printf("医生编号: %s\n", doctor->docterId);
-	printf("医生姓名: %s\n", doctor->docterName);
+	printf("医生编号: %s\n", doctor->doctorId);
+	printf("医生姓名: %s\n", doctor->doctorName);
 	printf("所属一级科室: %s\n", deptName);
 	printf("所属诊室编号: %s\n", roomId);
 	//printf("诊号数量: %d\n", doctor->consultationCount);
 	printf("=============================\n");
 }
 
-void queryDoctor(HIS_System* sys) {
+void queryDoctor(HIS_System* sys, const char* doctorId) {
 	if (sys->docHead == NULL) {
 		printf("\n>>> 系统内没有医生数据！\n");
+		return;
+	}
+	if(doctorId != NULL) {
+		doctor* curr = sys->docHead;
+		while (curr != NULL) {
+			if (strcmp(curr->doctorId, doctorId) == 0) {
+				printDoctorInfo(curr);
+				return;
+			}
+			curr = curr->next;
+		}
+		printf(">>> 没有找到医生编号 %s 的信息！请检查是否注册。\n", doctorId);
 		return;
 	}
 	int choice;
@@ -183,13 +237,13 @@ void queryDoctor(HIS_System* sys) {
 	char queryDept[STR_LEN];
 	char queryRoom[ID_LEN];
 	char subDeptName[STR_LEN];
-	Docter* curr = sys->docHead;
+	doctor* curr = sys->docHead;
 	bool found = false;
 	switch (choice) {
 	case 1:
 		safeGetString("请输入医生编号: ", queryStr, ID_LEN);
 		while (curr != NULL) {
-			if (strcmp(curr->docterId, queryStr) == 0) {
+			if (strcmp(curr->doctorId, queryStr) == 0) {
 				printDoctorInfo(curr);
 				if (curr->subDeptId[0] != '\0' && getSubDepartmentNameUnderCategory(sys, curr->department, curr->subDeptId, subDeptName)) {
 					printf("关联诊室名称: %s\n", subDeptName);
@@ -203,7 +257,7 @@ void queryDoctor(HIS_System* sys) {
 	case 2:
 		safeGetString("请输入医生姓名: ", queryStr, STR_LEN);
 		while (curr != NULL) {
-			if (strcmp(curr->docterName, queryStr) == 0) {
+			if (strcmp(curr->doctorName, queryStr) == 0) {
 				printDoctorInfo(curr);
 				if (curr->subDeptId[0] != '\0' && getSubDepartmentNameUnderCategory(sys, curr->department, curr->subDeptId, subDeptName)) {
 					printf("关联诊室名称: %s\n", subDeptName);
@@ -242,88 +296,103 @@ void queryDoctor(HIS_System* sys) {
 	}
 }
 
-void modifyDoctor(HIS_System* sys) {
+void modifyDoctor(HIS_System* sys, const char* doctorId) {
 	if(sys->docHead == NULL) {
 		printf("\n>>> 系统内没有医生数据！\n");
 		return;
 	}
 
 	int choice;
-	printf("\n--- 修改医生信息 ---\n");
-	printf("1. 按医生编号修改\n");
-	printf("2. 按医生姓名修改\n");
-	printf("3. 按所属诊室编号修改\n");
-	printf("0. 返回上一级菜单\n");
-	choice = safeGetInt("请选择修改目标(输入 -1 取消): ");
-
-	if (choice == 0 || choice == -1) return;
-	if (choice != 1 && choice != 2 && choice != 3) {
-		printf(">>> 无效选择，请重试！\n");
-		return;
-	}
-
 	char queryStr[STR_LEN];
-	Docter* matches[100];
+	doctor* matches[100];
 	int matchCount = 0;
-	Docter* curr = sys->docHead;
+	doctor* curr = sys->docHead;
+	doctor* target = NULL;
 
-	switch (choice) {
-	case 1:
-		safeGetString("请输入要修改的医生编号(输入 -1 取消): ", queryStr, ID_LEN);
-		if (strcmp(queryStr, "-1") == 0) return;
+	if (doctorId != NULL) {
+		//TODO:直接定位修改（后续可根据实际需求调整为只允许医生本人修改自己的信息，或管理员修改所有医生信息）
+		printf("还没想好修改什么");
+		return; //修改时删掉此行，放开下面的代码块
 		while (curr != NULL) {
-			if (strcmp(curr->docterId, queryStr) == 0 && matchCount < 100) {
-				matches[matchCount++] = curr;
-			}
-			curr = curr->next;
-		}
-		break;
-	case 2:
-		safeGetString("请输入要修改的医生姓名(输入 -1 取消): ", queryStr, STR_LEN);
-		if (strcmp(queryStr, "-1") == 0) return;
-		while (curr != NULL) {
-			if (strcmp(curr->docterName, queryStr) == 0 && matchCount < 100) {
-				matches[matchCount++] = curr;
-			}
-			curr = curr->next;
-		}
-		break;
-	case 3:
-		safeGetString("请输入要修改的所属诊室编号(输入 -1 取消): ", queryStr, ID_LEN);
-		if (strcmp(queryStr, "-1") == 0) return;
-		while (curr != NULL) {
-			if (strcmp(curr->subDeptId, queryStr) == 0 && matchCount < 100) {
-				matches[matchCount++] = curr;
-			}
-			curr = curr->next;
-		}
-		break;
-	}
-
-	if (matchCount == 0) {
-		printf(">>> 没有找到匹配的医生信息！\n");
-		return;
-	}
-
-	Docter* target = NULL;
-	if (matchCount == 1) {
-		target = matches[0];
-		printf(">>> 已定位到目标医生：\n");
-		printDoctorInfo(target);
-	}
-	else {
-		printf("\n>>> 发现 %d 条匹配记录，请选择要修改的目标：\n", matchCount);
-		for (int i = 0; i < matchCount; i++) {
-			printf("\n#[%d]\n", i + 1);
-			printDoctorInfo(matches[i]);
-		}
-		while (1) {
-			int sel = safeGetInt("请输入对应序号: ");
-			if (sel >= 1 && sel <= matchCount) {
-				target = matches[sel - 1];
+			if (strcmp(curr->doctorId, doctorId) == 0) {
+				target = curr;
 				break;
 			}
-			printf(">>> 序号无效，请重试。\n");
+			curr = curr->next;
+		}
+		target = curr;
+	}
+	else {
+		printf("\n--- 修改医生信息 ---\n");
+		printf("1. 按医生编号修改\n");
+		printf("2. 按医生姓名修改\n");
+		printf("3. 按所属诊室编号修改\n");
+		printf("0. 返回上一级菜单\n");
+		choice = safeGetInt("请选择修改目标(输入 -1 取消): ");
+
+		if (choice == 0 || choice == -1) return;
+		if (choice != 1 && choice != 2 && choice != 3) {
+			printf(">>> 无效选择，请重试！\n");
+			return;
+		}
+
+		switch (choice) {
+		case 1:
+			safeGetString("请输入要修改的医生编号(输入 -1 取消): ", queryStr, ID_LEN);
+			if (strcmp(queryStr, "-1") == 0) return;
+			while (curr != NULL) {
+				if (strcmp(curr->doctorId, queryStr) == 0 && matchCount < 100) {
+					matches[matchCount++] = curr;
+				}
+				curr = curr->next;
+			}
+			break;
+		case 2:
+			safeGetString("请输入要修改的医生姓名(输入 -1 取消): ", queryStr, STR_LEN);
+			if (strcmp(queryStr, "-1") == 0) return;
+			while (curr != NULL) {
+				if (strcmp(curr->doctorName, queryStr) == 0 && matchCount < 100) {
+					matches[matchCount++] = curr;
+				}
+				curr = curr->next;
+			}
+			break;
+		case 3:
+			safeGetString("请输入要修改的所属诊室编号(输入 -1 取消): ", queryStr, ID_LEN);
+			if (strcmp(queryStr, "-1") == 0) return;
+			while (curr != NULL) {
+				if (strcmp(curr->subDeptId, queryStr) == 0 && matchCount < 100) {
+					matches[matchCount++] = curr;
+				}
+				curr = curr->next;
+			}
+			break;
+		}
+
+		if (matchCount == 0) {
+			printf(">>> 没有找到匹配的医生信息！\n");
+			return;
+		}
+
+		if (matchCount == 1) {
+			target = matches[0];
+			printf(">>> 已定位到目标医生：\n");
+			printDoctorInfo(target);
+		}
+		else {
+			printf("\n>>> 发现 %d 条匹配记录，请选择要修改的目标：\n", matchCount);
+			for (int i = 0; i < matchCount; i++) {
+				printf("\n#[%d]\n", i + 1);
+				printDoctorInfo(matches[i]);
+			}
+			while (1) {
+				int sel = safeGetInt("请输入对应序号: ");
+				if (sel >= 1 && sel <= matchCount) {
+					target = matches[sel - 1];
+					break;
+				}
+				printf(">>> 序号无效，请重试。\n");
+			}
 		}
 	}
 
@@ -345,7 +414,7 @@ void modifyDoctor(HIS_System* sys) {
 		while (1) {
 			safeGetString("请输入新的医生编号(输入 -1 取消): ", newId, ID_LEN);
 			if (strcmp(newId, "-1") == 0) break;
-			if (strcmp(newId, target->docterId) == 0) {
+			if (strcmp(newId, target->doctorId) == 0) {
 				printf(">>> 新编号与原编号一致，无需修改。\n");
 				break;
 			}
@@ -353,7 +422,7 @@ void modifyDoctor(HIS_System* sys) {
 				printf(">>> 医生编号已存在，请重新输入！\n");
 				continue;
 			}
-			strcpy(target->docterId, newId);
+			strcpy(target->doctorId, newId);
 			printf(">>> 医生编号修改成功！\n");
 			break;
 		}
@@ -363,7 +432,7 @@ void modifyDoctor(HIS_System* sys) {
 		char newName[STR_LEN];
 		safeGetString("请输入新的医生姓名(输入 -1 取消): ", newName, STR_LEN);
 		if (strcmp(newName, "-1") != 0) {
-			strcpy(target->docterName, newName);
+			strcpy(target->doctorName, newName);
 			printf(">>> 医生姓名修改成功！\n");
 		}
 		break;
@@ -418,7 +487,7 @@ void deleteDoctor(HIS_System** sys) {
 			continue;
 		}
 		char queryStr[STR_LEN];
-		Docter* curr = (*sys)->docHead;
+		doctor* curr = (*sys)->docHead;
 		switch (choice) {
 		case 1:
 			safeGetString("请输入要删除的医生编号: ", queryStr, ID_LEN);
@@ -441,19 +510,19 @@ void deleteDoctor(HIS_System** sys) {
 }
 
 // 根据用户选择的删除方式和查询字符串，在医生链表中查找匹配的节点并删除
-void deleteDoctorFunc(Docter** head, const char* queryStr, int mode) {
-	Docter* curr = *head;
-	Docter* prev = NULL;
+void deleteDoctorFunc(doctor** head, const char* queryStr, int mode) {
+	doctor* curr = *head;
+	doctor* prev = NULL;
 	int personCount = 0; // 用于按诊室删除时记录匹配的医生数量
 	confirmFunc("删除", "医生信息");
 	while (curr != NULL) {
 		bool match = false;
 		switch (mode) {
 			case 1: 
-				match = (strcmp(curr->docterId, queryStr) == 0); 
+				match = (strcmp(curr->doctorId, queryStr) == 0); 
 				break;
 			case 2: 
-				match = (strcmp(curr->docterName, queryStr) == 0); 
+				match = (strcmp(curr->doctorName, queryStr) == 0); 
 				break;
 			case 3: 
 				// 按所在诊室删除时，先列出所有匹配的医生节点，最后询问用户删除目标，避免误删
@@ -489,7 +558,7 @@ void deleteDoctorFunc(Docter** head, const char* queryStr, int mode) {
 			} else {
 				prev->next = curr->next;
 			}
-			printf(">>> 医生 <%s> (Id: %s) 删除成功！\n\n", curr->docterName, curr->docterId);
+			printf(">>> 医生 <%s> (Id: %s) 删除成功！\n\n", curr->doctorName, curr->doctorId);
 			free(curr);
 			return;
 		} 
@@ -506,7 +575,7 @@ void displayAllDoctors(HIS_System* sys) {
 		printf("\n>>> 系统内没有医生数据！\n");
 		return;
 	}
-	Docter* curr = sys->docHead;
+	doctor* curr = sys->docHead;
 	int count = 0;
 	while (curr != NULL) {
 		printf("\n--- 医生 #%d ---\n", ++count);
@@ -518,8 +587,8 @@ void displayAllDoctors(HIS_System* sys) {
 
 static void setDoctorSchedule(HIS_System* sys, const char* doctorId, const char* date) {
 	safeGetString(">>> 请输入需要排班的医生编号: ", doctorId, ID_LEN);
-	Docter* doctor = sys->docHead;
-	while (doctor != NULL && strcmp(doctor->docterId, doctorId) != 0) {
+	doctor* doctor = sys->docHead;
+	while (doctor != NULL && strcmp(doctor->doctorId, doctorId) != 0) {
 		doctor = doctor->next;
 	}
 	if (doctor == NULL) {
@@ -555,8 +624,8 @@ static void setDoctorSchedule(HIS_System* sys, const char* doctorId, const char*
 
 static void cancelDoctorSchedule(HIS_System* sys, const char* doctorId, const char* date) {
 	safeGetString(">>> 请输入需要取消排班的医生编号: ", doctorId, ID_LEN);
-	Docter* doctor = sys->docHead;
-	while (doctor != NULL && strcmp(doctor->docterId, doctorId) != 0) {
+	doctor* doctor = sys->docHead;
+	while (doctor != NULL && strcmp(doctor->doctorId, doctorId) != 0) {
 		doctor = doctor->next;
 	}
 	if (doctor == NULL) {
@@ -643,7 +712,7 @@ void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId) {
 	if(TEST_SYSTEM_DEBUG)
 		safeGetString(">>> 请输入叫号医生编号: ", doctorId, ID_LEN);
 	else 
-		strcpy(doctorId, "currentDocterId");
+		strcpy(doctorId, "currentdoctorId");
 	safeGetString(">>> 请输入叫号日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
 	if (!isValidDate(date)) {
 		printf(">>> 日期格式无效。\n");
@@ -735,10 +804,10 @@ void doctorManageMenu(HIS_System* sys) {
 			addDoctor(sys);
 			break;
 		case 2:
-			queryDoctor(sys);
+			queryDoctor(sys, NULL);
 			break;
 		case 3:
-			modifyDoctor(sys);
+			modifyDoctor(sys, NULL);
 			break;
 		case 4:
 			doctorSortMenu(sys);
@@ -772,7 +841,34 @@ void doctorManageMenu(HIS_System* sys) {
 	}
 }
 
-
-
+void doctorManageMenuDoc(HIS_System* sys) {
+	if (sys == NULL) {
+		printf(">>> 严重错误: 系统底座未初始化！！！\n");
+		return;
+	}
+	loadDoctorSystemData(sys);   // 从文件加载数据
+	int choice = -1;
+	while (1) {
+		printf("\n========== 医生个人中心 ==========\n");
+		printf("1. 查看个人信息\n");
+		printf("2. 修改个人信息\n");
+		printf("0. 返回上一级菜单\n");
+		printf("==================================\n");
+		choice = safeGetInt("请选择操作: ");
+		switch (choice) {
+		case 1:
+			queryDoctor(sys, getCurrentDoctorId());
+			break;
+		case 2:
+			modifyDoctor(sys, getCurrentDoctorId());
+			break;
+		case 0:
+			return;
+		default:
+			printf(">>> 无效选择，请重试。\n");
+			break;
+		}
+	}
+}
 
 

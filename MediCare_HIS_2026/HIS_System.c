@@ -2,7 +2,7 @@
 #include"HIS_System.h"
 #include"ConfirmFunc.h"
 #include"DrugFileManage.h"
-#include"DocterFileManage.h"
+#include"doctorFileManage.h"
 #include"DepartmentFileManage.h"
 #include"PatientFileManage.h"
 #include"WardFileManage.h"

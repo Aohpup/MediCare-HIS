@@ -65,7 +65,8 @@ void drugManageMenu(HIS_System* sys) {
 		return;
 	}
 	loadDrugSystemData(sys);   // 从文件加载数据
-
+	// 默认按照药品编号升序显示
+	sortDrugList(sys->drugDisplayHead, NULL, SORT_BY_ID, ORDER_ASC);
 	int choice = -1;
 	while (1) {
 		printf("\n========== 药品管理中心 ==========\n");
@@ -92,8 +93,6 @@ void drugManageMenu(HIS_System* sys) {
 			break;
 		case 4:
 			drugSortMenu(sys);
-			if(confirmFunc("显示", "新的药品列表")) 
-				displayAllDrugs(sys);
 			break;
 		case 5:
 			deleteDrug(&sys);
@@ -103,7 +102,6 @@ void drugManageMenu(HIS_System* sys) {
 			break;
 		case 7:
 			if (confirmFunc("保存", "药品系统数据")) {
-				printf(">>> 正在保存药品系统数据...\n");
 				saveDrugSystemData(sys);
 			}
 			break;
@@ -141,8 +139,7 @@ void drugManageMenuDoc(HIS_System* sys, const char* doctorId) {
 			queryDrug(sys);
 			break;
 		case 2:
-			drugSortMenu(sys);
-			displayAllDrugs(sys);
+			drugSortMenuDoc(sys);
 			break;
 		case 0:
 			return;
@@ -666,7 +663,7 @@ void displayAllDrugs(HIS_System* sys) {
 	printFormattedStr("药品编号", 12);
 	printFormattedStr("国标码", 18);
 	printFormattedStr("通用名", 20);
-	printFormattedStr("商品名", 20);
+	printFormattedStr("商品名", 15);
 	printFormattedStr("别名", 12);
 	printFormattedStr("库存", 8);
 	printFormattedStr("单价(元)", 10);
@@ -679,12 +676,47 @@ void displayAllDrugs(HIS_System* sys) {
 		printFormattedStr(curr->drugId, 12);
 		printFormattedStr(curr->drugGbCode, 18);
 		printFormattedStr(curr->genericName, 20);
-		printFormattedStr(curr->tradeName, 20);
+		printFormattedStr(curr->tradeName, 15);
 		printFormattedStr(curr->alias, 12);
 
 		sprintf(buffer, "%d", curr->stock);
 		printFormattedStr(buffer, 8);
 
+		sprintf(buffer, "%.2f", curr->price);
+		printFormattedStr(buffer, 10);
+		
+		printf("\n");
+		curr = curr->next;
+	}
+	printf("----------------------------------------------------------------------------------------------------\n");
+	printf(">>> 药品列表打印完毕！\n");
+}
+
+void displayAllDrugsDoc(HIS_System* sys) {
+	if (sys->drugDisplayHead == NULL) {
+		printf(">>> 系统内没有药品数据！\n");
+		return;
+	}
+	char buffer[256];
+	printf("\n=== 所有药品信息列表 ===\n");
+	printf("----------------------------------------------------------------------------------------------------\n");
+	// 表头
+	printFormattedStr("药品编号", 12);
+	printFormattedStr("国标码", 18);
+	printFormattedStr("通用名", 20);
+	printFormattedStr("商品名", 15);
+	printFormattedStr("别名", 12);
+	printFormattedStr("单价(元)", 10);
+	printf("\n");
+	printf("----------------------------------------------------------------------------------------------------\n");
+	Drug* curr = sys->drugDisplayHead;
+	while (curr != NULL) {
+		// 内容列打印
+		printFormattedStr(curr->drugId, 12);
+		printFormattedStr(curr->drugGbCode, 18);
+		printFormattedStr(curr->genericName, 20);
+		printFormattedStr(curr->tradeName, 15);
+		printFormattedStr(curr->alias, 12);
 		sprintf(buffer, "%.2f", curr->price);
 		printFormattedStr(buffer, 10);
 		

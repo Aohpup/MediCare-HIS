@@ -1,6 +1,6 @@
 #pragma once
-#ifndef DOCTERSORT_H
-#define DOCTERSORT_H
+#ifndef doctorSORT_H
+#define doctorSORT_H
 #include "HIS_System.h"
 
 // 排序方式常量定义
@@ -16,15 +16,15 @@
 #define ORDER_DESC 2			//降序
 
 //确定是否需要交换两个医生节点以满足用户选择的排序方式和顺序
-bool needToSortDoctor(Docter* a, Docter* b, int choice, int order);
+bool needToSortDoctor(doctor* a, doctor* b, int choice, int order);
 
 //交换数据
-void swapDoctors(Docter* a, Docter* b);
+void swapDoctors(doctor* a, doctor* b);
 
 //根据用户选择的排序方式和顺序，对医生链表进行排序
-void sortDoctorList(Docter* head, Docter* tail, int choice, int order);
+void sortDoctorList(doctor* head, doctor* tail, int choice, int order);
 
 //排序菜单界面
 void doctorSortMenu(HIS_System* sys);
 
-#endif // !DOCTERSORT_H
+#endif // !doctorSORT_H

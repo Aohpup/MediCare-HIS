@@ -140,7 +140,7 @@ static QueueTicket* findTicket(const char* patientId, const char* doctorId, cons
 	while (curr != NULL) {
 		if (
 			strcmp(curr->patient->patientId, patientId) == 0 &&
-			strcmp(curr->doctor->docterId, doctorId) == 0 &&
+			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
 			strcmp(curr->date, date) == 0 &&
 			curr->slot == slot &&
 			curr->status != STATUS_CANCELLED
@@ -206,8 +206,8 @@ void dequeue(Queue* q) {
 }
 
 int getCurrentTimeSlot() {
-	int hour, min;
-	getCurrentTime(&hour, &min, NULL);
+	int hour = -1, min = -1, sec = -1;
+	getCurrentTime(&hour, &min, &sec);
 	if (hour < 8 || (hour == 8 && min < 30)) {
 		return SLOT_0800_0830;
 	}
@@ -309,11 +309,11 @@ int getDoctorSlotBooked(const char* doctorId, const char* date, TimeSlot slot) {
 	return schedule->bookingCount[slot];
 }
 
-bool bookQueueTicket(Patient* patient, Docter* doctor, const char* date, TimeSlot slot, bool isOnsite) {
+bool bookQueueTicket(Patient* patient, doctor* doctor, const char* date, TimeSlot slot, bool isOnsite) {
 	if (patient == NULL || doctor == NULL || date == NULL || slot <= SLOT_INVALID || slot > SLOT_COUNT) {
 		return false;
 	}
-	DoctorDaySchedule* schedule = getSchedule(doctor->docterId, date, false);
+	DoctorDaySchedule* schedule = getSchedule(doctor->doctorId, date, false);
 	if (schedule == NULL || !schedule->openSlots[slot]) {
 		printf(">>> 该医生该时段尚未排班，无法挂号。\n");
 		return false;
@@ -322,7 +322,7 @@ bool bookQueueTicket(Patient* patient, Docter* doctor, const char* date, TimeSlo
 		printf(">>> 该医生该时段已满号（每时段最多5人）。\n");
 		return false;
 	}
-	if (findTicket(patient->patientId, doctor->docterId, date, slot) != NULL) {
+	if (findTicket(patient->patientId, doctor->doctorId, date, slot) != NULL) {
 		printf(">>> 您在该时段已有挂号记录，请勿重复挂号。\n");
 		return false;
 	}
@@ -416,7 +416,7 @@ void refreshSlotQueue(const char* doctorId, const char* date, TimeSlot slot) {
 		if (
 			curr->checkedIn &&
 			curr->status == STATUS_WAITING &&
-			strcmp(curr->doctor->docterId, doctorId) == 0 &&
+			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
 			strcmp(curr->date, date) == 0 &&
 			curr->slot == slot
 		) {

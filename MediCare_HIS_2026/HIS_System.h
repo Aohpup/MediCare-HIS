@@ -35,16 +35,16 @@ typedef struct DoctorSchedule {
 } DoctorSchedule;
 
 //医生信息结构体
-typedef struct Docter {
-	char docterId[ID_LEN];			//医生编号
-	char docterName[STR_LEN];		//医生姓名
+typedef struct doctor {
+	char doctorId[ID_LEN];			//医生编号
+	char doctorName[STR_LEN];		//医生姓名
 	char department[STR_LEN];		//所属一级科室名称
 	char subDeptId[ID_LEN];		//所属诊室编号(二级科室唯一编码)
 
 	DoctorSchedule* scheduleHead;	//医生排班链表头
 
-	struct Docter* next;
-}Docter;
+	struct doctor* next;
+}doctor;
 	//S.2.2科室 (修改为一级科类->二级科室层级结构)
 typedef struct SubDepartment {
 	char subDeptName[STR_LEN];     // 二级科室名称 (具体科室名字，如：心内科)
@@ -183,7 +183,7 @@ typedef enum {
 typedef struct HIS_System {
 	Drug* drugHead;
 	Drug* drugDisplayHead;
-	Docter* docHead;
+	doctor* docHead;
 	SubDepartment* subDeptHead;
 	Department* deptHead;
 	Ward* wardHead;

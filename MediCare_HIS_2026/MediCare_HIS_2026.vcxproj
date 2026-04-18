@@ -128,9 +128,9 @@
     <ClCompile Include="DepartmentFileManage.c" />
     <ClCompile Include="DepartmentManage.c" />
     <ClCompile Include="DepartmentSort.c" />
-    <ClCompile Include="DocterFileManage.c" />
-    <ClCompile Include="DocterManage.c" />
-    <ClCompile Include="DocterSort.c" />
+    <ClCompile Include="DoctorFileManage.c" />
+    <ClCompile Include="DoctorManage.c" />
+    <ClCompile Include="DoctorSort.c" />
     <ClCompile Include="DrugSort.c" />
     <ClCompile Include="BufferClear.c" />
     <ClCompile Include="DrugManage.c" />
@@ -162,9 +162,9 @@
     <ClInclude Include="DepartmentFileManage.h" />
     <ClInclude Include="DepartmentManage.h" />
     <ClInclude Include="DepartmentSort.h" />
-    <ClInclude Include="DocterFileManage.h" />
-    <ClInclude Include="DocterManage.h" />
-    <ClInclude Include="DocterSort.h" />
+    <ClInclude Include="DoctorFileManage.h" />
+    <ClInclude Include="DoctorManage.h" />
+    <ClInclude Include="DoctorSort.h" />
     <ClInclude Include="DrugSort.h" />
     <ClInclude Include="BufferClear.h" />
     <ClInclude Include="DrugManage.h" />

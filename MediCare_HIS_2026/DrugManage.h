@@ -41,6 +41,9 @@ void modifyDrug(HIS_System* sys);
 //显示所有药品信息
 void displayAllDrugs(HIS_System* sys);
 
+//显示所有药品信息（医生视角，隐藏库存信息）
+void displayAllDrugsDoc(HIS_System* sys);
+
 //排序功能在DrugSort.h中实现
 
 //删除药品记录功能

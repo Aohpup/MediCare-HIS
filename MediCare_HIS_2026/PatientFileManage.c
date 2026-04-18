@@ -5,6 +5,22 @@
 #include"string.h"
 bool is_Patient_File_Loaded = false;	//标记是否加载过患者数据
 
+// 去除字符串首尾空白字符
+static char* trimStr(char* s) {
+	if (s == NULL) {
+		return s;
+	}
+	while (*s == ' ' || *s == '\t' || *s == '\r' || *s == '\n') {
+		s++;
+	}
+	char* end = s + strlen(s);
+	while (end > s && (end[-1] == ' ' || end[-1] == '\t' || end[-1] == '\r' || end[-1] == '\n')) {
+		end--;
+	}
+	*end = '\0';
+	return s;
+}
+
 // 文件格式：
 // P patientId name phone id card gender type
 // R recordId department doctorId date time  (挂号记录)
@@ -24,8 +40,14 @@ void loadPatientsSystemData(HIS_System* sys) {
 		return;
 	}
 
-	char dummyLine[512]; // 用于读取和丢弃文件开头的注释行
-	fgets(dummyLine, sizeof(dummyLine), fp); // 读取并丢弃第一行注释
+	char dummyLine[512]; // 用于读取并判断文件开头的注释行
+	long firstPos = ftell(fp);
+	if (fgets(dummyLine, sizeof(dummyLine), fp) != NULL) {
+		char* firstLine = trimStr(dummyLine);
+		if (firstLine[0] != '#') {
+			fseek(fp, firstPos, SEEK_SET);
+		}
+	}
 
 	sys->patientTail = sys->patientHead;	//找到当前患者链表的末尾
 	while (sys->patientTail != NULL && sys->patientTail->next != NULL) {	//如果链表不空，继续往后找
@@ -34,6 +56,7 @@ void loadPatientsSystemData(HIS_System* sys) {
 	Patient* currPatient = NULL;	//当前正在处理的患者节点
 
 	char tag[8] = "0";	//比对行首标签（P/R/V/E/S/END）
+	char line[2048];
 	while (fscanf(fp, "%7s", tag) == 1) {
 		if (strcmp(tag, "P") == 0) {
 			Patient* patient = (Patient*)malloc(sizeof(Patient));
@@ -70,6 +93,11 @@ void loadPatientsSystemData(HIS_System* sys) {
 
 		}
 		else if (strcmp(tag, "R") == 0) {
+			if (currPatient == NULL) {
+				printf(">>> 警告: 挂号记录缺少所属患者，跳过该条记录。\n");
+				fgets(line, sizeof(line), fp);
+				continue;
+			}
 			// 处理挂号记录
 			RegistrationRecord* reg = (RegistrationRecord*)malloc(sizeof(RegistrationRecord));
 			if (reg == NULL) {
@@ -93,16 +121,48 @@ void loadPatientsSystemData(HIS_System* sys) {
 			}
 		}
 		else if (strcmp(tag, "V") == 0) {
+			if (currPatient == NULL) {
+				printf(">>> 警告: 看诊记录缺少所属患者，跳过该条记录。\n");
+				fgets(line, sizeof(line), fp);
+				continue;
+			}
 			// 处理看诊记录
 			ConsultationRecord* view = (ConsultationRecord*)malloc(sizeof(ConsultationRecord));
 			if (view == NULL) {
 				printf(">>> 内存分配失败，停止加载！\n");
 				break;
 			}
-			if (fscanf(fp, "%s %s %s %s", view->recordId, view->details, view->date, view->doctorId) != 4) {
+			if (fgets(line, sizeof(line), fp) == NULL) {
 				printf(">>> 警告: 看诊记录数据格式错误，跳过该条记录。\n");
 				free(view);
 				continue;
+			}
+			char* payload = trimStr(line);
+			if (strchr(payload, '|') != NULL) {
+				char* p1 = strtok(payload, "|");
+				char* p2 = strtok(NULL, "|");
+				char* p3 = strtok(NULL, "|");
+				char* p4 = strtok(NULL, "|");
+				if (p1 == NULL || p2 == NULL || p3 == NULL || p4 == NULL) {
+					printf(">>> 警告: 看诊记录数据格式错误，跳过该条记录。\n");
+					free(view);
+					continue;
+				}
+				strncpy(view->recordId, trimStr(p1), ID_LEN - 1);
+				view->recordId[ID_LEN - 1] = '\0';
+				strncpy(view->date, trimStr(p2), ID_LEN - 1);
+				view->date[ID_LEN - 1] = '\0';
+				strncpy(view->doctorId, trimStr(p3), ID_LEN - 1);
+				view->doctorId[ID_LEN - 1] = '\0';
+				strncpy(view->details, trimStr(p4), sizeof(view->details) - 1);
+				view->details[sizeof(view->details) - 1] = '\0';
+			}
+			else {
+				if (sscanf(payload, "%24s %511s %24s %24s", view->recordId, view->details, view->date, view->doctorId) != 4) {
+					printf(">>> 警告: 看诊记录数据格式错误，跳过该条记录。\n");
+					free(view);
+					continue;
+				}
 			}
 			view->record = REC_VIEW;
 			view->next = NULL;
@@ -116,16 +176,48 @@ void loadPatientsSystemData(HIS_System* sys) {
 			}
 		}
 		else if (strcmp(tag, "E") == 0) {
+			if (currPatient == NULL) {
+				printf(">>> 警告: 检查记录缺少所属患者，跳过该条记录。\n");
+				fgets(line, sizeof(line), fp);
+				continue;
+			}
 			// 处理检查记录
 			ConsultationRecord* exam = (ConsultationRecord*)malloc(sizeof(ConsultationRecord));
 			if (exam == NULL) {
 				printf(">>> 内存分配失败，停止加载！\n");
 				break;
 			}
-			if (fscanf(fp, "%s %s %s %s", exam->recordId, exam->details, exam->date, exam->doctorId) != 4) {
+			if (fgets(line, sizeof(line), fp) == NULL) {
 				printf(">>> 警告: 检查记录数据格式错误，跳过该条记录。\n");
 				free(exam);
 				continue;
+			}
+			char* payload = trimStr(line);
+			if (strchr(payload, '|') != NULL) {
+				char* p1 = strtok(payload, "|");
+				char* p2 = strtok(NULL, "|");
+				char* p3 = strtok(NULL, "|");
+				char* p4 = strtok(NULL, "|");
+				if (p1 == NULL || p2 == NULL || p3 == NULL || p4 == NULL) {
+					printf(">>> 警告: 检查记录数据格式错误，跳过该条记录。\n");
+					free(exam);
+					continue;
+				}
+				strncpy(exam->recordId, trimStr(p1), ID_LEN - 1);
+				exam->recordId[ID_LEN - 1] = '\0';
+				strncpy(exam->date, trimStr(p2), ID_LEN - 1);
+				exam->date[ID_LEN - 1] = '\0';
+				strncpy(exam->doctorId, trimStr(p3), ID_LEN - 1);
+				exam->doctorId[ID_LEN - 1] = '\0';
+				strncpy(exam->details, trimStr(p4), sizeof(exam->details) - 1);
+				exam->details[sizeof(exam->details) - 1] = '\0';
+			}
+			else {
+				if (sscanf(payload, "%24s %511s %24s %24s", exam->recordId, exam->details, exam->date, exam->doctorId) != 4) {
+					printf(">>> 警告: 检查记录数据格式错误，跳过该条记录。\n");
+					free(exam);
+					continue;
+				}
 			}
 			exam->record = REC_EXAM;
 			exam->next = NULL;
@@ -139,17 +231,58 @@ void loadPatientsSystemData(HIS_System* sys) {
 			}
 		}
 		else if (strcmp(tag, "S") == 0) {
+			if (currPatient == NULL) {
+				printf(">>> 警告: 住院记录缺少所属患者，跳过该条记录。\n");
+				fgets(line, sizeof(line), fp);
+				continue;
+			}
 			// 处理住院记录
 			StayRecord* stay = (StayRecord*)malloc(sizeof(StayRecord));
 			if (stay == NULL) {
 				printf(">>> 内存分配失败，停止加载！\n");
 				break;
 			}
-			if (fscanf(fp, "%s %s %s %s %s %s %s", stay->recordId, stay->details, stay->startDate,
-				stay->duration, stay->endDate, stay->doctorId, stay->wardId) != 7) {
+			if (fgets(line, sizeof(line), fp) == NULL) {
 				printf(">>> 警告: 住院记录数据格式错误，跳过该条记录。\n");
 				free(stay);
 				continue;
+			}
+			char* payload = trimStr(line);
+			if (strchr(payload, '|') != NULL) {
+				char* p1 = strtok(payload, "|");
+				char* p2 = strtok(NULL, "|");
+				char* p3 = strtok(NULL, "|");
+				char* p4 = strtok(NULL, "|");
+				char* p5 = strtok(NULL, "|");
+				char* p6 = strtok(NULL, "|");
+				char* p7 = strtok(NULL, "|");
+				if (p1 == NULL || p2 == NULL || p3 == NULL || p4 == NULL || p5 == NULL || p6 == NULL || p7 == NULL) {
+					printf(">>> 警告: 住院记录数据格式错误，跳过该条记录。\n");
+					free(stay);
+					continue;
+				}
+				strncpy(stay->recordId, trimStr(p1), ID_LEN - 1);
+				stay->recordId[ID_LEN - 1] = '\0';
+				strncpy(stay->startDate, trimStr(p2), ID_LEN - 1);
+				stay->startDate[ID_LEN - 1] = '\0';
+				strncpy(stay->duration, trimStr(p3), ID_LEN - 1);
+				stay->duration[ID_LEN - 1] = '\0';
+				strncpy(stay->endDate, trimStr(p4), ID_LEN - 1);
+				stay->endDate[ID_LEN - 1] = '\0';
+				strncpy(stay->doctorId, trimStr(p5), ID_LEN - 1);
+				stay->doctorId[ID_LEN - 1] = '\0';
+				strncpy(stay->wardId, trimStr(p6), ID_LEN - 1);
+				stay->wardId[ID_LEN - 1] = '\0';
+				strncpy(stay->details, trimStr(p7), sizeof(stay->details) - 1);
+				stay->details[sizeof(stay->details) - 1] = '\0';
+			}
+			else {
+				if (sscanf(payload, "%24s %511s %24s %24s %24s %24s %24s", stay->recordId, stay->details, stay->startDate,
+					stay->duration, stay->endDate, stay->doctorId, stay->wardId) != 7) {
+					printf(">>> 警告: 住院记录数据格式错误，跳过该条记录。\n");
+					free(stay);
+					continue;
+				}
 			}
 			stay->next = NULL;
 			if(currPatient->stayHead == NULL) {	//住院记录链表为空，新记录成为头节点
@@ -193,18 +326,18 @@ void savePatientsSystemData(HIS_System* sys) {
 		}
 		ConsultationRecord* view = patient->viewHead;
 		while (view) {
-			fprintf(fp, "V %s %s %s %s\n", view->recordId, view->details, view->date, view->doctorId);
+			fprintf(fp, "V %s|%s|%s|%s\n", view->recordId, view->date, view->doctorId, view->details);
 			view = view->next;
 		}
 		ConsultationRecord* exam = patient->examHead;
 		while (exam) {
-			fprintf(fp, "E %s %s %s %s\n", exam->recordId, exam->details, exam->date, exam->doctorId);
+			fprintf(fp, "E %s|%s|%s|%s\n", exam->recordId, exam->date, exam->doctorId, exam->details);
 			exam = exam->next;
 		}
 		StayRecord* stay = patient->stayHead;
 		while (stay) {
-			fprintf(fp, "S %s %s %s %s %s %s %s\n", stay->recordId, stay->details, stay->startDate,
-				stay->duration, stay->endDate, stay->doctorId, stay->wardId);
+			fprintf(fp, "S %s|%s|%s|%s|%s|%s|%s\n", stay->recordId, stay->startDate,
+				stay->duration, stay->endDate, stay->doctorId, stay->wardId, stay->details);
 			stay = stay->next;
 		}
 		fprintf(fp, "END\n");

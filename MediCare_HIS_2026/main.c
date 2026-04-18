@@ -1,7 +1,4 @@
-#include<stdio.h>
-#include<stdlib.h>
 #include"HIS_System.h"
-#include"DrugFileManage.h"
 #include"HIS_StartMenu.h"
 
 int main() {

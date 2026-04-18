@@ -21,6 +21,9 @@
 //排序界面菜单
 void drugSortMenu(HIS_System* sys);
 
+////排序界面菜单（医生视角）
+void drugSortMenuDoc(HIS_System* sys);
+
 //确定是否需要交换两个药品节点以满足用户选择的排序方式和顺序
 bool needToSortDrug(Drug* a, Drug* b, int choice, int order);
 

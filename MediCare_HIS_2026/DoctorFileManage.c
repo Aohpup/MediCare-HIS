@@ -1,17 +1,17 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include"DocterFileManage.h"
-#include"DocterManage.h"
+#include"doctorFileManage.h"
+#include"doctorManage.h"
 #include"QueueManage.h"
 #include<string.h>
 bool is_Doctor_File_Loaded = false;		//标记是否加载过医生数据
 
-static Docter* appendDoctorNode(HIS_System* sys, const char* id, const char* name, const char* deptName, const char* roomId) {
-	Docter* newDoctor = (Docter*)malloc(sizeof(Docter));
+static doctor* appendDoctorNode(HIS_System* sys, const char* id, const char* name, const char* deptName, const char* roomId) {
+	doctor* newDoctor = (doctor*)malloc(sizeof(doctor));
 	if (newDoctor == NULL) {
 		return NULL;
 	}
-	strcpy(newDoctor->docterId, id);
-	strcpy(newDoctor->docterName, name);
+	strcpy(newDoctor->doctorId, id);
+	strcpy(newDoctor->doctorName, name);
 	strcpy(newDoctor->department, deptName);
 	if (roomId == NULL || strcmp(roomId, "NULL") == 0 || strcmp(roomId, "-") == 0) {
 		newDoctor->subDeptId[0] = '\0';
@@ -46,7 +46,7 @@ void loadDoctorSystemData(HIS_System* sys) {
 	fgets(dummyLine, sizeof(dummyLine), fp); // 读取并丢弃第一行注释
 
 	char line[512];	// 用于读取文件行的缓冲区
-	Docter* currentDoctor = NULL;
+	doctor* currentDoctor = NULL;
 	while (fgets(line, sizeof(line), fp) != NULL) {
 		line[strcspn(line, "\r\n")] = '\0';
 		if (line[0] == '\0') {
@@ -81,7 +81,7 @@ void loadDoctorSystemData(HIS_System* sys) {
 			int bookingCount = 0;
 			if (sscanf(line + 2, "%19s %d %d", date, &slotNo, &bookingCount) == 3) {	// 解析成功，继续处理排班信息
 				if (slotNo >= 1 && slotNo <= SLOT_COUNT) {
-					importDoctorSchedule(currentDoctor->docterId, date, (TimeSlot)slotNo, bookingCount);
+					importDoctorSchedule(currentDoctor->doctorId, date, (TimeSlot)slotNo, bookingCount);
 				}
 			}
 			continue;
@@ -122,13 +122,13 @@ void saveDoctorSystemData(HIS_System* sys) {
 		return;
 	}
 
-	fprintf(fp, "# HIS DOCTER DATA FILE\n");
+	fprintf(fp, "# HIS doctor DATA FILE\n");
 
-	Docter* curr = sys->docHead;
+	doctor* curr = sys->docHead;
 	while (curr != NULL) {
 		const char* persistedRoom = (curr->subDeptId[0] != '\0') ? curr->subDeptId : "NULL";
-		fprintf(fp, "D %s %s %s %s\n", curr->docterId, curr->docterName, curr->department, persistedRoom);
-		exportDoctorSchedules(fp, curr->docterId);
+		fprintf(fp, "D %s %s %s %s\n", curr->doctorId, curr->doctorName, curr->department, persistedRoom);
+		exportDoctorSchedules(fp, curr->doctorId);
 		fprintf(fp, "END\n");
 		curr = curr->next;
 	}

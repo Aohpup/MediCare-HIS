@@ -96,13 +96,13 @@
     <ClCompile Include="PrintFormattedStr.c">
       <Filter>源文件\src.\utils</Filter>
     </ClCompile>
-    <ClCompile Include="DocterFileManage.c">
+    <ClCompile Include="DoctorFileManage.c">
       <Filter>源文件\src.\Docter</Filter>
     </ClCompile>
-    <ClCompile Include="DocterManage.c">
+    <ClCompile Include="DoctorManage.c">
       <Filter>源文件\src.\Docter</Filter>
     </ClCompile>
-    <ClCompile Include="DocterSort.c">
+    <ClCompile Include="DoctorSort.c">
       <Filter>源文件\src.\Docter</Filter>
     </ClCompile>
     <ClCompile Include="DrugSort.c">
@@ -208,13 +208,13 @@
     <ClInclude Include="DrugFileManage.h">
       <Filter>头文件\include\modules\Drug</Filter>
     </ClInclude>
-    <ClInclude Include="DocterFileManage.h">
+    <ClInclude Include="DoctorFileManage.h">
       <Filter>头文件\include\modules\Docter</Filter>
     </ClInclude>
-    <ClInclude Include="DocterManage.h">
+    <ClInclude Include="DoctorManage.h">
       <Filter>头文件\include\modules\Docter</Filter>
     </ClInclude>
-    <ClInclude Include="DocterSort.h">
+    <ClInclude Include="DoctorSort.h">
       <Filter>头文件\include\modules\Docter</Filter>
     </ClInclude>
     <ClInclude Include="WardFileManage.h">

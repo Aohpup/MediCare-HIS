@@ -1,14 +1,14 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include"HIS_System.h"
-#include"QueueManage.h"
 #include"DrugFileManage.h"
-#include"DocterFileManage.h"
+#include"doctorManage.h"
+#include"doctorFileManage.h"
 #include"DepartmentFileManage.h"
+#include"DepartmentManage.h"
 #include"WardFileManage.h"
 #include"PatientManage.h"
 #include"PatientFileManage.h"
-#include"DepartmentManage.h"
-#include"DocterManage.h"
+#include"QueueManage.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
 #include"string.h"
@@ -31,6 +31,59 @@ static Patient* getCurrentPatient(void) {
 	return currentPatient;
 }
 
+// 根据患者编号查找患者节点
+static Patient* findPatientById(HIS_System* sys, const char* patientId) {
+	if (sys == NULL || patientId == NULL) {
+		return NULL;
+	}
+	Patient* curr = sys->patientHead;
+	while (curr != NULL) {
+		if (strcmp(curr->patientId, patientId) == 0) {
+			return curr;
+		}
+		curr = curr->next;
+	}
+	return NULL;
+}
+
+// 生成病例编号，格式为 [prefix]+患者编号后4位+3位随机数
+static void generateRecordId(char* outId, const char* prefix, const char* patientId) {
+	if (outId == NULL || prefix == NULL || patientId == NULL) {
+		return;
+	}
+	int len = (int)strlen(patientId);
+	const char* suffix = patientId;
+	if (len > 4) {
+		suffix = patientId + (len - 4);
+	}
+	sprintf(outId, "%s%s%03d", prefix, suffix, rand() % 1000);
+}
+
+// 打印单条看诊/检查病例
+static void printConsultationRecord(const ConsultationRecord* rec) {
+	if (rec == NULL) {
+		return;
+	}
+	printf("记录编号: %s\n", rec->recordId);
+	printf("记录日期: %s\n", rec->date);
+	printf("医生编号: %s\n", rec->doctorId);
+	printf("记录内容: %s\n", rec->details);
+}
+
+// 打印单条住院病例
+static void printStayRecord(const StayRecord* rec) {
+	if (rec == NULL) {
+		return;
+	}
+	printf("记录编号: %s\n", rec->recordId);
+	printf("开始日期: %s\n", rec->startDate);
+	printf("住院时长: %s\n", rec->duration);
+	printf("结束日期: %s\n", rec->endDate);
+	printf("医生编号: %s\n", rec->doctorId);
+	printf("病房编号: %s\n", rec->wardId);
+	printf("记录内容: %s\n", rec->details);
+}
+
 // 设置当前登录的患者信息指针，并根据指针是否为NULL更新登录状态标志
 static void setCurrentPatient(Patient* patient) {
 	currentPatient = patient;
@@ -38,12 +91,12 @@ static void setCurrentPatient(Patient* patient) {
 }
 
 // 根据医生编号在系统中查找对应的医生信息
-// 区别于Docter文件内的findDoctorById函数，这里可以返回医生信息指针，供挂号时使用；
-// 而Docter文件内的函数主要用于验证医生编号是否存在，无法返回医生信息指针
-static Docter* findDoctorById(HIS_System* sys, const char* doctorId) {
-	Docter* curr = sys->docHead;
+// 区别于doctor文件内的findDoctorById函数，这里可以返回医生信息指针，供挂号时使用；
+// 而doctor文件内的函数主要用于验证医生编号是否存在，无法返回医生信息指针
+static doctor* findDoctorById(HIS_System* sys, const char* doctorId) {
+	doctor* curr = sys->docHead;
 	while (curr != NULL) {
-		if (strcmp(curr->docterId, doctorId) == 0) {
+		if (strcmp(curr->doctorId, doctorId) == 0) {
 			return curr;
 		}
 		curr = curr->next;
@@ -304,7 +357,7 @@ void registerAppointment(HIS_System* sys) {
 
 		char doctorId[ID_LEN];
 		safeGetString(">>> 请输入医生编号: ", doctorId, ID_LEN);
-		Docter* doctor = findDoctorById(sys, doctorId);
+		doctor* doctor = findDoctorById(sys, doctorId);
 		if (doctor == NULL) {
 			printf(">>> 未找到该医生，请检查输入。\n");
 			continue;
@@ -346,9 +399,9 @@ void registerAppointment(HIS_System* sys) {
 
 		//尝试挂号，如果挂号成功则追加挂号记录并打印挂号成功信息和当前时段剩余号源数量；如果是当场挂号且挂号成功，则自动进行签到并打印相关信息
 		if (bookQueueTicket(getCurrentPatient(), doctor, date, slot, choice == 2)) {
-			appendRegistrationRecord(getCurrentPatient(), doctor->docterId, doctor->department, date, slot);
-			printf(">>> 挂号成功：医生[%s] 日期[%s] 时段[%s]。\n", doctor->docterName, date, slot_names[slot - 1]);
-			printf(">>> 当前时段剩余号源：%d\n", getDoctorSlotRemain(doctor->docterId, date, slot));
+			appendRegistrationRecord(getCurrentPatient(), doctor->doctorId, doctor->department, date, slot);
+			printf(">>> 挂号成功：医生[%s] 日期[%s] 时段[%s]。\n", doctor->doctorName, date, slot_names[slot - 1]);
+			printf(">>> 当前时段剩余号源：%d\n", getDoctorSlotRemain(doctor->doctorId, date, slot));
 			if (choice == 2) {
 				char signTime[TIME_STR_LEN];
 					if(TEST_SYSTEM_DEBUG) {
@@ -360,11 +413,274 @@ void registerAppointment(HIS_System* sys) {
 					}
 					else
 						strcpy(signTime, getCurrentTimeStr());
-				if (checkInQueueTicket(getCurrentPatient()->patientId, doctor->docterId, date, slot, signTime)) {
+				if (checkInQueueTicket(getCurrentPatient()->patientId, doctor->doctorId, date, slot, signTime)) {
 					printf(">>> 当场挂号已自动签到，请及时就诊。\n");
-					printSlotQueue(doctor->docterId, date, slot);
+					printSlotQueue(doctor->doctorId, date, slot);
 				}
 			}
 		}
 	}
 }
+
+// 写入看诊病例信息（医生开具）
+bool appendViewMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* date) {
+	if (sys == NULL || patientId == NULL || doctorId == NULL || details == NULL || date == NULL) {
+		return false;
+	}
+	Patient* target = findPatientById(sys, patientId);
+	if (target == NULL) {
+		return false;
+	}
+	ConsultationRecord* rec = (ConsultationRecord*)malloc(sizeof(ConsultationRecord));
+	if (rec == NULL) {
+		printf(">>> 内存不足，看诊病例写入失败。\n");
+		return false;
+	}
+	memset(rec, 0, sizeof(ConsultationRecord));
+	generateRecordId(rec->recordId, "V", patientId);
+	rec->record = REC_VIEW;
+	strncpy(rec->details, details, sizeof(rec->details) - 1);
+	rec->details[sizeof(rec->details) - 1] = '\0';
+	strncpy(rec->date, date, ID_LEN - 1);
+	rec->date[ID_LEN - 1] = '\0';
+	strncpy(rec->doctorId, doctorId, ID_LEN - 1);
+	rec->doctorId[ID_LEN - 1] = '\0';
+	rec->next = NULL;
+
+	if (target->viewHead == NULL) {
+		target->viewHead = rec;
+		target->currViewTail = rec;
+	}
+	else {
+		target->currViewTail->next = rec;
+		target->currViewTail = rec;
+	}
+
+	savePatientsSystemData(sys);
+	return true;
+}
+
+// 写入检查病例信息（预留接口）
+bool appendExamMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* date) {
+	if (sys == NULL || patientId == NULL || doctorId == NULL || details == NULL || date == NULL) {
+		return false;
+	}
+	Patient* target = findPatientById(sys, patientId);
+	if (target == NULL) {
+		return false;
+	}
+	ConsultationRecord* rec = (ConsultationRecord*)malloc(sizeof(ConsultationRecord));
+	if (rec == NULL) {
+		printf(">>> 内存不足，检查病例写入失败。\n");
+		return false;
+	}
+	memset(rec, 0, sizeof(ConsultationRecord));
+	generateRecordId(rec->recordId, "E", patientId);
+	rec->record = REC_EXAM;
+	strncpy(rec->details, details, sizeof(rec->details) - 1);
+	rec->details[sizeof(rec->details) - 1] = '\0';
+	strncpy(rec->date, date, ID_LEN - 1);
+	rec->date[ID_LEN - 1] = '\0';
+	strncpy(rec->doctorId, doctorId, ID_LEN - 1);
+	rec->doctorId[ID_LEN - 1] = '\0';
+	rec->next = NULL;
+
+	if (target->examHead == NULL) {
+		target->examHead = rec;
+		target->currExamTail = rec;
+	}
+	else {
+		target->currExamTail->next = rec;
+		target->currExamTail = rec;
+	}
+
+	savePatientsSystemData(sys);
+	return true;
+}
+
+// 写入住院病例信息（预留接口）
+bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* startDate, const char* duration, const char* endDate, const char* wardId) {
+	if (sys == NULL || patientId == NULL || doctorId == NULL || details == NULL || startDate == NULL || duration == NULL || endDate == NULL || wardId == NULL) {
+		return false;
+	}
+	Patient* target = findPatientById(sys, patientId);
+	if (target == NULL) {
+		return false;
+	}
+	StayRecord* rec = (StayRecord*)malloc(sizeof(StayRecord));
+	if (rec == NULL) {
+		printf(">>> 内存不足，住院病例写入失败。\n");
+		return false;
+	}
+	memset(rec, 0, sizeof(StayRecord));
+	generateRecordId(rec->recordId, "S", patientId);
+	strncpy(rec->details, details, sizeof(rec->details) - 1);
+	rec->details[sizeof(rec->details) - 1] = '\0';
+	strncpy(rec->startDate, startDate, ID_LEN - 1);
+	rec->startDate[ID_LEN - 1] = '\0';
+	strncpy(rec->duration, duration, ID_LEN - 1);
+	rec->duration[ID_LEN - 1] = '\0';
+	strncpy(rec->endDate, endDate, ID_LEN - 1);
+	rec->endDate[ID_LEN - 1] = '\0';
+	strncpy(rec->doctorId, doctorId, ID_LEN - 1);
+	rec->doctorId[ID_LEN - 1] = '\0';
+	strncpy(rec->wardId, wardId, ID_LEN - 1);
+	rec->wardId[ID_LEN - 1] = '\0';
+	rec->next = NULL;
+
+	if (target->stayHead == NULL) {
+		target->stayHead = rec;
+		target->currStayTail = rec;
+	}
+	else {
+		target->currStayTail->next = rec;
+		target->currStayTail = rec;
+	}
+
+	savePatientsSystemData(sys);
+	return true;
+}
+
+// 患者查看自己的病例信息
+void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
+	if (sys == NULL) {
+		printf(">>> 系统未初始化，无法查看病例信息。\n");
+		return;
+	}
+	if (patientId == NULL) {
+		if (!is_Patient_Logged_In || getCurrentPatient() == NULL) {
+			printf(">>> 请先登录患者账户后再查看病例信息。\n");
+			return;
+		}
+		patientId = getCurrentPatient()->patientId;
+	}
+	if (patientId == NULL) {
+		printf(">>> 未提供患者编号，无法查看病例信息。\n");
+		return;
+	}
+	Patient* target = findPatientById(sys, patientId);
+	if (target == NULL) {
+		printf(">>> 未找到患者 %s 的信息。\n", patientId);
+		return;
+	}
+
+	printf("\n========== 患者病例信息 ==========""\n");
+	printf("患者编号: %s\n", target->patientId);
+	printf("患者姓名: %s\n", target->name);
+
+	RegistrationRecord* reg = target->regHead;
+	printf("\n--- 挂号记录 ---\n");
+	if (reg == NULL) {
+		printf(">>> 暂无挂号记录。\n");
+	}
+	while (reg != NULL) {
+		printf("记录编号: %s | 科室: %s | 医生: %s | 日期: %s | 时段: %s\n", reg->recordId, reg->department, reg->doctorId, reg->date, reg->time);
+		reg = reg->next;
+	}
+
+	ConsultationRecord* view = target->viewHead;
+	printf("\n--- 看诊记录 ---\n");
+	if (view == NULL) {
+		printf(">>> 暂无看诊记录。\n");
+	}
+	while (view != NULL) {
+		printConsultationRecord(view);
+		printf("------------------------------\n");
+		view = view->next;
+	}
+
+	ConsultationRecord* exam = target->examHead;
+	printf("\n--- 检查记录 ---\n");
+	if (exam == NULL) {
+		printf(">>> 暂无检查记录。\n");
+	}
+	while (exam != NULL) {
+		printConsultationRecord(exam);
+		printf("------------------------------\n");
+		exam = exam->next;
+	}
+
+	StayRecord* stay = target->stayHead;
+	printf("\n--- 住院记录 ---\n");
+	if (stay == NULL) {
+		printf(">>> 暂无住院记录。\n");
+	}
+	while (stay != NULL) {
+		printStayRecord(stay);
+		printf("------------------------------\n");
+		stay = stay->next;
+	}
+	printf("================================\n");
+}
+
+// 医生查看患者病例信息
+void viewMedicalRecordDoc(HIS_System* sys, const char* doctorId) {
+	if (sys == NULL) {
+		printf(">>> 系统未初始化，无法查看病例信息。\n");
+		return;
+	}
+	if (doctorId == NULL) {
+		printf(">>> 医生身份无效，无法查看病例信息。\n");
+		return;
+	}
+	char patientId[ID_LEN];
+	safeGetString(">>> 请输入需要查看的患者编号(输入 -1 取消): ", patientId, ID_LEN);
+	if (strcmp(patientId, "-1") == 0) {
+		printf(">>> 已取消查看。\n");
+		return;
+	}
+	viewMedicalRecordPat(sys, patientId);
+}
+
+// 医生写入患者病例信息（诊断记录）
+void writeMedicalRecord(HIS_System* sys, const char* doctorId) {
+	if (sys == NULL) {
+		printf(">>> 系统未初始化，无法写入病例信息。\n");
+		return;
+	}
+	if (doctorId == NULL) {
+		printf(">>> 医生身份无效，无法写入病例信息。\n");
+		return;
+	}
+	char patientId[ID_LEN];
+	char details[512];
+	char date[DATE_STR_LEN];
+
+	safeGetString(">>> 请输入患者编号(输入 -1 取消): ", patientId, ID_LEN);
+	if (strcmp(patientId, "-1") == 0) {
+		printf(">>> 已取消写入。\n");
+		return;
+	}
+
+	safeGetString(">>> 请输入诊断记录内容(输入 -1 取消): ", details, 512);
+	if (strcmp(details, "-1") == 0) {
+		printf(">>> 已取消写入。\n");
+		return;
+	}
+
+	if (TEST_SYSTEM_DEBUG) {
+		printf(">>> 测试模式下，可以选择使用自定义日期或当前日期。\n");
+		if (confirmFunc("使用", "自定义日期")) {
+			safeGetString(">>> 请输入病例日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+		}
+		else {
+			strcpy(date, getCurrentDateStr());
+		}
+	}
+	else {
+		strcpy(date, getCurrentDateStr());
+	}
+
+	if (!isValidDate(date)) {
+		printf(">>> 日期格式无效，写入失败。\n");
+		return;
+	}
+
+	if (appendViewMedicalRecord(sys, patientId, doctorId, details, date)) {
+		printf(">>> 诊断记录写入成功！\n");
+	}
+	else {
+		printf(">>> 诊断记录写入失败，请检查患者编号是否正确。\n");
+	}
+}
+

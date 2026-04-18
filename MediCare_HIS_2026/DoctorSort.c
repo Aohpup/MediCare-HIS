@@ -1,27 +1,27 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include"DocterSort.h"
+#include"doctorSort.h"
 #include"InputUtils.h"
 #include<string.h>
 
 // 交换两个医生节点的数据和next指针
-static void swapDoctors(Docter* a, Docter* b) {
-	Docter temp = *a;
+static void swapDoctors(doctor* a, doctor* b) {
+	doctor temp = *a;
 	*a = *b;
 	*b = temp;
 	// 交换后需要修正next指针
-	Docter* tempNext = a->next;
+	doctor* tempNext = a->next;
 	a->next = b->next;
 	b->next = tempNext;
 }
 
-bool needToSortDoctor(Docter* a, Docter* b, int choice, int order) {
+bool needToSortDoctor(doctor* a, doctor* b, int choice, int order) {
 	int cmpResult = 0;
 	switch (choice) {
 	case SORT_BY_ID:		//根据医生编号排序
-		cmpResult = strcmp(a->docterId, b->docterId);
+		cmpResult = strcmp(a->doctorId, b->doctorId);
 		break;
 	case SORT_BY_NAME:		//根据医生姓名排序
-		cmpResult = strcmp(a->docterName, b->docterName);
+		cmpResult = strcmp(a->doctorName, b->doctorName);
 		break;
 	case SORT_BY_DEPT:		//根据医生所在科室排序
 		cmpResult = strcmp(a->department, b->department);
@@ -42,14 +42,14 @@ bool needToSortDoctor(Docter* a, Docter* b, int choice, int order) {
 		return false;		// 不需要交换
 }
 
-void sortDoctorList(Docter* head, Docter* tail, int choice, int order) {
+void sortDoctorList(doctor* head, doctor* tail, int choice, int order) {
 	if (head == NULL || head->next == NULL) {
 		return; // 链表为空或只有一个节点，无需排序
 	}
 	bool swapped;
 	do {
 		swapped = false;
-		Docter* curr = head;
+		doctor* curr = head;
 		while (curr->next != tail) {
 			if (needToSortDoctor(curr, curr->next, choice, order)) {
 				swapDoctors(curr, curr->next);

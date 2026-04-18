@@ -2,7 +2,9 @@
 
 #include"DrugSort.h"
 #include"HIS_System.h"
-#include"DocterFileManage.h"
+#include"DrugManage.h"
+#include"DrugFileManage.h"
+#include"doctorFileManage.h"
 #include"ConfirmFunc.h"
 #include <string.h>
 // 交换两个药品节点的数据和next指针
@@ -137,6 +139,63 @@ void drugSortMenu(HIS_System* sys) {
 			}	
 		}
 
+		if (confirmFunc("显示", "新的药品列表"))
+			displayAllDrugs(sys);
+
+		break;
+	}
+}
+
+//排序界面菜单（医生视角）
+//医生视角下的排序功能仅影响显示链表的顺序，不修改原始链表，以避免影响其他医生的显示结果
+void drugSortMenuDoc(HIS_System* sys) {
+	if (sys->drugDisplayHead == NULL) {
+		printf(">>> 系统内没有药品数据！\n");
+		return;
+	}
+	int sortFieldChoice = -1, sortOrderChoice = -1;
+	while (1) {
+		printf("输入对应序号选择显示方式:\n");
+		printf("1. 根据药品编号显示\n");
+		printf("2. 根据国标码显示\n");
+		printf("3. 根据通用名显示\n");
+		printf("4. 根据商品名显示\n");
+		printf("5. 根据别名显示\n");
+		printf("6. 根据价格显示\n");		//医生视角下不提供库存排序，因为库存信息可能涉及权限控制
+		printf("0. 取消显示\n");
+		sortFieldChoice = safeGetInt(">>> 请输入显示方式: \n");
+		if (sortFieldChoice == SORT_EXIT) {
+			printf(">>> 已取消显示。\n");
+			break;
+		}
+		else if (sortFieldChoice < SORT_BY_ID || sortFieldChoice > SORT_BY_PRICE - 1) {	//医生视角下不提供库存排序选项
+			printf(">>> 无效选择，请重新输入！\n");
+			continue;
+		}
+
+		if(sortFieldChoice == SORT_BY_PRICE - 1)
+			sortFieldChoice = SORT_BY_PRICE;	//调整选项编号以适配医生视角下的显示选项
+
+		printf("请输入对应序号选择显示顺序:\n");
+		printf("1. 升序\n");
+		printf("2. 降序\n");
+		printf("0. 取消显示\n");
+		sortOrderChoice = safeGetInt(">>> 请输入显示顺序: \n");
+		if (sortOrderChoice == ORDER_EXIT) {
+			printf(">>> 已取消显示。\n");
+			break;
+		}
+		else if (sortOrderChoice < ORDER_ASC || sortOrderChoice > ORDER_DESC) {
+			printf(">>> 无效选择，请重新输入！\n");
+			continue;
+		}
+		const char* sortOptions[] = { "根据药品编号显示", "根据国标码显示", "根据通用名显示", "根据商品名显示", "根据别名显示", "根据库存显示", "根据价格显示" };
+		printf("\n>>> 已选择显示方式: %s\n", sortOptions[sortFieldChoice - 1]);
+		printf(">>> 已选择显示顺序: %s\n\n", sortOrderChoice == ORDER_ASC ? "升序" : "降序");
+
+		sortDrugList(sys->drugDisplayHead, NULL, sortFieldChoice, sortOrderChoice);
+
+		displayAllDrugsDoc(sys);
 		break;
 	}
 }
