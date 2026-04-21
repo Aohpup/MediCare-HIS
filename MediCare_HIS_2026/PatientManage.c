@@ -170,6 +170,7 @@ void registerPatient(HIS_System* sys, const char* remainIdCard) {
 			cancelFlag = true;
 			free(newPatient);
 			printf(">>> 已取消患者注册！正在返回操作菜单...\n");
+			return; // 修正：free 后立即 return，避免后续访问 newPatient
 		}
 
 		safeGetString("请输入患者电话: ", newPatient->phone, ID_LEN);
@@ -215,6 +216,7 @@ void registerPatient(HIS_System* sys, const char* remainIdCard) {
 			cancelFlag = true;
 			free(newPatient);
 			printf(">>> 已取消患者注册！正在返回操作菜单...\n");
+			return;
 		}
 
 		newPatient->type = safeGetInt("请输入患者类别 (0-普通, 1-VIP, 2-急诊): ");
@@ -222,6 +224,7 @@ void registerPatient(HIS_System* sys, const char* remainIdCard) {
 			cancelFlag = true;
 			free(newPatient);
 			printf(">>> 已取消患者注册！正在返回操作菜单...\n");
+			return;
 		}
 
 		if (!cancelFlag) {
@@ -613,6 +616,17 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 	printf("================================\n");
 }
 
+static int findConsultationRecordByPatientId(HIS_System* sys, const char* patientId) {
+	if (sys == NULL || patientId == NULL) {
+		return NULL;
+	}
+	Patient* target = findPatientById(sys, patientId);
+	if (target == NULL) {
+		return NULL;
+	}
+	return target->viewHead; //返回看诊记录链表头指针，供医生查看病例信息时使用
+}
+
 // 医生查看患者病例信息
 void viewMedicalRecordDoc(HIS_System* sys, const char* doctorId) {
 	if (sys == NULL) {
@@ -625,6 +639,7 @@ void viewMedicalRecordDoc(HIS_System* sys, const char* doctorId) {
 	}
 	char patientId[ID_LEN];
 	safeGetString(">>> 请输入需要查看的患者编号(输入 -1 取消): ", patientId, ID_LEN);
+	ConsultationRecord* target = findConsultationRecordByPatientId(sys, patientId);
 	if (strcmp(patientId, "-1") == 0) {
 		printf(">>> 已取消查看。\n");
 		return;
