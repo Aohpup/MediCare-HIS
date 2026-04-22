@@ -27,12 +27,26 @@ void loadFileAllData(HIS_System* sys) {
 
 static Patient* currentPatient = NULL;
 
-static Patient* getCurrentPatient(void) {
+static Patient* getCurrentPatientNode(void) {
 	return currentPatient;
 }
 
+bool isPatientLoggedIn(void) {
+/*	if (!is_Patient_Logged_In) {
+		printf(">>> 您尚未登录，请先登录后再进行相关操作！\n");
+	}*/
+	return is_Patient_Logged_In;
+}
+
+const char* getCurrentPatientId(void) {
+	if (currentPatient != NULL) {
+		return currentPatient->patientId;
+	}
+	return NULL;
+}
+
 // 根据患者编号查找患者节点
-static Patient* findPatientById(HIS_System* sys, const char* patientId) {
+Patient* findPatientById(HIS_System* sys, const char* patientId) {
 	if (sys == NULL || patientId == NULL) {
 		return NULL;
 	}
@@ -267,8 +281,16 @@ void registerPatient(HIS_System* sys, const char* remainIdCard) {
 void logInPatient(HIS_System* sys) {
 	while (1) {
 		if(is_Patient_Logged_In) {
-			printf(">>> 已登录患者账户 %s，无需重复登录！正在返回患者服务台...\n", getCurrentPatient()->name);
-			return;
+			Patient* currPatient = getCurrentPatientNode();
+			printf("\n>>> 已登录患者账户 %s，", currPatient->name);
+			if(confirmFunc("更换", "新的患者账户")) {
+				setCurrentPatient(NULL); // 设置当前登录的患者为NULL，表示退出登录
+				printf(">>> 已退出患者 %s账户！请重新登录!\n", currPatient->name);
+			}
+			else {
+				printf(">>> 正在返回患者服务台...\n");
+				return;
+			}
 		}
 		printf("\n--- 患者登录（输入 '-1' 可取消本次登录) ---\n");
 		char idCard[18 + 3];
@@ -301,6 +323,20 @@ void logInPatient(HIS_System* sys) {
 			registerPatient(sys, idCard);
 			return;
 		}
+	}
+}
+
+void logOutPatient() {
+	if(is_Patient_Logged_In) {
+		printf(">>> 已登录患者账户 %s，", getCurrentPatientNode()->name);
+		if(confirmFunc("退出", "当前患者账户")) {
+			setCurrentPatient(NULL); // 设置当前登录的患者为NULL，表示退出登录
+			printf(">>> 已退出患者账户！正在返回操作菜单...\n");
+		}
+		else printf(">>> 正在返回患者服务台...\n");
+	}
+	else {
+		printf(">>> 您尚未登录患者账户，无需退出！正在返回操作菜单...\n");
 	}
 }
 
@@ -352,7 +388,7 @@ void registerAppointment(HIS_System* sys) {
 				}
 				else
 					strcpy(usingDate, getCurrentDateStr());
-			if (checkInQueueTicket(getCurrentPatient()->patientId, doctorId, usingDate, slot, signTime)) {
+			if (checkInQueueTicket(getCurrentPatientNode()->patientId, doctorId, usingDate, slot, signTime)) {
 				printSlotQueue(doctorId, usingDate, slot);
 			}
 			continue;
@@ -401,8 +437,8 @@ void registerAppointment(HIS_System* sys) {
 		}
 
 		//尝试挂号，如果挂号成功则追加挂号记录并打印挂号成功信息和当前时段剩余号源数量；如果是当场挂号且挂号成功，则自动进行签到并打印相关信息
-		if (bookQueueTicket(getCurrentPatient(), doctor, date, slot, choice == 2)) {
-			appendRegistrationRecord(getCurrentPatient(), doctor->doctorId, doctor->department, date, slot);
+		if (bookQueueTicket(getCurrentPatientNode(), doctor, date, slot, choice == 2)) {
+			appendRegistrationRecord(getCurrentPatientNode(), doctor->doctorId, doctor->department, date, slot);
 			printf(">>> 挂号成功：医生[%s] 日期[%s] 时段[%s]。\n", doctor->doctorName, date, slot_names[slot - 1]);
 			printf(">>> 当前时段剩余号源：%d\n", getDoctorSlotRemain(doctor->doctorId, date, slot));
 			if (choice == 2) {
@@ -416,7 +452,7 @@ void registerAppointment(HIS_System* sys) {
 					}
 					else
 						strcpy(signTime, getCurrentTimeStr());
-				if (checkInQueueTicket(getCurrentPatient()->patientId, doctor->doctorId, date, slot, signTime)) {
+				if (checkInQueueTicket(getCurrentPatientNode()->patientId, doctor->doctorId, date, slot, signTime)) {
 					printf(">>> 当场挂号已自动签到，请及时就诊。\n");
 					printSlotQueue(doctor->doctorId, date, slot);
 				}
@@ -551,11 +587,11 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 		return;
 	}
 	if (patientId == NULL) {
-		if (!is_Patient_Logged_In || getCurrentPatient() == NULL) {
+		if (!is_Patient_Logged_In || getCurrentPatientNode() == NULL || getCurrentPatientId() == NULL) {
 			printf(">>> 请先登录患者账户后再查看病例信息。\n");
 			return;
 		}
-		patientId = getCurrentPatient()->patientId;
+		patientId = getCurrentPatientNode()->patientId;
 	}
 	if (patientId == NULL) {
 		printf(">>> 未提供患者编号，无法查看病例信息。\n");
@@ -616,7 +652,7 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 	printf("================================\n");
 }
 
-static int findConsultationRecordByPatientId(HIS_System* sys, const char* patientId) {
+static ConsultationRecord* findConsultationRecordByPatientId(HIS_System* sys, const char* patientId) {
 	if (sys == NULL || patientId == NULL) {
 		return NULL;
 	}
@@ -639,7 +675,12 @@ void viewMedicalRecordDoc(HIS_System* sys, const char* doctorId) {
 	}
 	char patientId[ID_LEN];
 	safeGetString(">>> 请输入需要查看的患者编号(输入 -1 取消): ", patientId, ID_LEN);
+
 	ConsultationRecord* target = findConsultationRecordByPatientId(sys, patientId);
+	if(strcmp(doctorId, target->doctorId) != 0) {
+		printf(">>> 您不是该患者的主治医生，无法查看该患者的病例信息。\n");
+		return;
+	}
 	if (strcmp(patientId, "-1") == 0) {
 		printf(">>> 已取消查看。\n");
 		return;
@@ -699,3 +740,6 @@ void writeMedicalRecord(HIS_System* sys, const char* doctorId) {
 	}
 }
 
+void issueExaminationOrder(HIS_System* sys, const char* doctorId) {
+
+}

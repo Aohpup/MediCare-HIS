@@ -4,6 +4,7 @@
 #include"doctorManage.h"
 #include"DepartmentManage.h"
 #include"DepartmentFileManage.h"
+#include"PatientManage.h"
 #include"QueueManage.h"
 #include"ConfirmFunc.h"
 #include"doctorSort.h"
@@ -113,6 +114,7 @@ void addDoctor(HIS_System* sys) {
 			printf(">>> 内存分配失败！\n");
 			return;
 		}
+		memset(newDoctor, 0, sizeof(doctor));
 		bool hasCancelFlag = false;
 
 		// 输入并验证医生编号
@@ -175,7 +177,7 @@ void addDoctor(HIS_System* sys) {
 				hasCancelFlag = true;
 				break;
 			}
-			if (!getSubDepartmentNameUnderCategory(sys, newDoctor->department, newDoctor->subDeptId, NULL)) {
+			if (!getSubDepartmentNameUnderCategory(sys, newDoctor->department, newDoctor->subDeptId, newDoctor->subDepartment)) {
 				printf(">>> 错误：诊室编号与所选一级科室不匹配，请重新输入！\n");
 				continue;
 			}
@@ -187,6 +189,7 @@ void addDoctor(HIS_System* sys) {
 			return;
 		}
 
+		newDoctor->scheduleHead = NULL;
 		newDoctor->next = sys->docHead;
 		sys->docHead = newDoctor;
 
@@ -204,7 +207,8 @@ void printDoctorInfo(doctor* doctor) {
 	printf("医生编号: %s\n", doctor->doctorId);
 	printf("医生姓名: %s\n", doctor->doctorName);
 	printf("所属一级科室: %s\n", deptName);
-	printf("所属诊室编号: %s\n", roomId);
+	printf("所属二级科室: %s\n", (doctor->subDepartment[0] != '\0') ? doctor->subDepartment : "未绑定");
+	printf("所属诊室编号: %s\n", (roomId[0] != '\0') ? roomId : "未绑定");
 	//printf("诊号数量: %d\n", doctor->consultationCount);
 	printf("=============================\n");
 }
@@ -450,7 +454,7 @@ void modifyDoctor(HIS_System* sys, const char* doctorId) {
 			while (1) {
 				safeGetString("请输入新的诊室编号(输入 -1 取消): ", newRoom, ID_LEN);
 				if (strcmp(newRoom, "-1") == 0) break;
-				if (!getSubDepartmentNameUnderCategory(sys, newDept, newRoom, NULL)) {
+				if (!getSubDepartmentNameUnderCategory(sys, newDept, newRoom, target->subDepartment)) {
 					printf(">>> 错误：该诊室编号与所选一级科室不匹配，请重新输入！\n");
 					continue;
 				}
@@ -848,19 +852,18 @@ void doctorManageMenuDoc(HIS_System* sys) {
 	}
 	loadDoctorSystemData(sys);   // 从文件加载数据
 	int choice = -1;
+	//TODO:医生个人中心功能待完善，目前先占位
 	while (1) {
 		printf("\n========== 医生个人中心 ==========\n");
-		printf("1. 查看个人信息\n");
-		printf("2. 修改个人信息\n");
+		printf("1. \n");
+		printf("2. \n");
 		printf("0. 返回上一级菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择操作: ");
 		switch (choice) {
 		case 1:
-			queryDoctor(sys, getCurrentDoctorId());
 			break;
 		case 2:
-			modifyDoctor(sys, getCurrentDoctorId());
 			break;
 		case 0:
 			return;
@@ -871,4 +874,46 @@ void doctorManageMenuDoc(HIS_System* sys) {
 	}
 }
 
+void doctorManageMenuPat(HIS_System* sys, const char* currentPatientId) {
+	if(sys == NULL) {
+		printf(">>> 严重错误: 系统底座未初始化！！！\n");
+		return;
+	}
+	if(!isPatientLoggedIn()) {
+		printf(">>> 您尚未登录，请先登录后再进行相关操作！\n");
+		return;
+	}
 
+	loadDoctorSystemData(sys);   // 从文件加载数据
+
+	int choice = -1;
+	while(1) {
+		printf("\n========== 医生信息公示栏 ==========\n");
+		printf("1. 查询相关医生信息\n");
+		printf("2. 查询全部医生\n");
+		printf("3. 展示所有医生信息\n");
+		printf("0. 返回上一级菜单\n");
+		printf("==================================\n");
+		choice = safeGetInt("请选择查询方式: ");
+		char queryStr[STR_LEN];
+		char queryDept[STR_LEN];
+		char queryRoom[ID_LEN];
+		switch (choice) {
+		case 1:
+			strcpy(queryStr, findPatientById(sys, currentPatientId)->viewHead->doctorId); //TODO:根据患者的就诊记录找到相关医生ID，目前先占位为患者个人中心界面查询自己的主治医生，后续可根据实际需求调整为查询所有相关医生（如曾经就诊过的医生、当前排班的医生等）
+			queryDoctor(sys, queryStr);
+			break;
+		case 2:
+			queryDoctor(sys, NULL);
+			break;
+		case 3:
+			displayAllDoctors(sys);
+			break;
+		case 0:
+			return;
+		default:
+			printf(">>> 无效选择，请重试！\n");
+			break;
+		}
+	}
+}

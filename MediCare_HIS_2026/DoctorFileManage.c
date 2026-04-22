@@ -3,22 +3,34 @@
 #include"doctorManage.h"
 #include"QueueManage.h"
 #include<string.h>
+
 bool is_Doctor_File_Loaded = false;		//标记是否加载过医生数据
 
-static doctor* appendDoctorNode(HIS_System* sys, const char* id, const char* name, const char* deptName, const char* roomId) {
+// 追加医生节点到系统中（用于从文件加载数据时创建医生节点）
+static doctor* appendDoctorNode(HIS_System* sys, const char* id, const char* name, const char* deptName, const char* subDeptName, const char* roomId) {
 	doctor* newDoctor = (doctor*)malloc(sizeof(doctor));
 	if (newDoctor == NULL) {
 		return NULL;
 	}
+	memset(newDoctor, 0, sizeof(doctor));
 	strcpy(newDoctor->doctorId, id);
 	strcpy(newDoctor->doctorName, name);
 	strcpy(newDoctor->department, deptName);
+
+	if (subDeptName == NULL || strcmp(subDeptName, "NULL") == 0 || strcmp(subDeptName, "-") == 0) {
+		newDoctor->subDepartment[0] = '\0';
+	}
+	else {
+		strcpy(newDoctor->subDepartment, subDeptName);
+	}
+
 	if (roomId == NULL || strcmp(roomId, "NULL") == 0 || strcmp(roomId, "-") == 0) {
 		newDoctor->subDeptId[0] = '\0';
 	}
 	else {
 		strcpy(newDoctor->subDeptId, roomId);
 	}
+
 	newDoctor->scheduleHead = NULL;
 	newDoctor->next = sys->docHead;
 	sys->docHead = newDoctor;
@@ -28,58 +40,61 @@ static doctor* appendDoctorNode(HIS_System* sys, const char* id, const char* nam
 // 从txt文件加载系统数据
 void loadDoctorSystemData(HIS_System* sys) {
 	if (is_Doctor_File_Loaded) {
+		if (TEST_SYSTEM_DEBUG)
+			printf(">>> 医生数据已加载过，跳过重复加载。\n");
 		return;
 	}
-	if(TEST_SYSTEM_DEBUG)
-	printf(">>> 正在从医生文件中加载数据...\n");
+	if (TEST_SYSTEM_DEBUG)
+		printf(">>> 正在从医生文件中加载数据...\n");
+
 	FILE* fp = fopen(DOCTOR_FILE, "r");
 	if (!fp) {
-		if(!TEST_SYSTEM_DEBUG) {
+		if (!TEST_SYSTEM_DEBUG) {
 			printf("严重错误: 医生数据不存在！请确保文件存在或联系管理员。\n");
-			exit(EXIT_FAILURE); // 直接退出程序，避免后续操作导致更严重的错误
+			exit(EXIT_FAILURE);
 		}
 		printf(">>> 警告: 找不到 %s，将作为新系统启动。\n", DOCTOR_FILE);
 		return;
 	}
 
-	char dummyLine[512]; // 用于读取和丢弃文件开头的注释行
-	fgets(dummyLine, sizeof(dummyLine), fp); // 读取并丢弃第一行注释
-
-	char line[512];	// 用于读取文件行的缓冲区
+	char line[512];
 	doctor* currentDoctor = NULL;
 	while (fgets(line, sizeof(line), fp) != NULL) {
 		line[strcspn(line, "\r\n")] = '\0';
-		if (line[0] == '\0') {
+		if (line[0] == '\0' || line[0] == '#') {
 			continue;
 		}
 
-		// S.6医生信息行，格式：D DOC001 张三 内科 NULL
+		// 新格式：D id name dept subDeptName roomId
 		if (strncmp(line, "D ", 2) == 0) {
 			char id[ID_LEN] = { 0 };
 			char name[STR_LEN] = { 0 };
 			char deptName[STR_LEN] = { 0 };
+			char subDeptName[STR_LEN] = { 0 };
 			char roomId[ID_LEN] = { 0 };
-			int parsed = sscanf(line + 2, "%24s %49s %49s %24s", id, name, deptName, roomId);	// 解析医生信息行
-			if (parsed < 4) { // 解析失败，格式不正确，跳过该行并继续读取下一行
-				currentDoctor = NULL;
-				continue;
+			int parsed = sscanf(line + 2, "%24s %49s %49s %49s %24s", id, name, deptName, subDeptName, roomId);
+			if (parsed == 5) {
+				currentDoctor = appendDoctorNode(sys, id, name, deptName, subDeptName, roomId);
 			}
-			// 创建医生节点并添加到系统中
-			currentDoctor = appendDoctorNode(sys, id, name, deptName, roomId);
+			else if (parsed == 4) {
+				// 兼容无 roomId 数据
+				currentDoctor = appendDoctorNode(sys, id, name, deptName, subDeptName, "NULL");
+			}
+			else {
+				currentDoctor = NULL;
+			}
 			continue;
 		}
 
-		// 兼容旧格式：S.5医生排班信息行，格式：S 2026-01-01 1 3
+		// 排班信息行：S YYYY-MM-DD slotNo bookingCount
 		if (strncmp(line, "S ", 2) == 0) {
 			if (currentDoctor == NULL) {
 				continue;
 			}
-
-			// 解析排班信息行
 			char date[DATE_STR_LEN] = { 0 };
 			int slotNo = 0;
 			int bookingCount = 0;
-			if (sscanf(line + 2, "%19s %d %d", date, &slotNo, &bookingCount) == 3) {	// 解析成功，继续处理排班信息
+			if (sscanf(line + 2, "%19s %d %d", date, &slotNo, &bookingCount) == 3) {
 				if (slotNo >= 1 && slotNo <= SLOT_COUNT) {
 					importDoctorSchedule(currentDoctor->doctorId, date, (TimeSlot)slotNo, bookingCount);
 				}
@@ -91,23 +106,11 @@ void loadDoctorSystemData(HIS_System* sys) {
 			currentDoctor = NULL;
 			continue;
 		}
-
-		//不出诊医生的兼容处理：如果当前行不以 "D " 或 "S " 开头，也不是 "END"，但当前医生节点不为NULL，则尝试解析为医生信息行（兼容旧格式）
-		{
-			char id[ID_LEN] = { 0 };
-			char name[STR_LEN] = { 0 };
-			char deptName[STR_LEN] = { 0 };
-			char roomId[ID_LEN] = { 0 };
-			int parsed = sscanf(line, "%24s %49s %49s %24s", id, name, deptName, roomId);
-			if (parsed >= 4) {
-				currentDoctor = appendDoctorNode(sys, id, name, deptName, roomId);
-			}
-		}
 	}
+
 	fclose(fp);
 	printf(">>> 数据加载完成！\n");
-	is_Doctor_File_Loaded = true;	//标记已加载过医生数据
-
+	is_Doctor_File_Loaded = true;
 }
 
 // 将系统数据保存到txt文件
@@ -116,7 +119,7 @@ void saveDoctorSystemData(HIS_System* sys) {
 	if (!fp) {
 		if (!TEST_SYSTEM_DEBUG) {
 			printf("严重错误: 无法保存文件！请确保文件权限或联系管理员。\n");
-			exit(EXIT_FAILURE); // 直接退出程序，避免数据丢失或后续操作导致更严重的错误
+			exit(EXIT_FAILURE);
 		}
 		printf(">>> 错误: 无法创建或打开保存文件！\n");
 		return;
@@ -126,8 +129,10 @@ void saveDoctorSystemData(HIS_System* sys) {
 
 	doctor* curr = sys->docHead;
 	while (curr != NULL) {
+		const char* persistedSubDept = (curr->subDepartment[0] != '\0') ? curr->subDepartment : "NULL";
 		const char* persistedRoom = (curr->subDeptId[0] != '\0') ? curr->subDeptId : "NULL";
-		fprintf(fp, "D %s %s %s %s\n", curr->doctorId, curr->doctorName, curr->department, persistedRoom);
+		// 新格式：D id name dept subDeptName roomId
+		fprintf(fp, "D %s %s %s %s %s\n", curr->doctorId, curr->doctorName, curr->department, persistedSubDept, persistedRoom);
 		exportDoctorSchedules(fp, curr->doctorId);
 		fprintf(fp, "END\n");
 		curr = curr->next;

@@ -80,7 +80,7 @@ void doctorMenu(HIS_System* sys) {
 		printf("2. 排队叫号\n");
 		printf("3. 查看患者病历\n");
 		printf("4. 患者看诊与开具处方\n");
-		printf("5. 开具检查单\n");
+		printf("5. 开具检查单(面诊患者检查开单)\n");
 		printf("6. 查看患者检查结果\n");
 		printf("7. 安排患者住院 (病房分配)\n");
 		printf("8. 医生排班管理\n");
@@ -96,7 +96,7 @@ void doctorMenu(HIS_System* sys) {
 		case 2: doctorCallQueueMenu(sys, getCurrentDoctorId()); break;
 		case 3: viewMedicalRecordDoc(sys, getCurrentDoctorId()); break;	//TODO:这里需要替换成实际获取当前登录医生ID的逻辑，以限制医生只能查看自己的患者病历信息
 		case 4: writeMedicalRecord(sys, getCurrentDoctorId()); break;
-		case 5: printf(">>> 模块待开发: 检查单开具系统...\n"); break;
+		case 5: issueExaminationOrder(sys, getCurrentDoctorId()); break;
 		case 6: printf(">>> 模块待开发: 检查结果查询系统...\n"); break;
 		case 7: printf(">>> 模块待开发: 住院安排与病房分配系统...\n"); break;
 		case 8: doctorScheduleMenu(sys, getCurrentDoctorId()); break; //TODO:这里需要替换成实际获取当前登录医生ID的逻辑
@@ -138,13 +138,11 @@ void patientMenu(HIS_System* sys) {
 		case 1: registerPatient(sys, NULL); break;
 		case 2:	logInPatient(sys); break;
 		case 3: registerAppointment(sys); break;
-		case 4: printf(">>> 模块待开发: 病历信息查询系统...\n"); break;
+		case 4: viewMedicalRecordPat(sys, getCurrentPatientId()); break;
 		case 5: printf(">>> 模块待开发: 住院登记系统...\n"); break;
 		case 6: printf(">>> 模块待开发: 病房查询系统...\n"); break;
-		case 7:/* doctorManageMenuPat(sys, getCurrentPatientId()); break;*/
-			printf(">>> 模块待开发: 医生信息查询系统...\n"); break;
-		case 8:/* drugSortMenuPat(sys, getCurrentPatientId()); break;*/		//TODO:后续可以根据患者权限调整显示内容
-			printf(">>> 模块待开发: 药品信息查询系统...\n"); break;
+		case 7: doctorManageMenuPat(sys, getCurrentPatientId()); break;
+		case 8: drugManageMenuPat(sys, getCurrentPatientId());	break;
 		case 0:
 			if (confirmFunc("退出", "患者服务台")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
@@ -161,14 +159,14 @@ void patientMenu(HIS_System* sys) {
 
 // 主菜单入口
 void showMainMenu(HIS_System* sys) {
-	messageBox("目前仅支持管理员登录功能，医生和患者登录功能待开发。");
+/*	messageBox("目前仅支持管理员登录功能，医生和患者登录功能待开发。");
 	messageBox("请使用管理员登录进入系统，管理员系统只支持药品管理功能、医生管理功能和科室管理功能。");
 	messageBox("药品信息格式：ID 国标码 通用名 商品名 别名 库存 价格");
 	messageBox("例如：DRG001 86900001000012 阿莫西林胶囊 阿莫仙 阿莫 100 25.50");
 	messageBox("医生信息格式：ID 姓名 所在科室 诊号数量");
 	messageBox("例如：DOC001 张明伟 内科 50");
 	messageBox("科室信息格式：一级科室名称 一级科室代码 二级科室名称 科室编号");
-	messageBox("例如：内科 V100201 心内科 A234");
+	messageBox("例如：内科 V100201 心内科 A234");*/
 	int choice;
 	while (1) {
 		printf("\n*********** 医疗管理系统 (HIS) ***********\n");

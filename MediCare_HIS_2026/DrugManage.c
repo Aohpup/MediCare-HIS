@@ -86,7 +86,7 @@ void drugManageMenu(HIS_System* sys) {
 			addDrug(sys);
 			break;
 		case 2:
-			queryDrug(sys);
+			queryDrug(sys, "admin");
 			break;
 		case 3:
 			modifyDrug(sys);	
@@ -115,6 +115,42 @@ void drugManageMenu(HIS_System* sys) {
 }
 
 void drugManageMenuDoc(HIS_System* sys, const char* doctorId) {
+	if (sys == NULL) {
+		if (TEST_SYSTEM_DEBUG) {
+			printf(">>> 系统底座未初始化！！！\n");
+			return;
+		}
+		else {
+			printf(">>> 严重错误: 系统底座未初始化！！！\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	loadDrugSystemData(sys);   // 从文件加载数据
+	int choice = -1;
+	while (1) {
+		printf("\n========== 药品信息查询 ==========\n");
+		printf("1. 查询药品信息\n");
+		printf("2. 显示所有药品信息\n");
+		printf("0. 返回上一级菜单\n");
+		printf("==================================\n");
+		choice = safeGetInt("请选择操作: ");
+		switch (choice) {
+		case 1:
+			queryDrug(sys, "doctor");
+			break;
+		case 2:
+			drugSortMenuDoc(sys);
+			break;
+		case 0:
+			return;
+		default:
+			printf(">>> 无效选择，请重试。\n");
+			break;
+		}
+	}
+}
+
+void drugManageMenuPat(HIS_System* sys, const char* patientId) {
 	if(sys == NULL) {
 		if (TEST_SYSTEM_DEBUG) {
 			printf(">>> 系统底座未初始化！！！\n");
@@ -136,10 +172,10 @@ void drugManageMenuDoc(HIS_System* sys, const char* doctorId) {
 		choice = safeGetInt("请选择操作: ");
 		switch (choice) {
 		case 1:
-			queryDrug(sys);
+			queryDrug(sys, "patient");
 			break;
 		case 2:
-			drugSortMenuDoc(sys);
+			displayAllDrugsPat(sys);
 			break;
 		case 0:
 			return;
@@ -352,8 +388,68 @@ void printDrugInfo(Drug* drug) {
 	printf("\n----------------------------------------------------------------------------------------------------\n");
 }
 
+void printDrugInfoDoc(Drug* drug) {
+	if (drug == NULL) return;
+	
+	char buffer[256];
+	
+	printf("\n----------------------------------------------------------------------------------------------------\n");
+	// 表头
+	printFormattedStr("药品编号", 12);
+	printFormattedStr("国标码", 18);
+	printFormattedStr("通用名", 18);
+	printFormattedStr("商品名", 18);
+	printFormattedStr("别名", 18);
+	printFormattedStr("单价(元)", 10);
+	printf("\n");
+	
+	// 分隔线
+	printf("----------------------------------------------------------------------------------------------------\n");
+	
+	// 内容
+	printFormattedStr(drug->drugId, 12);
+	printFormattedStr(drug->drugGbCode, 18);
+	printFormattedStr(drug->genericName, 18);
+	printFormattedStr(drug->tradeName, 18);
+	printFormattedStr(drug->alias, 18);
+	
+	// 数字转字符串后打印
+	sprintf(buffer, "%.2f", drug->price);
+	printFormattedStr(buffer, 10);
+	
+	printf("\n----------------------------------------------------------------------------------------------------\n");
+}
+
+void printDrugInfoPat(Drug* drug) {
+	if (drug == NULL) return;
+	
+	char buffer[256];
+	
+	printf("\n--------------------------------------------------------\n");
+	// 表头
+	printFormattedStr("药品编号", 12);
+	printFormattedStr("通用名", 18);
+	printFormattedStr("商品名", 18);
+	printFormattedStr("单价(元)", 10);
+	printf("\n");
+	
+	// 分隔线
+	printf("--------------------------------------------------------\n");
+	
+	// 内容
+	printFormattedStr(drug->drugId, 12);
+	printFormattedStr(drug->genericName, 18);
+	printFormattedStr(drug->tradeName, 18);
+	
+	// 数字转字符串后打印
+	sprintf(buffer, "%.2f", drug->price);
+	printFormattedStr(buffer, 10);
+	
+	printf("\n--------------------------------------------------------\n");
+}
+
 //查询药品信息
-void queryDrug(HIS_System* sys) {
+void queryDrug(HIS_System* sys, const char* userType) {
 	if(sys->drugDisplayHead == NULL) {
 		printf(">>> 系统内没有药品数据！\n");
 		return;
@@ -373,7 +469,15 @@ void queryDrug(HIS_System* sys) {
 		safeGetString("请输入药品编号: ", queryStr, ID_LEN);
 		while (curr != NULL) {
 			if (strcmp(curr->drugId, queryStr) == 0) {
-				printDrugInfo(curr);
+				if(userType != NULL && strcmp(userType, "doctor") == 0) {
+					printDrugInfoDoc(curr);
+				}
+				else if(userType != NULL && strcmp(userType, "patient") == 0) {
+					printDrugInfoPat(curr);
+				}
+				else {
+					printDrugInfo(curr);
+				}
 				found = true;
 				break;
 			}
@@ -384,7 +488,15 @@ void queryDrug(HIS_System* sys) {
 		safeGetString("请输入国家药品本位码(16位国标码): ", queryStr, 16);
 		while (curr != NULL) {
 			if (strcmp(curr->drugGbCode, queryStr) == 0) {
-				printDrugInfo(curr);
+				if(userType != NULL && strcmp(userType, "doctor") == 0) {
+					printDrugInfoDoc(curr);
+				}
+				else if(userType != NULL && strcmp(userType, "patient") == 0) {
+					printDrugInfoPat(curr);
+				}
+				else {
+					printDrugInfo(curr);
+				}
 				found = true;
 				break;
 			}
@@ -397,7 +509,15 @@ void queryDrug(HIS_System* sys) {
 			if (strcmp(curr->genericName, queryStr) == 0 ||
 				strcmp(curr->tradeName, queryStr) == 0 ||
 				strcmp(curr->alias, queryStr) == 0) {
-				printDrugInfo(curr);
+				if(userType != NULL && strcmp(userType, "doctor") == 0) {
+					printDrugInfoDoc(curr);
+				}
+				else if(userType != NULL && strcmp(userType, "patient") == 0) {
+					printDrugInfoPat(curr);
+				}
+				else {
+					printDrugInfo(curr);
+				}
 				found = true;
 				break;
 			}
@@ -657,9 +777,12 @@ void displayAllDrugs(HIS_System* sys) {
 	}
 
 	char buffer[256];
+	int number = 1;
+
 	printf("\n=== 所有药品信息列表 ===\n");
 	printf("----------------------------------------------------------------------------------------------------\n");
 	// 表头
+	printFormattedStr("序号", 6);
 	printFormattedStr("药品编号", 12);
 	printFormattedStr("国标码", 18);
 	printFormattedStr("通用名", 20);
@@ -673,6 +796,9 @@ void displayAllDrugs(HIS_System* sys) {
 	Drug* curr = sys->drugDisplayHead;
 	while (curr != NULL) {
 		// 内容列打印
+		sprintf(buffer, "#%d", number++);
+		printFormattedStr(buffer, 6);
+
 		printFormattedStr(curr->drugId, 12);
 		printFormattedStr(curr->drugGbCode, 18);
 		printFormattedStr(curr->genericName, 20);
@@ -697,21 +823,28 @@ void displayAllDrugsDoc(HIS_System* sys) {
 		printf(">>> 系统内没有药品数据！\n");
 		return;
 	}
+
 	char buffer[256];
+	int number = 1;
+
 	printf("\n=== 所有药品信息列表 ===\n");
 	printf("----------------------------------------------------------------------------------------------------\n");
 	// 表头
+	printFormattedStr("序号", 6);
 	printFormattedStr("药品编号", 12);
 	printFormattedStr("国标码", 18);
 	printFormattedStr("通用名", 20);
 	printFormattedStr("商品名", 15);
 	printFormattedStr("别名", 12);
 	printFormattedStr("单价(元)", 10);
+	printFormattedStr("状态", 10);
 	printf("\n");
 	printf("----------------------------------------------------------------------------------------------------\n");
 	Drug* curr = sys->drugDisplayHead;
 	while (curr != NULL) {
 		// 内容列打印
+		sprintf(buffer, "#%d", number++);
+		printFormattedStr(buffer, 6);
 		printFormattedStr(curr->drugId, 12);
 		printFormattedStr(curr->drugGbCode, 18);
 		printFormattedStr(curr->genericName, 20);
@@ -720,10 +853,55 @@ void displayAllDrugsDoc(HIS_System* sys) {
 		sprintf(buffer, "%.2f", curr->price);
 		printFormattedStr(buffer, 10);
 		
+		if(curr->stock > 0) {
+			printFormattedStr("正常", 10);
+		}
+		else {
+			printFormattedStr("缺货", 10);
+		}
+
 		printf("\n");
 		curr = curr->next;
 	}
 	printf("----------------------------------------------------------------------------------------------------\n");
+	printf(">>> 药品列表打印完毕！\n");
+}
+
+void displayAllDrugsPat(HIS_System* sys) {
+	if (sys->drugDisplayHead == NULL) {
+		printf(">>> 系统内没有药品数据！\n");
+		return;
+	}
+
+	char buffer[256];
+	int number = 1;
+
+	printf("\n=== 所有药品信息列表 ===\n");
+	printf("--------------------------------------------------------\n");
+	// 表头
+	printFormattedStr("序号", 6);
+	printFormattedStr("通用名", 20);
+	printFormattedStr("商品名", 15);
+	printFormattedStr("单价(元)", 10);
+	printf("\n");
+	printf("--------------------------------------------------------\n");
+
+	Drug* curr = sys->drugDisplayHead;
+	while (curr != NULL) {
+		// 内容列打印
+		sprintf(buffer, "#%d", number++);
+		printFormattedStr(buffer, 6);
+
+		printFormattedStr(curr->genericName, 20);
+		printFormattedStr(curr->tradeName, 15);
+
+		sprintf(buffer, "%.2f", curr->price);
+		printFormattedStr(buffer, 10);
+
+		printf("\n");
+		curr = curr->next;
+	}
+	printf("--------------------------------------------------------\n");
 	printf(">>> 药品列表打印完毕！\n");
 }
 

@@ -39,13 +39,14 @@ typedef struct doctor {
 	char doctorId[ID_LEN];			//医生编号
 	char doctorName[STR_LEN];		//医生姓名
 	char department[STR_LEN];		//所属一级科室名称
-	char subDeptId[ID_LEN];		//所属诊室编号(二级科室唯一编码)
+	char subDepartment[STR_LEN];		//所属二级科室名称
+	char subDeptId[ID_LEN];			//所属诊室（办公室）编号
 
 	DoctorSchedule* scheduleHead;	//医生排班链表头
 
 	struct doctor* next;
 }doctor;
-	//S.2.2科室 (修改为一级科类->二级科室层级结构)
+	//S.2.2科室
 typedef struct SubDepartment {
 	char subDeptName[STR_LEN];     // 二级科室名称 (具体科室名字，如：心内科)
 	char subDeptId[ID_LEN];        // 具体诊室的编号

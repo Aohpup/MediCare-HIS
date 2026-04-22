@@ -21,10 +21,10 @@ bool isDrugAliNameExist(Drug* head, const char* aliName);
 void drugManageMenu(HIS_System* sys);
 
 //药品管理菜单界面（医生视角）
-void drugManageMenuDoc(HIS_System* sys);
+void drugManageMenuDoc(HIS_System* sys, const char* doctorId);
 
 //药品管理菜单界面（患者视角）
-void drugManageMenuPatient(HIS_System* sys);
+void drugManageMenuPat(HIS_System* sys, const char* patientId);
 
 //录入新药品
 void addDrug(HIS_System* sys);
@@ -33,7 +33,7 @@ void addDrug(HIS_System* sys);
 void printDrugInfo(Drug* drug);
 
 //查询药品信息
-void queryDrug(HIS_System* sys);
+void queryDrug(HIS_System* sys, const char* userType);
 
 //修改药品信息
 void modifyDrug(HIS_System* sys);
@@ -43,6 +43,9 @@ void displayAllDrugs(HIS_System* sys);
 
 //显示所有药品信息（医生视角，隐藏库存信息）
 void displayAllDrugsDoc(HIS_System* sys);
+
+//显示所有药品信息（患者视角，隐藏库存和别名信息）
+void displayAllDrugsPat(HIS_System* sys);
 
 //排序功能在DrugSort.h中实现
 

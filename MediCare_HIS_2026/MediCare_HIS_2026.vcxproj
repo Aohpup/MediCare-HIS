@@ -156,6 +156,7 @@
     <Text Include="HIS_drugs.txt" />
     <Text Include="HIS_patients.txt" />
     <Text Include="HIS_wards.txt" />
+    <Text Include="TODOLIST.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfirmFunc.h" />

@@ -21,7 +21,7 @@ void doctorManageMenu(HIS_System* sys);
 //医生管理菜单界面（医生视角）
 void doctorManageMenuDoc(HIS_System* sys, const char* doctorId);
 
-//医生管理菜单界面（患者视角）
+//医生界面（患者视角，展示医生公示信息）
 void doctorManageMenuPat(HIS_System* sys, const char* patientId);
 
 //录入新医生

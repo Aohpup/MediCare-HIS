@@ -167,6 +167,9 @@
     <Text Include="HIS_patients.txt">
       <Filter>资源文件\data</Filter>
     </Text>
+    <Text Include="TODOLIST.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfirmFunc.h">
