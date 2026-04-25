@@ -92,7 +92,7 @@ void doctorMenu(HIS_System* sys) {
 
 
 		switch (choice) {
-		case 1: printSlotQueue(getCurrentDoctorId(), getCurrentDateStr(), getCurrentTimeSlot()); break;
+		case 1: printSlotQueue(getCurrentDoctorId(), getCurrentDateStr(), changeTimeToSlot(getCurrentTimeStr())); break;
 		case 2: doctorCallQueueMenu(sys, getCurrentDoctorId()); break;
 		case 3: viewMedicalRecordDoc(sys, getCurrentDoctorId()); break;	//TODO:这里需要替换成实际获取当前登录医生ID的逻辑，以限制医生只能查看自己的患者病历信息
 		case 4: writeMedicalRecord(sys, getCurrentDoctorId()); break;

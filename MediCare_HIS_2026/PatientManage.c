@@ -15,16 +15,6 @@
 
 bool is_Patient_Logged_In = false;	//标记患者是否已登录
 
-void loadFileAllData(HIS_System* sys) {
-	if(TEST_SYSTEM_DEBUG)
-		printf(">>> 正在加载所有系统数据...\n");
-	loadDepartmentSystemData(sys);
-	loadDoctorSystemData(sys);
-	loadDrugSystemData(sys);
-	loadWardSystemData(sys);
-	loadPatientsSystemData(sys);
-}
-
 static Patient* currentPatient = NULL;
 
 static Patient* getCurrentPatientNode(void) {
@@ -381,7 +371,7 @@ void registerAppointment(HIS_System* sys) {
 				//检查当前患者是否有符合条件的预约挂号记录，并且已经签到成功，如果满足条件则打印当前时段的排队情况
 				char usingDate[DATE_STR_LEN];
 				if (TEST_SYSTEM_DEBUG) {
-					printf(">>> 测试模式下，可以选择使用自定义签到时间或当前时间。\n");
+					printf(">>> 测试模式下，可以选择使用自定义当前时间。\n");
 					if (confirmFunc("使用", "自定义日期")) {
 						safeGetString(">>> 请输入自定义日期(YYYY-MM-DD): ", usingDate, DATE_STR_LEN);
 					}
@@ -401,10 +391,34 @@ void registerAppointment(HIS_System* sys) {
 			printf(">>> 未找到该医生，请检查输入。\n");
 			continue;
 		}
-		TimeSlot slot = inputTimeSlotChoice();
-		if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
-			printf(">>> 时段编号无效。\n");
-			continue;
+
+		TimeSlot slot = SLOT_INVALID;
+		if (choice == 1){
+			slot = inputTimeSlotChoice();
+			if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+				printf(">>> 时段编号无效。\n");
+				continue;
+			}
+		}
+		else {
+			if(TEST_SYSTEM_DEBUG) {
+				printf(">>> 测试模式下，当场挂号可以选择使用自定义当前时间。\n");
+				if (confirmFunc("使用", "自定义当前时间")) {
+					char testTime[TIME_STR_LEN];
+					safeGetString(">>> 请输入自定义当前时间(HH:MM): ", testTime, TIME_STR_LEN);
+					strcpy(testTime, setTestTime(testTime));
+					slot = changeTimeToSlot(testTime);
+				}
+				else
+					slot = changeTimeToSlot(getCurrentTimeStr());
+			}
+			else
+				slot = changeTimeToSlot(getCurrentTimeStr());
+
+			if (slot == SLOT_INVALID) {
+				printf(">>> 当场挂号当前没有可用的时段。\n");
+				continue;
+			}
 		}
 
 		char date[DATE_STR_LEN];
@@ -652,6 +666,7 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 	printf("================================\n");
 }
 
+// 根据患者编号查找对应的看诊记录链表头指针，供医生查看病例信息时使用
 static ConsultationRecord* findConsultationRecordByPatientId(HIS_System* sys, const char* patientId) {
 	if (sys == NULL || patientId == NULL) {
 		return NULL;
@@ -688,7 +703,28 @@ void viewMedicalRecordDoc(HIS_System* sys, const char* doctorId) {
 	viewMedicalRecordPat(sys, patientId);
 }
 
+// 根据医生编号查找当前正在看诊的患者编号，供医生查看病例信息时使用
+static char* findCurrentConsultationPatientId(HIS_System* sys, const char* doctorId) {
+	if (sys == NULL || doctorId == NULL) {
+		return NULL;
+	}
+	Patient* curr = sys->patientHead;
+	while (curr != NULL) {
+		ConsultationRecord* rec = curr->viewHead;
+		while (rec != NULL) {
+			if (strcmp(rec->doctorId, doctorId) == 0) {
+				return curr->patientId; //返回第一个找到的患者编号
+			}
+			rec = rec->next;
+		}
+		curr = curr->next;
+	}
+	return NULL;
+}
+
+
 // 医生写入患者病例信息（诊断记录）
+// TODOFIND
 void writeMedicalRecord(HIS_System* sys, const char* doctorId) {
 	if (sys == NULL) {
 		printf(">>> 系统未初始化，无法写入病例信息。\n");
@@ -702,11 +738,29 @@ void writeMedicalRecord(HIS_System* sys, const char* doctorId) {
 	char details[512];
 	char date[DATE_STR_LEN];
 
-	safeGetString(">>> 请输入患者编号(输入 -1 取消): ", patientId, ID_LEN);
-	if (strcmp(patientId, "-1") == 0) {
+	int choice = -1;
+	printf("\n--- 写入诊断记录 ---\n");
+	printf("1. 选择当前正在看诊的患者\n");
+	printf("2. 输入患者编号\n");
+	printf("-1. 取消写入诊断");
+	choice = safeGetInt("请选择操作：");
+
+	switch (choice) {
+	case 1:
+		strcpy(patientId, findCurrentConsultationPatientId(sys, doctorId));
+		if (patientId == NULL) {
+			printf(">>> 当前没有正在看诊的患者。\n");
+			return;
+		}
+		break;
+	case 2:
+		safeGetString(">>> 请输入患者编号(输入 -1 取消): ", patientId, ID_LEN);
+		break;
+	case -1:
 		printf(">>> 已取消写入。\n");
 		return;
 	}
+
 
 	safeGetString(">>> 请输入诊断记录内容(输入 -1 取消): ", details, 512);
 	if (strcmp(details, "-1") == 0) {

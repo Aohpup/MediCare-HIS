@@ -725,7 +725,7 @@ void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId) {
 	int slotNo;
 	printAllTimeSlots();
 	if(confirmFunc("选择","当前时间段"))
-		slotNo = getCurrentTimeSlot();
+		slotNo = changeTimeToSlot(getCurrentTimeStr());
 	else
 		slotNo = safeGetInt(">>> 请选择叫号时段: ");
 	if (slotNo < 1 || slotNo > SLOT_COUNT) {

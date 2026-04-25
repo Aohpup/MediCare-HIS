@@ -32,7 +32,18 @@ void initSystem(HIS_System* sys) {
 	sys->patientHead = NULL;
 	sys->patientTail = NULL;
 	currentPatientId = STARTING_PATIENT_ID;	// 初始化患者编号计数器
-	printf(">>> 医疗管理系统底座初始化完成。\n");
+	if(TEST_SYSTEM_DEBUG)
+		printf(">>> 医疗管理系统底座初始化完成。\n");
+}
+
+void loadFileAllData(HIS_System* sys) {
+	loadDrugSystemData(sys);
+	loadDoctorSystemData(sys);
+	loadDepartmentSystemData(sys);
+	loadWardSystemData(sys);
+	loadPatientsSystemData(sys);
+	if(TEST_SYSTEM_DEBUG)
+		printf(">>> 所有系统数据加载完成。\n");
 }
 
 // 从文件保存系统数据
@@ -43,31 +54,38 @@ void saveSystemData(HIS_System* sys) {
 		if(is_Drug_File_Loaded)
 			saveDrugSystemData(sys);
 		else
+			if(TEST_SYSTEM_DEBUG)
 			printf(">>> 警告: 药品数据未加载，无法保存！\n");
 
 		if(is_Doctor_File_Loaded)
 			saveDoctorSystemData(sys);
 		else
+			if (TEST_SYSTEM_DEBUG)
 			printf(">>> 警告: 医生数据未加载，无法保存！\n");
 
 		if(is_Department_File_Loaded)
 			saveDepartmentSystemData(sys);
 		else
+			if (TEST_SYSTEM_DEBUG)
 			printf(">>> 警告: 科室数据未加载，无法保存！\n");
 
 		if(is_Ward_File_Loaded)
 			saveWardSystemData(sys);
 		else
+			if (TEST_SYSTEM_DEBUG)
 			printf(">>> 警告: 病房数据未加载，无法保存！\n");
 
 		if(is_Patient_File_Loaded)
 			savePatientsSystemData(sys);
 		else
+			if (TEST_SYSTEM_DEBUG)
 			printf(">>> 警告: 患者数据未加载，无法保存！\n");
 
+		if(TEST_SYSTEM_DEBUG)
 		printf(">>> 所有系统数据已处理完毕。\n");
 	}
 }
+
 
 void cleanupSystemMemory(HIS_System* sys) {
 	if (sys == NULL) {

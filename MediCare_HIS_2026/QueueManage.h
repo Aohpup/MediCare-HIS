@@ -61,9 +61,6 @@ void enqueue(Queue* q, Patient* patient);
 //患者出队(医生叫号)
 void dequeue(Queue* q);			
 
-// 获取当前时间所在的时段
-int getCurrentTimeSlot(void);
-
 // 医生排班：开启某位医生某天某个时段的接诊
 bool openDoctorScheduleSlot(const char* doctorId, const char* date, TimeSlot slot);
 

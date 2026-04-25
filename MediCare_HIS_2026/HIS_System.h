@@ -197,11 +197,14 @@ typedef struct HIS_System {
 void initSystem(HIS_System* sys);
 //Warning: 添加数据前请务必先调用 initSystem() 初始化系统底座，否则可能会导致严重错误！！！
 
+//从文件加载系统数据
+void loadFileAllData(HIS_System* sys);
 
 //保存系统数据到文件
 void saveSystemData(HIS_System* sys);
 
 //释放系统内存（当前至少释放药品原始链表和显示链表）
+//TODO：新的原始和显示链表
 void cleanupSystemMemory(HIS_System* sys);
 
 #endif // HIS_SYSTEM_H

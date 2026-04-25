@@ -17,6 +17,9 @@ char* getCurrentDateStr();
 //获取当前系统日期的年、月、日部分，分别存储在year、month、day指向的字符串中
 void getCurrentDate(char** year, char** month, char** day);	
 
+//将时间字符串转换为对应的时段编号，返回SLOT_INVALID表示无效时间或超过最后一个时段
+int changeTimeToSlot(char* timeStr);
+
 //验证日期字符串格式和有效性（格式：YYYY-MM-DD或YYYY/MM/DD）
 bool isValidDate(const char* dateStr);	
 
