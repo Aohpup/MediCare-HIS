@@ -363,3 +363,8 @@ MigrationBackup/
 FodyWeavers.xsd
 /MediCare_HIS_2026/HIS_patients.txt
 /MediCare_HIS_2026/HIS_patients.txt
+/MediCare_HIS_2026/HIS_departments.txt
+/MediCare_HIS_2026/HIS_doctors.txt
+/MediCare_HIS_2026/HIS_drugs.txt
+/MediCare_HIS_2026/HIS_wards.txt
+/MediCare_HIS_2026/TODOLIST.txt
