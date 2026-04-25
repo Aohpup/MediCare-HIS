@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/MediCare_HIS_2026/HIS_patients.txt
+/MediCare_HIS_2026/HIS_patients.txt
