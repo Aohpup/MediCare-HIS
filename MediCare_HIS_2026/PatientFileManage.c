@@ -76,6 +76,31 @@ void loadPatientsSystemData(HIS_System* sys) {
 			patient->currViewTail = NULL;
 			patient->currStayTail = NULL;
 
+			// 检查是否已存在相同患者编号（历史数据可能有重复），若重复则跳过该患者整段记录
+			bool isDuplicate = false;
+			Patient* exist = sys->patientHead;
+			while (exist != NULL) {
+				if (strcmp(exist->patientId, patient->patientId) == 0) {
+					if(TEST_SYSTEM_DEBUG)
+					printf(">>> 警告: 患者 %s 在文件中重复出现，跳过后续重复条目。\n", patient->patientId);
+					isDuplicate = true;
+					break;
+				}
+				exist = exist->next;
+			}
+			if (isDuplicate) {
+				free(patient);
+				// 跳过该重复患者后续的所有记录直到 END
+				while (fscanf(fp, "%7s", tag) == 1) {
+					if (strcmp(tag, "END") == 0) {
+						break;
+					}
+					fgets(line, sizeof(line), fp);
+				}
+				currPatient = NULL;
+				continue;
+			}
+
 			// 将新患者添加到链表末尾
 			if (sys->patientTail == NULL) {	//链表为空，新患者成为头节点
 				sys->patientHead = patient;
@@ -108,6 +133,24 @@ void loadPatientsSystemData(HIS_System* sys) {
 				continue;
 			}
 			reg->next = NULL;
+			// 检查是否已存在相同的挂号记录（同医生同日期同时段），若重复则跳过
+			bool regDuplicate = false;
+			RegistrationRecord* regExist = currPatient->regHead;
+			while (regExist != NULL) {
+				if (strcmp(regExist->doctorId, reg->doctorId) == 0 &&
+					strcmp(regExist->date, reg->date) == 0 &&
+					strcmp(regExist->time, reg->time) == 0) {
+					printf(">>> 警告: 患者 %s 的挂号记录重复 (医生%s 日期%s 时段%s)，跳过。\n",
+						currPatient->patientId, reg->doctorId, reg->date, reg->time);
+					regDuplicate = true;
+					break;
+				}
+				regExist = regExist->next;
+			}
+			if (regDuplicate) {
+				free(reg);
+				continue;
+			}
 			if (currPatient->regHead == NULL) {	//挂号记录链表为空，新记录成为头节点
 				currPatient->regHead = reg;		//初始化头节点
 				currPatient->currRegTail = reg;	//初始化末尾指针
@@ -252,7 +295,21 @@ void loadPatientsSystemData(HIS_System* sys) {
 	}
 	fclose(fp);
 
-	printf(">>> 患者数据加载完成！\n");
+	// 根据已加载的患者数据更新 currentPatientId，避免重启后产生重复患者编号
+	int maxId = STARTING_PATIENT_ID - 1;
+	Patient* scan = sys->patientHead;
+	while (scan != NULL) {
+		int numId = 0;
+		if (sscanf(scan->patientId, "P%d", &numId) == 1) {
+			if (numId > maxId) {
+				maxId = numId;
+			}
+		}
+		scan = scan->next;
+	}
+	currentPatientId = maxId + 1;
+
+	printf(">>> 患者数据加载完成！当前患者编号计数器已更新为 %d。\n", currentPatientId);
 	is_Patient_File_Loaded = true;	//标记已加载患者数据
 }
 

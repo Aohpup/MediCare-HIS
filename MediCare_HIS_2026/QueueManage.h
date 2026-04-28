@@ -39,7 +39,7 @@ typedef struct QueueTicket {
 	bool checkedIn;					//是否已签到
 	int signSeq;					//签到顺序（同一时段内，签到越早的患者signSeq越小）
 	int lateMinutes;				//迟到分钟数（0/30/60/120，分别对应准时/迟到30分钟内/迟到30-60分钟/迟到超过60分钟）
-	PatientStatus status;			//患者状态
+	PatientStatus status;			//患者状态（1.等待叫号 2.已叫号但未进入诊室 3.就诊中 4.就诊结束 5.过号未应 6.爽约/取消）
 	struct QueueTicket* next;
 } QueueTicket;
 
@@ -52,7 +52,25 @@ typedef struct DoctorDaySchedule {
 	struct DoctorDaySchedule* next;
 } DoctorDaySchedule;
 
-extern bool is_Queue_Ticket_File_Loaded; //排队挂号数据是否已加载
+// 供QueueFileManage使用的跨模块辅助函数
+
+// 在系统患者链表中按编号查找患者
+Patient* findPatientByIdInQueue(HIS_System* sys, const char* patientId);
+
+// 在系统医生链表中按编号查找医生
+doctor* findDoctorByIdInQueue(HIS_System* sys, const char* doctorId);
+
+// 将挂号单添加到全局链表头部
+void queueAddTicket(QueueTicket* ticket);
+
+// 获取全局挂号单链表头指针
+QueueTicket* queueGetTicketHead(void);
+
+// 更新全局签到序列号
+void queueUpdateSignSeq(int maxSeq);
+
+// 重建所有候诊队列
+void queueRebuildAll(void);
 
 //初始化队列
 void initQueue(Queue* q);
@@ -96,12 +114,6 @@ void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot);
 // 打印医生某日排班表
 void printDoctorScheduleTable(const char* doctorId, const char* date);
 
-// 读取排队挂号数据
-void loadQueueTicketData(HIS_System* sys);
-
-// 保存排队挂号数据
-void saveQueueTicketData(HIS_System* sys);
-
 // 将某位医生排班写入已打开文件
 void exportDoctorSchedules(FILE* fp, const char* doctorId);
 
@@ -110,6 +122,23 @@ void importDoctorSchedule(const char* doctorId, const char* date, TimeSlot slot,
 
 // 时间段展示工具
 void printAllTimeSlots(void);
+
+// ========== 跨模块状态查询与流转函数（供PatientManage使用） ==========
+
+// 根据患者编号和医生编号查找对应的挂号记录（排除已取消的），用于权限判定
+QueueTicket* findTicketByDoctorPatient(const char* doctorId, const char* patientId);
+
+// 检查某患者是否已被某医生叫号（状态为STATUS_CALLED或STATUS_IN_ROOM），用于权限判定
+bool isPatientCalledByDoctor(const char* patientId, const char* doctorId);
+
+// 将患者挂号单状态从STATUS_CALLED推进为STATUS_IN_ROOM（表示已进入诊室就诊）
+bool markTicketAsInRoom(const char* patientId, const char* doctorId);
+
+// 根据医生编号查找当前已叫号（STATUS_CALLED或STATUS_IN_ROOM）的患者编号
+const char* findCalledPatientIdByDoctor(const char* doctorId);
+
+// 将患者挂号单状态推进为STATUS_FINISHED（表示看诊结束），仅当状态为STATUS_IN_ROOM时生效
+bool markTicketAsFinished(const char* patientId, const char* doctorId);
 
 
 #endif // !QUEUEMANAGE_H

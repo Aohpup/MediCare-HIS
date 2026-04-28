@@ -76,6 +76,9 @@
     <Filter Include="源文件\src.\Exam">
       <UniqueIdentifier>{401e6c00-fa29-4dd1-89a9-cce12f5c4bd9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\include\modules\Queue">
+      <UniqueIdentifier>{971466c0-175d-4d68-b1bf-3cb31d708c6b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -157,7 +160,7 @@
       <Filter>源文件\src.\Exam</Filter>
     </ClCompile>
     <ClCompile Include="QueueFileManage.c">
-      <Filter>源文件</Filter>
+      <Filter>源文件\src.\Queue</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -188,7 +191,9 @@
     <Text Include="HIS_patients.txt">
       <Filter>资源文件\data</Filter>
     </Text>
-    <Text Include="HIS_queue_tickets.txt" />
+    <Text Include="HIS_queue_tickets.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfirmFunc.h">
@@ -260,9 +265,6 @@
     <ClInclude Include="DayTimeUtils.h">
       <Filter>头文件\include\utils</Filter>
     </ClInclude>
-    <ClInclude Include="QueueManage.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="ExamFileManage.h">
       <Filter>头文件\include\modules\Exam</Filter>
     </ClInclude>
@@ -270,7 +272,10 @@
       <Filter>头文件\include\modules\Exam</Filter>
     </ClInclude>
     <ClInclude Include="QueueFileManage.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\include\modules\Queue</Filter>
+    </ClInclude>
+    <ClInclude Include="QueueManage.h">
+      <Filter>头文件\include\modules\Queue</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -7,6 +7,7 @@
 #include"PatientFileManage.h"
 #include"WardFileManage.h"
 #include"QueueManage.h"
+#include"QueueFileManage.h"
 #include"ExamFileManage.h"
 
 //git push -u origin main

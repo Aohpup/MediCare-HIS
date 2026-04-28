@@ -195,9 +195,6 @@ typedef enum {
 } TimeSlot;
 
 
-//extern Patient* appointmentSlots[13 + 1][MAX_APP];	// 预约挂号表，第一维为时间段，第二维为该时段的挂号列表
-
-
 //患者排队状态枚举
 typedef enum {
 	STATUS_WAITING,    // 等待叫号

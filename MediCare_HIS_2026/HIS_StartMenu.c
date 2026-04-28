@@ -15,6 +15,7 @@
 #include"ExamManage.h"
 #include"ExamFileManage.h"
 #include"QueueManage.h"
+#include"QueueFileManage.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
 #include <stdio.h>
@@ -70,6 +71,7 @@ void doctorMenu(HIS_System* sys) {
 	loadDoctorSystemData(sys);	//加载系统数据，确保医生登录功能正常使用
 	loadDrugSystemData(sys);
 	loadPatientsSystemData(sys);
+	loadQueueTicketData(sys);	//加载排队挂号数据，确保叫号、结束看诊等功能正常使用
 	loadExamItemData(sys);
 	loadExamOrderData(sys);
 	printf("请先登录医生账号以进入医生工作站！\n");
@@ -87,9 +89,11 @@ void doctorMenu(HIS_System* sys) {
 		printf("5. 开具检查单(面诊患者检查开单)\n");
 		printf("6. 查看患者检查结果\n");
 		printf("7. 安排患者住院 (病房分配)\n");
-		printf("8. 医生排班管理\n");
-		printf("9. 医生信息查询与修改\n");
-		printf("10. 药品信息查询\n");
+		printf("8. 结束看诊\n");
+		printf("9. 查看就诊历史\n");
+		printf("10. 医生排班管理\n");
+		printf("11. 医生信息查询与修改\n");
+		printf("12. 药品信息查询\n");
 		printf("0. 返回主菜单\n");
 		printf("================================\n");
 		choice = safeGetInt("请选择医护操作: ");
@@ -103,9 +107,11 @@ void doctorMenu(HIS_System* sys) {
 		case 5: issueExaminationOrder(sys, getCurrentDoctorId()); break;
 		case 6: queryExamOrdersByDoctor(sys, getCurrentDoctorId()); break;
 		case 7: printf(">>> 模块待开发: 住院安排与病房分配系统...\n"); break;
-		case 8: doctorScheduleMenu(sys, getCurrentDoctorId()); break; //TODO:这里需要替换成实际获取当前登录医生ID的逻辑
-		case 9: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;	//TODO:这里需要替换成实际获取当前登录医生ID的逻辑，以限制医生只能修改自己的信息
-		case 10: drugSortMenuDoc(sys); break;
+		case 8: endConsultation(sys, getCurrentDoctorId()); break;
+		case 9: viewConsultationHistory(sys, getCurrentDoctorId()); break;
+		case 10: doctorScheduleMenu(sys, getCurrentDoctorId()); break; //TODO:这里需要替换成实际获取当前登录医生ID的逻辑
+		case 11: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;	//TODO:这里需要替换成实际获取当前登录医生ID的逻辑，以限制医生只能修改自己的信息
+		case 12: drugSortMenuDoc(sys); break;
 		case 0:
 			if (confirmFunc("退出", "医生工作站")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");

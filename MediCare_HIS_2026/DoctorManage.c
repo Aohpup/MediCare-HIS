@@ -716,7 +716,7 @@ void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId) {
 	if(TEST_SYSTEM_DEBUG)
 		safeGetString(">>> 请输入叫号医生编号: ", doctorId, ID_LEN);
 	else 
-		strcpy(doctorId, "currentdoctorId");
+		strcpy(doctorId, currentDoctorId);
 	safeGetString(">>> 请输入叫号日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
 	if (!isValidDate(date)) {
 		printf(">>> 日期格式无效。\n");

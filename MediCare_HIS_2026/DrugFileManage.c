@@ -1,5 +1,4 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include"HIS_System.h"
 #include"DrugFileManage.h"
 bool is_Drug_File_Loaded = false;	//标记是否加载过药品数据
 

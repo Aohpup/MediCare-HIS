@@ -146,6 +146,7 @@
     <ClCompile Include="PatientManage.c" />
     <ClCompile Include="PatientSort.c" />
     <ClCompile Include="PrintFormattedStr.c" />
+    <ClCompile Include="QueueFileManage.c" />
     <ClCompile Include="QueueManage.c" />
     <ClCompile Include="WardFileManage.c" />
     <ClCompile Include="WardManage.c" />
@@ -159,6 +160,7 @@
     <Text Include="HIS_exam_items.txt" />
     <Text Include="HIS_exam_orders.txt" />
     <Text Include="HIS_patients.txt" />
+    <Text Include="HIS_queue_tickets.txt" />
     <Text Include="HIS_wards.txt" />
     <Text Include="TODOLIST.txt" />
   </ItemGroup>

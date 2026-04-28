@@ -41,6 +41,12 @@ void writeMedicalRecord(HIS_System* sys, const char* doctorId);
 //医生开具检查单
 void issueExaminationOrder(HIS_System* sys, const char* doctorId);
 
+//医生结束看诊，将患者挂号单状态从IN_ROOM推进为FINISHED
+void endConsultation(HIS_System* sys, const char* doctorId);
+
+//医生查看就诊历史记录，列出所有曾看诊过的患者
+void viewConsultationHistory(HIS_System* sys, const char* doctorId);
+
 //写入看诊病例（医生开具）
 bool appendViewMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* date);
 
