@@ -90,7 +90,6 @@ typedef struct Department {
 typedef enum {
 	REC_REG = 1,    // 挂号 Registration
 	REC_VIEW,       // 看诊 Consultation
-	REC_EXAM,       // 检查 Examination
 	REC_STAY        // 住院 Hospitalization
 } RecordType;
 
@@ -116,12 +115,42 @@ typedef struct RegistrationRecord {
 
 typedef struct ConsultationRecord {
 	char recordId[ID_LEN];			// 医疗记录编号
-	RecordType record;				// 记录类型（看诊 / 检查）
+	RecordType record;				// 记录类型（仅看诊）
 	char details[512];				//报告细节内容
 	char date[ID_LEN];				//日期
 	char doctorId[ID_LEN];			//所属医生编号
 	struct ConsultationRecord* next;
 } ConsultationRecord;
+
+// 检查项目字典
+typedef struct ExamItem {
+	char itemId[ID_LEN];		// 项目编号
+	char itemName[STR_LEN];		// 项目名称
+	double price;				// 单价（预留）
+	char department[STR_LEN];	// 执行科室
+	struct ExamItem* next;
+} ExamItem;
+
+// 检查申请单条目（子项目）
+typedef struct ExamOrderItem {
+	char itemId[ID_LEN];		// 项目编号
+	char itemName[STR_LEN];		// 项目名称
+	double price;				// 单价（预留）
+	char result[512];			// 检查结果
+	bool finished;				// 是否完成
+	struct ExamOrderItem* next;
+} ExamOrderItem;
+
+// 检查申请记录 （主项目）
+typedef struct ExamOrder {
+	char orderId[ID_LEN];		// 申请单编号
+	char patientId[ID_LEN];		// 患者编号
+	char doctorId[ID_LEN];		// 开单医生编号
+	char date[DATE_STR_LEN];	// 开单日期
+	char status[STR_LEN];		// 状态（Pending/Finished）
+	ExamOrderItem* itemHead;	// 申请项目列表
+	struct ExamOrder* next;
+} ExamOrder;
 
 typedef struct StayRecord {
 	char recordId[ID_LEN];			// 住院记录编号
@@ -145,12 +174,10 @@ typedef struct Patient {
 
 	RegistrationRecord* regHead;		// 挂号记录链表头
 	ConsultationRecord* viewHead;		// 看诊记录链表头
-	ConsultationRecord* examHead;		// 检查记录链表头
 	StayRecord* stayHead;				// 住院记录链表头
 
 	RegistrationRecord* currRegTail;			// 当前患者挂号记录链表的末尾指针
 	ConsultationRecord* currViewTail;		// 当前患者看诊记录链表的末尾指针
-	ConsultationRecord* currExamTail;		// 当前患者检查记录链表的末尾指针
 	StayRecord* currStayTail;				// 当前患者住院记录链表的末尾指针
 
 	struct Patient* next;
@@ -188,6 +215,8 @@ typedef struct HIS_System {
 	SubDepartment* subDeptHead;
 	Department* deptHead;
 	Ward* wardHead;
+	ExamItem* examItemHead;
+	ExamOrder* examOrderHead;
 	Patient* patientHead;
 	Patient* patientTail;
 } HIS_System;

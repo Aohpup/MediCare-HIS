@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -133,6 +133,8 @@
     <ClCompile Include="DoctorManage.c" />
     <ClCompile Include="DoctorSort.c" />
     <ClCompile Include="DrugSort.c" />
+    <ClCompile Include="ExamFileManage.c" />
+    <ClCompile Include="ExamManage.c" />
     <ClCompile Include="BufferClear.c" />
     <ClCompile Include="DrugManage.c" />
     <ClCompile Include="DrugFileManage.c" />
@@ -154,7 +156,8 @@
     <Text Include="HIS_departments.txt" />
     <Text Include="HIS_doctors.txt" />
     <Text Include="HIS_drugs.txt" />
-    <Text Include="HIS_patients.txt" />
+    <Text Include="HIS_exam_items.txt" />
+    <Text Include="HIS_exam_orders.txt" />
     <Text Include="HIS_wards.txt" />
     <Text Include="TODOLIST.txt" />
   </ItemGroup>
@@ -168,6 +171,8 @@
     <ClInclude Include="DoctorManage.h" />
     <ClInclude Include="DoctorSort.h" />
     <ClInclude Include="DrugSort.h" />
+    <ClInclude Include="ExamFileManage.h" />
+    <ClInclude Include="ExamManage.h" />
     <ClInclude Include="BufferClear.h" />
     <ClInclude Include="DrugManage.h" />
     <ClInclude Include="DrugFileManage.h" />
@@ -188,3 +193,4 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
+

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="源文件">
@@ -70,8 +70,11 @@
     <Filter Include="源文件\src.\Queue">
       <UniqueIdentifier>{c600907a-ae09-4ed2-864e-6c19e387e9e2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="头文件\include\modules\Queue">
-      <UniqueIdentifier>{66989878-c7c2-4ea6-87e8-b82e5c32db81}</UniqueIdentifier>
+    <Filter Include="头文件\include\modules\Exam">
+      <UniqueIdentifier>{7241f697-3133-4634-8399-76d85093462c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src.\Exam">
+      <UniqueIdentifier>{401e6c00-fa29-4dd1-89a9-cce12f5c4bd9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -147,12 +150,15 @@
     <ClCompile Include="QueueManage.c">
       <Filter>源文件\src.\Queue</Filter>
     </ClCompile>
+    <ClCompile Include="ExamFileManage.c">
+      <Filter>源文件\src.\Exam</Filter>
+    </ClCompile>
+    <ClCompile Include="ExamManage.c">
+      <Filter>源文件\src.\Exam</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="HIS_wards.txt">
-      <Filter>资源文件\data</Filter>
-    </Text>
-    <Text Include="HIS_drugs.txt">
       <Filter>资源文件\data</Filter>
     </Text>
     <Text Include="HIS_doctors.txt">
@@ -164,10 +170,16 @@
     <Text Include="C:\Users\27918\Desktop\要求\README.txt">
       <Filter>资源文件</Filter>
     </Text>
-    <Text Include="HIS_patients.txt">
+    <Text Include="TODOLIST.txt">
       <Filter>资源文件\data</Filter>
     </Text>
-    <Text Include="TODOLIST.txt">
+    <Text Include="HIS_drugs.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="HIS_exam_items.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="HIS_exam_orders.txt">
       <Filter>资源文件\data</Filter>
     </Text>
   </ItemGroup>
@@ -242,7 +254,13 @@
       <Filter>头文件\include\utils</Filter>
     </ClInclude>
     <ClInclude Include="QueueManage.h">
-      <Filter>头文件\include\modules\Queue</Filter>
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ExamFileManage.h">
+      <Filter>头文件\include\modules\Exam</Filter>
+    </ClInclude>
+    <ClInclude Include="ExamManage.h">
+      <Filter>头文件\include\modules\Exam</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

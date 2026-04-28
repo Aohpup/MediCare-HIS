@@ -25,7 +25,6 @@ static char* trimStr(char* s) {
 // P patientId name phone id card gender type
 // R recordId department doctorId date time  (挂号记录)
 // V recordId details date doctorId  (看诊记录)
-// E recordId details date doctorId  (检查记录)
 // S recordId details startDate duration endDate doctorId wardId  (住院记录)
 // END  (结束当前患者)
 
@@ -72,11 +71,9 @@ void loadPatientsSystemData(HIS_System* sys) {
 			patient->type = (PatientType)t;
 			patient->regHead = NULL;
 			patient->viewHead = NULL;
-			patient->examHead = NULL;
 			patient->stayHead = NULL;
 			patient->currRegTail = NULL;
 			patient->currViewTail = NULL;
-			patient->currExamTail = NULL;
 			patient->currStayTail = NULL;
 
 			// 将新患者添加到链表末尾
@@ -181,54 +178,9 @@ void loadPatientsSystemData(HIS_System* sys) {
 				fgets(line, sizeof(line), fp);
 				continue;
 			}
-			// 处理检查记录
-			ConsultationRecord* exam = (ConsultationRecord*)malloc(sizeof(ConsultationRecord));
-			if (exam == NULL) {
-				printf(">>> 内存分配失败，停止加载！\n");
-				break;
-			}
-			if (fgets(line, sizeof(line), fp) == NULL) {
-				printf(">>> 警告: 检查记录数据格式错误，跳过该条记录。\n");
-				free(exam);
-				continue;
-			}
-			char* payload = trimStr(line);
-			if (strchr(payload, '|') != NULL) {
-				char* p1 = strtok(payload, "|");
-				char* p2 = strtok(NULL, "|");
-				char* p3 = strtok(NULL, "|");
-				char* p4 = strtok(NULL, "|");
-				if (p1 == NULL || p2 == NULL || p3 == NULL || p4 == NULL) {
-					printf(">>> 警告: 检查记录数据格式错误，跳过该条记录。\n");
-					free(exam);
-					continue;
-				}
-				strncpy(exam->recordId, trimStr(p1), ID_LEN - 1);
-				exam->recordId[ID_LEN - 1] = '\0';
-				strncpy(exam->date, trimStr(p2), ID_LEN - 1);
-				exam->date[ID_LEN - 1] = '\0';
-				strncpy(exam->doctorId, trimStr(p3), ID_LEN - 1);
-				exam->doctorId[ID_LEN - 1] = '\0';
-				strncpy(exam->details, trimStr(p4), sizeof(exam->details) - 1);
-				exam->details[sizeof(exam->details) - 1] = '\0';
-			}
-			else {
-				if (sscanf(payload, "%24s %511s %24s %24s", exam->recordId, exam->details, exam->date, exam->doctorId) != 4) {
-					printf(">>> 警告: 检查记录数据格式错误，跳过该条记录。\n");
-					free(exam);
-					continue;
-				}
-			}
-			exam->record = REC_EXAM;
-			exam->next = NULL;
-			if(currPatient->examHead == NULL) {	//检查记录链表为空，新记录成为头节点
-				currPatient->examHead = exam;
-				currPatient->currExamTail = exam;	//初始化末尾指针
-			}
-			else {	//检查记录链表不空，添加到末尾
-				currPatient->currExamTail->next = exam;
-				currPatient->currExamTail = exam;	//更新末尾指针
-			}
+			// 旧版检查记录已迁移至独立模块，这里仅跳过读取
+			fgets(line, sizeof(line), fp);
+			printf(">>> 提示: 已忽略旧版检查记录，检查数据请从检查模块文件加载。\n");
 		}
 		else if (strcmp(tag, "S") == 0) {
 			if (currPatient == NULL) {
@@ -328,11 +280,6 @@ void savePatientsSystemData(HIS_System* sys) {
 		while (view) {
 			fprintf(fp, "V %s|%s|%s|%s\n", view->recordId, view->date, view->doctorId, view->details);
 			view = view->next;
-		}
-		ConsultationRecord* exam = patient->examHead;
-		while (exam) {
-			fprintf(fp, "E %s|%s|%s|%s\n", exam->recordId, exam->date, exam->doctorId, exam->details);
-			exam = exam->next;
 		}
 		StayRecord* stay = patient->stayHead;
 		while (stay) {

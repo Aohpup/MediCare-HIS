@@ -44,9 +44,6 @@ void issueExaminationOrder(HIS_System* sys, const char* doctorId);
 //写入看诊病例（医生开具）
 bool appendViewMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* date);
 
-//写入检查病例（预留接口）
-bool appendExamMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* date);
-
 //写入住院病例（预留接口）
 bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* startDate, const char* duration, const char* endDate, const char* wardId);
 

@@ -8,6 +8,7 @@
 #include"WardFileManage.h"
 #include"PatientManage.h"
 #include"PatientFileManage.h"
+#include"ExamManage.h"
 #include"QueueManage.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
@@ -140,6 +141,7 @@ static void appendRegistrationRecord(Patient* patient, const char* doctorId, con
 		patient->currRegTail = reg;
 	}
 }
+	
 
 // 生成新的患者编号，格式为P+8位数字（如P10000001），并返回编号字符串指针
 static char* generatePatientId() {
@@ -235,11 +237,9 @@ void registerPatient(HIS_System* sys, const char* remainIdCard) {
 			// 初始化患者记录链表头和末尾指针
 			newPatient->regHead = NULL;
 			newPatient->viewHead = NULL;
-			newPatient->examHead = NULL;
 			newPatient->stayHead = NULL;
 			newPatient->currRegTail = NULL;
 			newPatient->currViewTail = NULL;
-			newPatient->currExamTail = NULL;
 			newPatient->currStayTail = NULL;
 			newPatient->next = NULL;
 
@@ -513,44 +513,6 @@ bool appendViewMedicalRecord(HIS_System* sys, const char* patientId, const char*
 	return true;
 }
 
-// 写入检查病例信息（预留接口）
-bool appendExamMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* date) {
-	if (sys == NULL || patientId == NULL || doctorId == NULL || details == NULL || date == NULL) {
-		return false;
-	}
-	Patient* target = findPatientById(sys, patientId);
-	if (target == NULL) {
-		return false;
-	}
-	ConsultationRecord* rec = (ConsultationRecord*)malloc(sizeof(ConsultationRecord));
-	if (rec == NULL) {
-		printf(">>> 内存不足，检查病例写入失败。\n");
-		return false;
-	}
-	memset(rec, 0, sizeof(ConsultationRecord));
-	generateRecordId(rec->recordId, "E", patientId);
-	rec->record = REC_EXAM;
-	strncpy(rec->details, details, sizeof(rec->details) - 1);
-	rec->details[sizeof(rec->details) - 1] = '\0';
-	strncpy(rec->date, date, ID_LEN - 1);
-	rec->date[ID_LEN - 1] = '\0';
-	strncpy(rec->doctorId, doctorId, ID_LEN - 1);
-	rec->doctorId[ID_LEN - 1] = '\0';
-	rec->next = NULL;
-
-	if (target->examHead == NULL) {
-		target->examHead = rec;
-		target->currExamTail = rec;
-	}
-	else {
-		target->currExamTail->next = rec;
-		target->currExamTail = rec;
-	}
-
-	savePatientsSystemData(sys);
-	return true;
-}
-
 // 写入住院病例信息（预留接口）
 bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* startDate, const char* duration, const char* endDate, const char* wardId) {
 	if (sys == NULL || patientId == NULL || doctorId == NULL || details == NULL || startDate == NULL || duration == NULL || endDate == NULL || wardId == NULL) {
@@ -642,15 +604,18 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 		view = view->next;
 	}
 
-	ConsultationRecord* exam = target->examHead;
 	printf("\n--- 检查记录 ---\n");
-	if (exam == NULL) {
-		printf(">>> 暂无检查记录。\n");
+	bool hasExam = false;
+	ExamOrder* order = sys->examOrderHead;
+	while (order != NULL) {
+		if (strcmp(order->patientId, target->patientId) == 0) {
+			printExamOrderDetail(order);
+			hasExam = true;
+		}
+		order = order->next;
 	}
-	while (exam != NULL) {
-		printConsultationRecord(exam);
-		printf("------------------------------\n");
-		exam = exam->next;
+	if (!hasExam) {
+		printf(">>> 暂无检查记录。\n");
 	}
 
 	StayRecord* stay = target->stayHead;
@@ -795,5 +760,11 @@ void writeMedicalRecord(HIS_System* sys, const char* doctorId) {
 }
 
 void issueExaminationOrder(HIS_System* sys, const char* doctorId) {
-
+	if (sys == NULL || doctorId == NULL) {
+		printf(">>> 医生身份无效，无法开具检查单。\n");
+		return;
+	}
+	if (!createExamOrder(sys, doctorId, NULL)) {
+		printf(">>> 检查单开具失败。\n");
+	}
 }

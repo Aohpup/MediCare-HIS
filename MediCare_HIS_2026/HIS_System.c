@@ -6,6 +6,7 @@
 #include"DepartmentFileManage.h"
 #include"PatientFileManage.h"
 #include"WardFileManage.h"
+#include"ExamFileManage.h"
 
 //git push -u origin main
 //初始化医疗管理系统的所有子模块链表
@@ -29,6 +30,8 @@ void initSystem(HIS_System* sys) {
 	sys->subDeptHead = NULL;
 	sys->deptHead = NULL;
 	sys->wardHead = NULL;
+	sys->examItemHead = NULL;
+	sys->examOrderHead = NULL;
 	sys->patientHead = NULL;
 	sys->patientTail = NULL;
 	currentPatientId = STARTING_PATIENT_ID;	// 初始化患者编号计数器
@@ -42,6 +45,8 @@ void loadFileAllData(HIS_System* sys) {
 	loadDepartmentSystemData(sys);
 	loadWardSystemData(sys);
 	loadPatientsSystemData(sys);
+	loadExamItemData(sys);
+	loadExamOrderData(sys);
 	if(TEST_SYSTEM_DEBUG)
 		printf(">>> 所有系统数据加载完成。\n");
 }
@@ -80,6 +85,18 @@ void saveSystemData(HIS_System* sys) {
 		else
 			if (TEST_SYSTEM_DEBUG)
 			printf(">>> 警告: 患者数据未加载，无法保存！\n");
+
+		if(is_Exam_Item_File_Loaded)
+			saveExamItemData(sys);
+		else
+			if (TEST_SYSTEM_DEBUG)
+			printf(">>> 警告: 检查项目数据未加载，无法保存！\n");
+
+		if(is_Exam_Order_File_Loaded)
+			saveExamOrderData(sys);
+		else
+			if (TEST_SYSTEM_DEBUG)
+			printf(">>> 警告: 检查申请数据未加载，无法保存！\n");
 
 		if(TEST_SYSTEM_DEBUG)
 		printf(">>> 所有系统数据已处理完毕。\n");

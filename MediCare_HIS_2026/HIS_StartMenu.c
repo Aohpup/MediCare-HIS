@@ -12,6 +12,8 @@
 #include"WardSort.h"
 #include"PatientManage.h"
 #include"PatientFileManage.h"
+#include"ExamManage.h"
+#include"ExamFileManage.h"
 #include"QueueManage.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
@@ -68,6 +70,8 @@ void doctorMenu(HIS_System* sys) {
 	loadDoctorSystemData(sys);	//加载系统数据，确保医生登录功能正常使用
 	loadDrugSystemData(sys);
 	loadPatientsSystemData(sys);
+	loadExamItemData(sys);
+	loadExamOrderData(sys);
 	printf("请先登录医生账号以进入医生工作站！\n");
 	if (!logInDoctor(sys)) {
 		printf("正在返回主菜单...\n");
@@ -97,7 +101,7 @@ void doctorMenu(HIS_System* sys) {
 		case 3: viewMedicalRecordDoc(sys, getCurrentDoctorId()); break;	//TODO:这里需要替换成实际获取当前登录医生ID的逻辑，以限制医生只能查看自己的患者病历信息
 		case 4: writeMedicalRecord(sys, getCurrentDoctorId()); break;
 		case 5: issueExaminationOrder(sys, getCurrentDoctorId()); break;
-		case 6: printf(">>> 模块待开发: 检查结果查询系统...\n"); break;
+		case 6: queryExamOrdersByDoctor(sys, getCurrentDoctorId()); break;
 		case 7: printf(">>> 模块待开发: 住院安排与病房分配系统...\n"); break;
 		case 8: doctorScheduleMenu(sys, getCurrentDoctorId()); break; //TODO:这里需要替换成实际获取当前登录医生ID的逻辑
 		case 9: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;	//TODO:这里需要替换成实际获取当前登录医生ID的逻辑，以限制医生只能修改自己的信息
@@ -127,10 +131,11 @@ void patientMenu(HIS_System* sys) {
 		printf("2. 患者登录\n");
 		printf("3. 挂号和签到\n");
 		printf("4. 查看病例信息\n");
-		printf("5. 住院登记\n");
-		printf("6. 病房查询\n");
-		printf("7. 医生信息查询\n");
-		printf("8. 药品信息查询\n");
+		printf("5. 查看检查结果\n");
+		printf("6. 住院登记\n");
+		printf("7. 病房查询\n");
+		printf("8. 医生信息查询\n");
+		printf("9. 药品信息查询\n");
 		printf("0. 返回主菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择患者服务操作: ");
