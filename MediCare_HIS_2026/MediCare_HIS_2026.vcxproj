@@ -158,6 +158,7 @@
     <Text Include="HIS_drugs.txt" />
     <Text Include="HIS_exam_items.txt" />
     <Text Include="HIS_exam_orders.txt" />
+    <Text Include="HIS_patients.txt" />
     <Text Include="HIS_wards.txt" />
     <Text Include="TODOLIST.txt" />
   </ItemGroup>
@@ -184,6 +185,7 @@
     <ClInclude Include="PrintFormattedStr.h" />
     <ClInclude Include="ProjectLimits.h" />
     <ClInclude Include="HIS_System.h" />
+    <ClInclude Include="QueueFileManage.h" />
     <ClInclude Include="QueueManage.h" />
     <ClInclude Include="WardFileManage.h" />
     <ClInclude Include="WardManage.h" />
@@ -193,4 +195,3 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
-

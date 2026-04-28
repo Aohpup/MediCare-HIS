@@ -3,7 +3,7 @@
 #include"doctorManage.h"
 #include"QueueManage.h"
 #include<string.h>
-
+//TODO:保存时按序号正序保存，加载时按文件顺序加载（即医生信息行后紧跟该医生的排班信息行），以保证数据一致性和正确性
 bool is_Doctor_File_Loaded = false;		//标记是否加载过医生数据
 
 // 追加医生节点到系统中（用于从文件加载数据时创建医生节点）
@@ -109,7 +109,7 @@ void loadDoctorSystemData(HIS_System* sys) {
 	}
 
 	fclose(fp);
-	printf(">>> 数据加载完成！\n");
+	printf(">>> 医生数据加载完成！\n");
 	is_Doctor_File_Loaded = true;
 }
 

@@ -6,6 +6,7 @@
 #include"DepartmentFileManage.h"
 #include"PatientFileManage.h"
 #include"WardFileManage.h"
+#include"QueueManage.h"
 #include"ExamFileManage.h"
 
 //git push -u origin main
@@ -45,6 +46,7 @@ void loadFileAllData(HIS_System* sys) {
 	loadDepartmentSystemData(sys);
 	loadWardSystemData(sys);
 	loadPatientsSystemData(sys);
+	loadQueueTicketData(sys);
 	loadExamItemData(sys);
 	loadExamOrderData(sys);
 	if(TEST_SYSTEM_DEBUG)
@@ -85,6 +87,12 @@ void saveSystemData(HIS_System* sys) {
 		else
 			if (TEST_SYSTEM_DEBUG)
 			printf(">>> 警告: 患者数据未加载，无法保存！\n");
+
+		if(is_Queue_Ticket_File_Loaded)
+			saveQueueTicketData(sys);
+		else
+			if (TEST_SYSTEM_DEBUG)
+			printf(">>> 警告: 排队挂号数据未加载，无法保存！\n");
 
 		if(is_Exam_Item_File_Loaded)
 			saveExamItemData(sys);

@@ -52,6 +52,8 @@ typedef struct DoctorDaySchedule {
 	struct DoctorDaySchedule* next;
 } DoctorDaySchedule;
 
+extern bool is_Queue_Ticket_File_Loaded; //排队挂号数据是否已加载
+
 //初始化队列
 void initQueue(Queue* q);
 
@@ -93,6 +95,12 @@ void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot);
 
 // 打印医生某日排班表
 void printDoctorScheduleTable(const char* doctorId, const char* date);
+
+// 读取排队挂号数据
+void loadQueueTicketData(HIS_System* sys);
+
+// 保存排队挂号数据
+void saveQueueTicketData(HIS_System* sys);
 
 // 将某位医生排班写入已打开文件
 void exportDoctorSchedules(FILE* fp, const char* doctorId);

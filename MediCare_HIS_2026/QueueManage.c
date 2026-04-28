@@ -7,6 +7,7 @@ static DoctorDaySchedule* g_scheduleHead = NULL;
 static QueueTicket* g_ticketHead = NULL;
 static WaitingQueue* g_waitingQueueHead = NULL;
 static int g_signSeq = 1;
+bool is_Queue_Ticket_File_Loaded = false;
 
 // 根据患者类别返回优先级数值，急诊最高（3），VIP次之（2），普通最低（1）
 static int patientPriority(const Patient* patient) {
@@ -20,6 +21,28 @@ static int patientPriority(const Patient* patient) {
 		return 2;
 	}
 	return 1;
+}
+
+static Patient* findPatientByIdInQueue(HIS_System* sys, const char* patientId) {
+	Patient* curr = sys->patientHead;
+	while (curr != NULL) {
+		if (strcmp(curr->patientId, patientId) == 0) {
+			return curr;
+		}
+		curr = curr->next;
+	}
+	return NULL;
+}
+
+static doctor* findDoctorByIdInQueue(HIS_System* sys, const char* doctorId) {
+	doctor* curr = sys->docHead;
+	while (curr != NULL) {
+		if (strcmp(curr->doctorId, doctorId) == 0) {
+			return curr;
+		}
+		curr = curr->next;
+	}
+	return NULL;
 }
 
 // 比较函数：先按优先级比较，优先级相同则按签到顺序比较（签到越早signSeq越小）
@@ -110,7 +133,7 @@ static DoctorDaySchedule* getSchedule(const char* doctorId, const char* date, bo
 
 // 获取医生某天某时段的候诊队列，如果createIfMissing为true且不存在则创建新记录
 static WaitingQueue* getWaitingQueue(const char* doctorId, const char* date, TimeSlot slot, bool createIfMissing) {
-	WaitingQueue* curr = g_waitingQueueHead;
+	WaitingQueue* curr = g_waitingQueueHead;	//遍历链表查找匹配的候诊队列
 	while (curr != NULL) {
 		if (strcmp(curr->doctorId, doctorId) == 0 && strcmp(curr->date, date) == 0 && curr->slot == slot) {
 			return curr;
@@ -303,6 +326,97 @@ bool bookQueueTicket(Patient* patient, doctor* doctor, const char* date, TimeSlo
 
 	schedule->bookingCount[slot]++;
 	return true;
+}
+
+void loadQueueTicketData(HIS_System* sys) {
+	if (is_Queue_Ticket_File_Loaded) {
+		return;
+	}
+	FILE* fp = fopen(QUEUE_TICKET_FILE, "r");
+	if (!fp) {
+		printf(">>> 警告: 找不到 %s，将跳过排队挂号数据加载。\n", QUEUE_TICKET_FILE);
+		return;
+	}
+	char line[512];
+	if (fgets(line, sizeof(line), fp) != NULL) {
+		if (line[0] != '#') {
+			fseek(fp, 0, SEEK_SET);
+		}
+	}
+	int maxSeq = 0;
+	while (fgets(line, sizeof(line), fp) != NULL) {
+		if (line[0] == '#' || line[0] == '\n' || line[0] == '\r') {
+			continue;
+		}
+		char patientId[ID_LEN] = { 0 };
+		char doctorId[ID_LEN] = { 0 };
+		char date[DATE_STR_LEN] = { 0 };
+		int slotNo = 0;
+		int isOnsite = 0;
+		int checkedIn = 0;
+		int signSeq = 0;
+		int lateMinutes = 0;
+		int status = 0;
+		if (sscanf(line, "T %24s %24s %19s %d %d %d %d %d %d", patientId, doctorId, date, &slotNo, &isOnsite, &checkedIn, &signSeq, &lateMinutes, &status) != 9) {
+			continue;
+		}
+		Patient* patient = findPatientByIdInQueue(sys, patientId);
+		doctor* doc = findDoctorByIdInQueue(sys, doctorId);
+		if (patient == NULL || doc == NULL || slotNo <= SLOT_INVALID || slotNo > SLOT_COUNT) {
+			continue;
+		}
+		QueueTicket* ticket = (QueueTicket*)malloc(sizeof(QueueTicket));
+		if (ticket == NULL) {
+			break;
+		}
+		memset(ticket, 0, sizeof(QueueTicket));
+		ticket->patient = patient;
+		ticket->doctor = doc;
+		strcpy(ticket->date, date);
+		ticket->slot = (TimeSlot)slotNo;
+		ticket->isOnsite = (isOnsite != 0);
+		ticket->checkedIn = (checkedIn != 0);
+		ticket->signSeq = signSeq;
+		ticket->lateMinutes = lateMinutes;
+		ticket->status = (PatientStatus)status;
+		ticket->next = g_ticketHead;
+		g_ticketHead = ticket;
+		if (signSeq > maxSeq) {
+			maxSeq = signSeq;
+		}
+	}
+	fclose(fp);
+	if (maxSeq >= g_signSeq) {
+		g_signSeq = maxSeq + 1;
+	}
+	is_Queue_Ticket_File_Loaded = true;
+	printf(">>> 排队挂号数据加载完成！\n");
+}
+
+void saveQueueTicketData(HIS_System* sys) {
+	(void)sys;
+	FILE* fp = fopen(QUEUE_TICKET_FILE, "w");
+	if (!fp) {
+		printf(">>> 错误: 无法打开 %s 进行写入！\n", QUEUE_TICKET_FILE);
+		return;
+	}
+	fprintf(fp, "# HIS QUEUE TICKET DATA FILE\n");
+	QueueTicket* curr = g_ticketHead;
+	while (curr != NULL) {
+		fprintf(fp, "T %s %s %s %d %d %d %d %d %d\n",
+			curr->patient->patientId,
+			curr->doctor->doctorId,
+			curr->date,
+			(int)curr->slot,
+			curr->isOnsite ? 1 : 0,
+			curr->checkedIn ? 1 : 0,
+			curr->signSeq,
+			curr->lateMinutes,
+			(int)curr->status);
+		curr = curr->next;
+	}
+	fclose(fp);
+	printf(">>> 排队挂号数据保存完成！\n");
 }
 
 bool checkInQueueTicket(const char* patientId, const char* doctorId, const char* date, TimeSlot slot, const char* signInTime) {

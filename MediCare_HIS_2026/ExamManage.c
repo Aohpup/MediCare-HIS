@@ -5,6 +5,7 @@
 #include"ConfirmFunc.h"
 #include<string.h>
 
+// 查找检查项目字典中对应编号的项目
 static ExamItem* findExamItem(HIS_System* sys, const char* itemId) {
 	ExamItem* curr = sys->examItemHead;
 	while (curr != NULL) {
@@ -16,6 +17,7 @@ static ExamItem* findExamItem(HIS_System* sys, const char* itemId) {
 	return NULL;
 }
 
+// 根据检查单编号查找对应的检查单
 static ExamOrder* findExamOrder(HIS_System* sys, const char* orderId) {
 	ExamOrder* curr = sys->examOrderHead;
 	while (curr != NULL) {
@@ -27,6 +29,7 @@ static ExamOrder* findExamOrder(HIS_System* sys, const char* orderId) {
 	return NULL;
 }
 
+// 判断检查单中是否还有未完成的项目
 static bool hasPendingItems(const ExamOrder* order) {
 	ExamOrderItem* item = order->itemHead;
 	while (item != NULL) {
@@ -38,6 +41,7 @@ static bool hasPendingItems(const ExamOrder* order) {
 	return false;
 }
 
+// 打印检查单详情
 static void updateOrderStatus(ExamOrder* order) {
 	if (order == NULL) {
 		return;
@@ -50,6 +54,7 @@ static void updateOrderStatus(ExamOrder* order) {
 	}
 }
 
+// 根据患者编号生成检查单编号，格式为 "X" + 患者编号后4位 + 3位随机数
 static void generateExamOrderId(char* outId, const char* patientId) {
 	const char* suffix = patientId;
 	int len = (int)strlen(patientId);
@@ -79,9 +84,9 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 		strcpy(selectedPatientId, patientId);
 	}
 
-	ExamOrder* order = (ExamOrder*)malloc(sizeof(ExamOrder));
+	ExamOrder* order = (ExamOrder*)malloc(sizeof(ExamOrder));	//为检查单分配内存
 	if (order == NULL) {
-		printf(">>> 内存不足，无法创建检查单。\n");
+		printf(">>> 内存不足，无法创建检查单。\n");	
 		return false;
 	}
 	memset(order, 0, sizeof(ExamOrder));
@@ -100,12 +105,13 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 		if (strcmp(itemId, "-1") == 0) {
 			break;
 		}
-		ExamItem* dictItem = findExamItem(sys, itemId);
+		ExamItem* dictItem = findExamItem(sys, itemId);	//检查项目字典中查找对应编号的项目
 		if (dictItem == NULL) {
 			printf(">>> 未找到项目编号 %s，请重试。\n", itemId);
 			continue;
 		}
-		ExamOrderItem* newItem = (ExamOrderItem*)malloc(sizeof(ExamOrderItem));
+
+		ExamOrderItem* newItem = (ExamOrderItem*)malloc(sizeof(ExamOrderItem));	//为检查单创建新的项目节点
 		if (newItem == NULL) {
 			printf(">>> 内存不足，无法添加项目。\n");
 			break;

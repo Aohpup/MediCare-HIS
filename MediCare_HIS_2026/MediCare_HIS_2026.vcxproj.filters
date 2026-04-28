@@ -156,6 +156,9 @@
     <ClCompile Include="ExamManage.c">
       <Filter>源文件\src.\Exam</Filter>
     </ClCompile>
+    <ClCompile Include="QueueFileManage.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="HIS_wards.txt">
@@ -182,6 +185,10 @@
     <Text Include="HIS_exam_orders.txt">
       <Filter>资源文件\data</Filter>
     </Text>
+    <Text Include="HIS_patients.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="HIS_queue_tickets.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfirmFunc.h">
@@ -261,6 +268,9 @@
     </ClInclude>
     <ClInclude Include="ExamManage.h">
       <Filter>头文件\include\modules\Exam</Filter>
+    </ClInclude>
+    <ClInclude Include="QueueFileManage.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

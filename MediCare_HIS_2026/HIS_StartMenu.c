@@ -144,10 +144,11 @@ void patientMenu(HIS_System* sys) {
 		case 2:	logInPatient(sys); break;
 		case 3: registerAppointment(sys); break;
 		case 4: viewMedicalRecordPat(sys, getCurrentPatientId()); break;
-		case 5: printf(">>> 模块待开发: 住院登记系统...\n"); break;
-		case 6: printf(">>> 模块待开发: 病房查询系统...\n"); break;
-		case 7: doctorManageMenuPat(sys, getCurrentPatientId()); break;
-		case 8: drugManageMenuPat(sys, getCurrentPatientId());	break;
+		case 5: queryExamOrdersByPatient(sys, getCurrentPatientId()); break;
+		case 6: printf(">>> 模块待开发: 住院登记系统...\n"); break;
+		case 7: printf(">>> 模块待开发: 病房查询系统...\n"); break;
+		case 8: doctorManageMenuPat(sys, getCurrentPatientId()); break;
+		case 9: drugManageMenuPat(sys, getCurrentPatientId());	break;
 		case 0:
 			if (confirmFunc("退出", "患者服务台")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");

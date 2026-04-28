@@ -14,7 +14,7 @@ bool is_Ward_File_Loaded = false;	//标记是否加载过病房数据
 //从文件加载病房数据到系统
 void loadWardSystemData(HIS_System* sys) {
 	if(TEST_SYSTEM_DEBUG)
-	printf("正在从病房文件中加载数据...\n");
+	printf(">>> 正在从病房文件中加载数据...\n");
 	FILE* fp = fopen(WARD_FILE, "r");
 	if (!fp) {
 		if(!TEST_SYSTEM_DEBUG) {
@@ -86,7 +86,7 @@ void loadWardSystemData(HIS_System* sys) {
 		curr = curr->next;
 	}
 
-	printf(">>> 数据加载完成！\n");
+	printf(">>> 病房数据加载完成！\n");
 	is_Ward_File_Loaded = true;		//标记已加载过病房数据
 }
 

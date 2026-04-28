@@ -18,6 +18,7 @@
 #define DEPARTMENT_FILE "HIS_departments.txt"	//科室数据文件
 #define WARD_FILE "HIS_wards.txt"				//病房数据文件
 #define PATIENT_FILE "HIS_patients.txt"			//患者数据文件
+#define QUEUE_TICKET_FILE "HIS_queue_tickets.txt" //排队挂号数据文件
 #define EXAM_ITEM_FILE "HIS_exam_items.txt"      //检查项目字典文件
 #define EXAM_ORDER_FILE "HIS_exam_orders.txt"    //检查申请/结果文件
 

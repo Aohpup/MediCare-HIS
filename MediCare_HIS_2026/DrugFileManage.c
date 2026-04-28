@@ -95,7 +95,7 @@ void loadDrugSystemData(HIS_System* sys) {
 
 	fclose(fp);
 	if(TEST_SYSTEM_DEBUG)
-	printf(">>> 数据加载完成！\n");
+	printf(">>> 药品数据加载完成！\n");
 	refreshDrugDisplayList(sys);
 	is_Drug_File_Loaded = true;	//标记已加载过药品数据
 }

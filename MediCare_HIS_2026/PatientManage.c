@@ -400,7 +400,7 @@ void registerAppointment(HIS_System* sys) {
 				continue;
 			}
 		}
-		else {
+		else if(choice == 2){
 			if(TEST_SYSTEM_DEBUG) {
 				printf(">>> 测试模式下，当场挂号可以选择使用自定义当前时间。\n");
 				if (confirmFunc("使用", "自定义当前时间")) {
