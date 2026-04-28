@@ -3,11 +3,17 @@
 #include"QueueManage.h"
 #include"ConfirmFunc.h"
 #include"InputUtils.h"
+#include"PauseUtil.h"
 #include<string.h>
 
 // 全局链表：医生排班、挂号单、候诊队列
 static DoctorDaySchedule* g_scheduleHead = NULL;
 static QueueTicket* g_ticketHead = NULL;
+
+// 供外部判断全局排班数据是否已就绪
+bool hasScheduleData(void) {
+	return g_scheduleHead != NULL;
+}
 static WaitingQueue* g_waitingQueueHead = NULL;
 static int g_signSeq = 1;
 
@@ -544,10 +550,13 @@ void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot) {
 	if (idx == 1) {
 		printf(">>> 当前时段暂无已签到患者。\n");
 	}
+	pressEnterToContinue();
 }
 
-void printDoctorScheduleTable(const char* doctorId, const char* date) {
-	printf("\n========== 医生排班表 ==========\n医生: %s\n日期: %s\n--------------------------------\n", doctorId, date);
+void printDoctorScheduleTable(HIS_System* sys, const char* doctorId, const char* date) {
+	doctor* targetDoctor = findDoctorByIdInQueue(sys, doctorId);
+	const char* doctorName = (targetDoctor != NULL && targetDoctor->doctorName[0] != '\0') ? targetDoctor->doctorName : "未知";
+	printf("\n========== 医生排班表 ==========\n医生: %s\n编号: %s\n日期: %s\n--------------------------------\n", doctorName, doctorId, date);
 	for (int i = 1; i <= SLOT_COUNT; ++i) {
 		if (!isDoctorSlotOpen(doctorId, date, (TimeSlot)i)) {
 			printf("[%s] 未排班\n", slot_names[i - 1]);
@@ -558,6 +567,7 @@ void printDoctorScheduleTable(const char* doctorId, const char* date) {
 		}
 	}
 	printf("================================\n");
+	pressEnterToContinue();
 }
 
 void exportDoctorSchedules(FILE* fp, const char* doctorId) {

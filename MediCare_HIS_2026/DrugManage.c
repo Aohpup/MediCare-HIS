@@ -6,6 +6,7 @@
 #include"InputUtils.h"
 #include"DrugFileManage.h"
 #include"PrintFormattedStr.h"
+#include"PauseUtil.h"
 #include"ConfirmFunc.h"
 
 //---------------------------------------------------
@@ -816,6 +817,7 @@ void displayAllDrugs(HIS_System* sys) {
 	}
 	printf("----------------------------------------------------------------------------------------------------\n");
 	printf(">>> 药品列表打印完毕！\n");
+	pressEnterToContinue();
 }
 
 void displayAllDrugsDoc(HIS_System* sys) {
@@ -865,6 +867,7 @@ void displayAllDrugsDoc(HIS_System* sys) {
 	}
 	printf("----------------------------------------------------------------------------------------------------\n");
 	printf(">>> 药品列表打印完毕！\n");
+	pressEnterToContinue();
 }
 
 void displayAllDrugsPat(HIS_System* sys) {
@@ -903,6 +906,7 @@ void displayAllDrugsPat(HIS_System* sys) {
 	}
 	printf("--------------------------------------------------------\n");
 	printf(">>> 药品列表打印完毕！\n");
+	pressEnterToContinue();
 }
 
 //删除药品记录

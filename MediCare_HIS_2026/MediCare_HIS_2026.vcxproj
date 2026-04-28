@@ -145,6 +145,7 @@
     <ClCompile Include="PatientFileManage.c" />
     <ClCompile Include="PatientManage.c" />
     <ClCompile Include="PatientSort.c" />
+    <ClCompile Include="PauseUtil.c" />
     <ClCompile Include="PrintFormattedStr.c" />
     <ClCompile Include="QueueFileManage.c" />
     <ClCompile Include="QueueManage.c" />
@@ -184,6 +185,7 @@
     <ClInclude Include="PatientFileManage.h" />
     <ClInclude Include="PatientManage.h" />
     <ClInclude Include="PatientSort.h" />
+    <ClInclude Include="PauseUtil.h" />
     <ClInclude Include="PrintFormattedStr.h" />
     <ClInclude Include="ProjectLimits.h" />
     <ClInclude Include="HIS_System.h" />

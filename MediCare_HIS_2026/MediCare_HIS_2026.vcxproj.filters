@@ -162,6 +162,9 @@
     <ClCompile Include="QueueFileManage.c">
       <Filter>源文件\src.\Queue</Filter>
     </ClCompile>
+    <ClCompile Include="PauseUtil.c">
+      <Filter>源文件\src.\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="HIS_wards.txt">
@@ -276,6 +279,9 @@
     </ClInclude>
     <ClInclude Include="QueueManage.h">
       <Filter>头文件\include\modules\Queue</Filter>
+    </ClInclude>
+    <ClInclude Include="PauseUtil.h">
+      <Filter>头文件\include\utils</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

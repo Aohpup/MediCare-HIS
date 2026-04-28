@@ -6,7 +6,9 @@
 #include"DepartmentFileManage.h"
 #include"PatientManage.h"
 #include"QueueManage.h"
+#include"QueueFileManage.h"
 #include"ConfirmFunc.h"
+#include"PauseUtil.h"
 #include"doctorSort.h"
 #include"InputUtils.h"
 #include<string.h>
@@ -587,8 +589,10 @@ void displayAllDoctors(HIS_System* sys) {
 		curr = curr->next;
 	}
 	printf(">>> 共计 %d 位医生信息显示完毕！\n", count);
+	pressEnterToContinue();
 }
 
+// 以下函数实现医生排班设置和取消功能，医生可以选择特定日期的特定时间段进行排班或取消排班
 static void setDoctorSchedule(HIS_System* sys, const char* doctorId, const char* date) {
 	safeGetString(">>> 请输入需要排班的医生编号: ", doctorId, ID_LEN);
 	doctor* doctor = sys->docHead;
@@ -664,9 +668,10 @@ static void cancelDoctorSchedule(HIS_System* sys, const char* doctorId, const ch
 }
 
 void doctorScheduleMenu(HIS_System* sys, const char* currentDoctorId) {
-	if(sys->docHead->scheduleHead == NULL) {
+	if(!hasScheduleData()) {
 		if(TEST_SYSTEM_DEBUG){
-			printf(">>> 提示：当前内存中尚无医生排班数据，建议先设置医生排班以体验排班功能！\n");
+			printf(">>> 提示：当前内存中尚无医生排班数据，建议先同步医生数据！\n");
+			printf(">>> 请确保已加载包含 S 行排班信息的 HIS_doctors.txt。\n");
 			return;
 		}
 		else {
@@ -674,7 +679,6 @@ void doctorScheduleMenu(HIS_System* sys, const char* currentDoctorId) {
 			exit(EXIT_FAILURE);
 		}
 	}
-	char doctorId[ID_LEN];
 	char date[DATE_STR_LEN];
 	int choice = -1;
 	while (1) {
@@ -687,22 +691,22 @@ void doctorScheduleMenu(HIS_System* sys, const char* currentDoctorId) {
 		switch (choice)
 		{
 		case 1: {
-			if (TEST_SYSTEM_DEBUG)
-				safeGetString(">>> 请输入医生编号: ", doctorId, ID_LEN);
-			else {
-				printf(">>> 提示：测试模式下可输入医生编号查看排班，正式模式下默认查看当前登录医生的排班。\n");
-				strcpy(doctorId, "curr_logged_in_doctor_id"); // TODO:这里需要替换成实际获取当前登录医生ID的逻辑
+			if (confirmFunc("查看", "今日排班")) {
+				strcpy(date, getCurrentDateStr());
 			}
+			else {
 			safeGetString(">>> 请输入查看日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+			}
+
 			if (!isValidDate(date)) {
 				printf(">>> 日期格式无效。\n");
 				return;
 			}
-			printDoctorScheduleTable(doctorId, date);
+			printDoctorScheduleTable(sys, currentDoctorId, date);
 			break;
 		}
-		case 2:	setDoctorSchedule(sys, doctorId, date); break;
-		case 3: cancelDoctorSchedule(sys, doctorId, date); break;
+		case 2:	setDoctorSchedule(sys, currentDoctorId, date); break;
+		case 3: cancelDoctorSchedule(sys, currentDoctorId, date); break;
 		case 0:	return;
 		default: printf(">>> 无效选择，请重试！\n"); return;
 		}
@@ -754,7 +758,7 @@ void doctorViewScheduleBoardMenu(HIS_System* sys) {
 		printf(">>> 日期格式无效。\n");
 		return;
 	}
-	printDoctorScheduleTable(doctorId, date);
+	printDoctorScheduleTable(sys, doctorId, date);
 	if (confirmFunc("查看", "指定时段候诊队列")) {
 		printAllTimeSlots();
 		int slotNo = safeGetInt(">>> 请选择时段编号: ");
@@ -785,7 +789,8 @@ void doctorManageMenu(HIS_System* sys) {
 		}
 	}
 
-	loadDoctorSystemData(sys);   // 从文件加载数据
+	loadDoctorSystemData(sys);   // 从文件加载医生排班数据
+	loadQueueTicketData(sys);    // 从文件加载排队挂号数据，确保候诊队列查询可用
 
 	int choice = -1;
 	while (1) {
@@ -855,15 +860,17 @@ void doctorManageMenuDoc(HIS_System* sys) {
 	//TODO:医生个人中心功能待完善，目前先占位
 	while (1) {
 		printf("\n========== 医生个人中心 ==========\n");
-		printf("1. \n");
-		printf("2. \n");
+		printf("1. 还没想好\n");
+		printf("2. 我再想想\n");
 		printf("0. 返回上一级菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择操作: ");
 		switch (choice) {
 		case 1:
+			printf("TODO");
 			break;
 		case 2:
+			printf("TODO");
 			break;
 		case 0:
 			return;

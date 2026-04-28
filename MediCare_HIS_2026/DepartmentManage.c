@@ -6,6 +6,7 @@
 #include"DepartmentSort.h"
 #include"InputUtils.h"
 #include"PrintFormattedStr.h"
+#include"PauseUtil.h"
 #include"ConfirmFunc.h"
 #include<string.h>
 
@@ -906,6 +907,7 @@ void displayAllDepartments(HIS_System* sys) {
 	}
 	printf("----------------------------------------------------------------\n");
 	printf(">>> 共显示 %d 条科室记录。\n", totalcount);
+	pressEnterToContinue();
 }
 
 

@@ -11,6 +11,7 @@
 #include"ExamManage.h"
 #include"QueueManage.h"
 #include"PrintFormattedStr.h"
+#include"PauseUtil.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
 #include"string.h"
@@ -648,6 +649,7 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 		stay = stay->next;
 	}
 	printf("================================\n");
+	pressEnterToContinue();
 }
 
 // 根据患者编号查找对应的看诊记录链表头指针，供医生查看病例信息时使用
@@ -926,6 +928,7 @@ void viewConsultationHistory(HIS_System* sys, const char* doctorId) {
 
 	if (entryCount == 0) {
 		printf(">>> 暂无就诊历史记录。\n");
+		pressEnterToContinue();
 		return;
 	}
 
@@ -972,4 +975,5 @@ void viewConsultationHistory(HIS_System* sys, const char* doctorId) {
 	else if (sel != 0) {
 		printf(">>> 无效选择，返回上级菜单。\n");
 	}
+	pressEnterToContinue();
 }

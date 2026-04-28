@@ -3,6 +3,8 @@
 #include"ExamFileManage.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
+#include"PauseUtil.h"
+#include"PrintFormattedStr.h"
 #include<string.h>
 
 // 查找检查项目字典中对应编号的项目
@@ -173,6 +175,7 @@ void listPendingExamOrders(HIS_System* sys) {
 	if (!found) {
 		printf(">>> 当前没有待执行检查单。\n");
 	}
+	pressEnterToContinue();
 }
 
 bool fillExamResult(HIS_System* sys, const char* orderId, const char* itemId, const char* result) {
@@ -217,6 +220,7 @@ void queryExamOrdersByDoctor(HIS_System* sys, const char* doctorId) {
 	if (!found) {
 		printf(">>> 暂无该医生开具的检查单。\n");
 	}
+	pressEnterToContinue();
 }
 
 void queryExamOrdersByPatient(HIS_System* sys, const char* patientId) {
@@ -235,20 +239,36 @@ void queryExamOrdersByPatient(HIS_System* sys, const char* patientId) {
 	if (!found) {
 		printf(">>> 暂无该患者的检查单。\n");
 	}
+	pressEnterToContinue();
 }
 
 void printExamOrderDetail(const ExamOrder* order) {
 	if (order == NULL) {
 		return;
 	}
+	char buffer[256];
 	printf("\n--- 检查单 [%s] 状态:%s ---\n", order->orderId, order->status);
 	printf("患者:%s 医生:%s 日期:%s\n", order->patientId, order->doctorId, order->date);
+	printf("--------------------------------------------------------------------------------------\n");
+	printFormattedStr("序号", 6);
+	printFormattedStr("项目编号", 12);
+	printFormattedStr("项目名称", 20);
+	printFormattedStr("结果", 30);
+	printFormattedStr("完成", 8);
+	printf("\n");
+	printf("--------------------------------------------------------------------------------------\n");
+
 	ExamOrderItem* item = order->itemHead;
 	int idx = 1;
 	while (item != NULL) {
-		printf("%d) %s %s | 结果:%s | 完成:%s\n", idx++, item->itemId, item->itemName,
-			item->result[0] == '\0' ? "(未填写)" : item->result,
-			item->finished ? "是" : "否");
+		sprintf(buffer, "%d", idx++);
+		printFormattedStr(buffer, 6);
+		printFormattedStr(item->itemId, 12);
+		printFormattedStr(item->itemName, 20);
+		printFormattedStr(item->result[0] == '\0' ? "(未填写)" : item->result, 30);
+		printFormattedStr(item->finished ? "是" : "否", 8);
+		printf("\n");
 		item = item->next;
 	}
+	printf("--------------------------------------------------------------------------------------\n");
 }

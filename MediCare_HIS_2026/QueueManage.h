@@ -112,7 +112,7 @@ Patient* callNextPatient(const char* doctorId, const char* date, TimeSlot slot);
 void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot);
 
 // 打印医生某日排班表
-void printDoctorScheduleTable(const char* doctorId, const char* date);
+void printDoctorScheduleTable(HIS_System* sys, const char* doctorId, const char* date);
 
 // 将某位医生排班写入已打开文件
 void exportDoctorSchedules(FILE* fp, const char* doctorId);
@@ -139,6 +139,9 @@ const char* findCalledPatientIdByDoctor(const char* doctorId);
 
 // 将患者挂号单状态推进为STATUS_FINISHED（表示看诊结束），仅当状态为STATUS_IN_ROOM时生效
 bool markTicketAsFinished(const char* patientId, const char* doctorId);
+
+// 检查全局排班数据是否已加载（用于判断是否可以进入排班管理界面）
+bool hasScheduleData(void);
 
 
 #endif // !QUEUEMANAGE_H

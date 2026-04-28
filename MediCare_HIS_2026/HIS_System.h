@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include<stdbool.h>
 #include<stdlib.h>
+#include"PauseUtil.h"
 #include"DayTimeUtils.h"
 #include"ProjectLimits.h"
 

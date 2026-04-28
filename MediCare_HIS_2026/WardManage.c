@@ -5,6 +5,7 @@
 #include"WardSort.h"
 #include"ConfirmFunc.h"
 #include"InputUtils.h"
+#include"PauseUtil.h"
 #include"DepartmentManage.h"
 #include<string.h>
 
@@ -550,6 +551,7 @@ void displayAllWards(HIS_System* sys) {
 	Ward* curr = sys->wardHead; int count = 0;
 	while (curr) { printf("\n--- 病房 #%d ---\n", ++count); printWardInfo(curr); curr = curr->next; }
 	printf(">>> 共计 %d 个病房。\n", count);
+	pressEnterToContinue();
 }
 
 //病房管理菜单界面
