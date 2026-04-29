@@ -102,15 +102,15 @@ void doctorMenu(HIS_System* sys) {
 		switch (choice) {
 		case 1: printSlotQueue(getCurrentDoctorId(), getCurrentDateStr(), changeTimeToSlot(getCurrentTimeStr())); break;
 		case 2: doctorCallQueueMenu(sys, getCurrentDoctorId()); break;
-		case 3: viewMedicalRecordDoc(sys, getCurrentDoctorId()); break;	//TODO:这里需要替换成实际获取当前登录医生ID的逻辑，以限制医生只能查看自己的患者病历信息
+		case 3: viewMedicalRecordDoc(sys, getCurrentDoctorId()); break;	
 		case 4: writeMedicalRecord(sys, getCurrentDoctorId()); break;
 		case 5: issueExaminationOrder(sys, getCurrentDoctorId()); break;
 		case 6: queryExamOrdersByDoctor(sys, getCurrentDoctorId()); break;
 		case 7: printf(">>> 模块待开发: 住院安排与病房分配系统...\n"); break;
 		case 8: endConsultation(sys, getCurrentDoctorId()); break;
 		case 9: viewConsultationHistory(sys, getCurrentDoctorId()); break;
-		case 10: doctorScheduleMenu(sys, getCurrentDoctorId()); break; //TODO:这里需要替换成实际获取当前登录医生ID的逻辑
-		case 11: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;	//TODO:这里需要替换成实际获取当前登录医生ID的逻辑，以限制医生只能修改自己的信息
+		case 10: doctorScheduleMenu(sys, getCurrentDoctorId()); break; 
+		case 11: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;	
 		case 12: drugSortMenuDoc(sys); break;
 		case 0:
 			if (confirmFunc("退出", "医生工作站")) {

@@ -86,6 +86,14 @@ void loadDoctorSystemData(HIS_System* sys) {
 			continue;
 		}
 
+		// 密码行：P password
+		if (strncmp(line, "P ", 2) == 0) {
+			if (currentDoctor != NULL) {
+				strcpy(currentDoctor->password, line + 2);
+			}
+			continue;
+		}
+
 		// 排班信息行：S YYYY-MM-DD slotNo bookingCount
 		if (strncmp(line, "S ", 2) == 0) {
 			if (currentDoctor == NULL) {
@@ -133,6 +141,7 @@ void saveDoctorSystemData(HIS_System* sys) {
 		const char* persistedRoom = (curr->subDeptId[0] != '\0') ? curr->subDeptId : "NULL";
 		// 新格式：D id name dept subDeptName roomId
 		fprintf(fp, "D %s %s %s %s %s\n", curr->doctorId, curr->doctorName, curr->department, persistedSubDept, persistedRoom);
+		fprintf(fp, "P %s\n", (curr->password[0] != '\0') ? curr->password : "NULL");
 		exportDoctorSchedules(fp, curr->doctorId);
 		fprintf(fp, "END\n");
 		curr = curr->next;

@@ -42,6 +42,7 @@ typedef struct doctor {
 	char department[STR_LEN];		//所属一级科室名称
 	char subDepartment[STR_LEN];		//所属二级科室名称
 	char subDeptId[ID_LEN];			//所属诊室（办公室）编号
+	char password[STR_LEN];			//登录密码
 
 	DoctorSchedule* scheduleHead;	//医生排班链表头
 

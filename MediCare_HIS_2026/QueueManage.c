@@ -550,7 +550,7 @@ void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot) {
 	if (idx == 1) {
 		printf(">>> 当前时段暂无已签到患者。\n");
 	}
-	pressEnterToContinue();
+	pressEnterToContinue();	
 }
 
 void printDoctorScheduleTable(HIS_System* sys, const char* doctorId, const char* date) {
