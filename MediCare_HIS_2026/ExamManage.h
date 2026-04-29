@@ -22,4 +22,8 @@ void queryExamOrdersByPatient(HIS_System* sys, const char* patientId);
 // 打印检查单详情
 void printExamOrderDetail(const ExamOrder* order);
 
+// 自动生成检查单中所有待完成项目的结果（模拟技师填报告）
+// orderId: 目标检查单编号；返回成功生成的项目数量
+int autoGenerateExamResults(HIS_System* sys, const char* orderId);
+
 #endif // !EXAMMANAGE_H

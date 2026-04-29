@@ -36,14 +36,28 @@ bool logInDoctor(HIS_System* sys) {
 		doctor* curr = sys->docHead;
 		while (curr != NULL) {
 			if (strcmp(curr->doctorId, doctorId) == 0) {
-				is_Doctor_Logged_In = true;
-				strcpy(currentDoctorId, doctorId);
-				printf(">>> 医生 <%s> 登录成功！\n", curr->doctorName);
-				return true;
+				// 密码验证
+				char inputPwd[STR_LEN];
+				safeGetString("请输入登录密码(输入 -1 取消登录): ", inputPwd, STR_LEN);
+				if (strcmp(inputPwd, "-1") == 0) {
+					printf(">>> 已取消登录。\n");
+					return false;
+				}
+				// 空密码（兼容旧数据）或密码匹配则允许登录
+				if (curr->password[0] == '\0' || strcmp(curr->password, inputPwd) == 0) {
+					is_Doctor_Logged_In = true;
+					strcpy(currentDoctorId, doctorId);
+					printf(">>> 医生 <%s> 登录成功！\n", curr->doctorName);
+					return true;
+				}
+				printf(">>> 密码错误，请重新输入医生编号！\n");
+				break;	// 跳出内层 while，回到外层重新输入编号
 			}
 			curr = curr->next;
 		}
-		printf(">>> 错误：医生编号不存在，请重新输入！\n");
+		if (curr == NULL) {
+			printf(">>> 错误：医生编号不存在，请重新输入！\n");
+		}
 		continue;
 	}
 }
@@ -192,6 +206,7 @@ void addDoctor(HIS_System* sys) {
 		}
 
 		newDoctor->scheduleHead = NULL;
+		sprintf(newDoctor->password, "%s@new", newDoctor->doctorId);
 		newDoctor->next = sys->docHead;
 		sys->docHead = newDoctor;
 
@@ -302,7 +317,7 @@ void queryDoctor(HIS_System* sys, const char* doctorId) {
 	}
 }
 
-void modifyDoctor(HIS_System* sys, const char* doctorId) {
+void modifyDoctor(HIS_System* sys) {
 	if(sys->docHead == NULL) {
 		printf("\n>>> 系统内没有医生数据！\n");
 		return;
@@ -315,20 +330,6 @@ void modifyDoctor(HIS_System* sys, const char* doctorId) {
 	doctor* curr = sys->docHead;
 	doctor* target = NULL;
 
-	if (doctorId != NULL) {
-		//TODO:直接定位修改（后续可根据实际需求调整为只允许医生本人修改自己的信息，或管理员修改所有医生信息）
-		printf("还没想好修改什么");
-		return; //修改时删掉此行，放开下面的代码块
-		while (curr != NULL) {
-			if (strcmp(curr->doctorId, doctorId) == 0) {
-				target = curr;
-				break;
-			}
-			curr = curr->next;
-		}
-		target = curr;
-	}
-	else {
 		printf("\n--- 修改医生信息 ---\n");
 		printf("1. 按医生编号修改\n");
 		printf("2. 按医生姓名修改\n");
@@ -400,7 +401,6 @@ void modifyDoctor(HIS_System* sys, const char* doctorId) {
 				printf(">>> 序号无效，请重试。\n");
 			}
 		}
-	}
 
 	printf("\n1. 修改医生编号\n");
 	printf("2. 修改医生姓名\n");
@@ -850,28 +850,75 @@ void doctorManageMenu(HIS_System* sys) {
 	}
 }
 
-void doctorManageMenuDoc(HIS_System* sys) {
+void doctorManageMenuDoc(HIS_System* sys, const char* doctorId) {
 	if (sys == NULL) {
 		printf(">>> 严重错误: 系统底座未初始化！！！\n");
 		return;
 	}
+	if (doctorId == NULL) {
+		printf(">>> 错误：尚未登录，无法进入个人中心。\n");
+		return;
+	}
 	loadDoctorSystemData(sys);   // 从文件加载数据
+
+	// 查找当前登录的医生节点
+
+	doctor* currentDoctor = findDoctorByIdInQueue(sys, doctorId);
+
+	if (currentDoctor == NULL) {
+		printf(">>> 错误：未找到当前登录医生的信息。\n");
+		return;
+	}
+
 	int choice = -1;
-	//TODO:医生个人中心功能待完善，目前先占位
 	while (1) {
 		printf("\n========== 医生个人中心 ==========\n");
-		printf("1. 还没想好\n");
-		printf("2. 我再想想\n");
+		printf("1. 查看个人信息\n");
+		printf("2. 修改登录密码\n");
 		printf("0. 返回上一级菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择操作: ");
 		switch (choice) {
 		case 1:
-			printf("TODO");
+			printDoctorInfo(currentDoctor);
 			break;
-		case 2:
-			printf("TODO");
+		case 2: {
+			char oldPwd[STR_LEN];
+			char newPwd[STR_LEN];
+			char confirmPwd[STR_LEN];
+
+			safeGetString(">>> 请输入当前密码(输入 -1 取消): ", oldPwd, STR_LEN);
+			if (strcmp(oldPwd, "-1") == 0) {
+				printf(">>> 已取消修改密码。\n");
+				break;
+			}
+			if (strcmp(oldPwd, currentDoctor->password) != 0) {
+				printf(">>> 密码错误，修改失败！\n");
+				break;
+			}
+
+			safeGetString(">>> 请输入新密码(输入 -1 取消): ", newPwd, STR_LEN);
+			if (strcmp(newPwd, "-1") == 0) {
+				printf(">>> 已取消修改密码。\n");
+				break;
+			}
+
+			safeGetString(">>> 请再次输入新密码确认(输入 -1 取消): ", confirmPwd, STR_LEN);
+			if (strcmp(confirmPwd, "-1") == 0) {
+				printf(">>> 已取消修改密码。\n");
+				break;
+			}
+
+			if (strcmp(newPwd, confirmPwd) != 0) {
+				printf(">>> 两次新密码输入不一致，修改失败！\n");
+				break;
+			}
+
+			strcpy(currentDoctor->password, newPwd);
+			saveDoctorSystemData(sys);
+			printf(">>> 密码修改成功！\n");
 			break;
+		}
 		case 0:
 			return;
 		default:
