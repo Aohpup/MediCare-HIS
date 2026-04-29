@@ -26,4 +26,7 @@ void printExamOrderDetail(const ExamOrder* order);
 // orderId: 目标检查单编号；返回成功生成的项目数量
 int autoGenerateExamResults(HIS_System* sys, const char* orderId);
 
+// 患者执行检查（模拟到检验科/放射科等科室做检查，自动生成结果）
+void doPatientExamCheck(HIS_System* sys, const char* patientId);
+
 #endif // !EXAMMANAGE_H

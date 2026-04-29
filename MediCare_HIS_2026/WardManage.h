@@ -36,4 +36,10 @@ void deleteWardFunc(Ward** head, const char* queryStr, int mode);
 //显示所有病房信息
 void displayAllWards(HIS_System* sys);
 
+// 患者端：住院登记（选择病房和床位入住）
+void wardInpatientRegister(HIS_System* sys, const char* patientId);
+
+// 患者端：病房查询
+void wardQueryMenuPat(HIS_System* sys, const char* patientId);
+
 #endif // !WARDMANAGE_H

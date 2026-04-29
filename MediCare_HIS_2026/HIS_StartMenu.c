@@ -136,12 +136,13 @@ void patientMenu(HIS_System* sys) {
 		printf("1. 患者注册\n");
 		printf("2. 患者登录\n");
 		printf("3. 挂号和签到\n");
-		printf("4. 查看病例信息\n");
-		printf("5. 查看检查结果\n");
-		printf("6. 住院登记\n");
-		printf("7. 病房查询\n");
-		printf("8. 医生信息查询\n");
-		printf("9. 药品信息查询\n");
+		printf("4. 查看检查结果\n");
+		printf("5. 进行检查\n");
+		printf("6. 查看病例信息\n");
+		printf("7. 住院登记\n");
+		printf("8. 病房查询\n");
+		printf("9. 医生信息查询\n");
+		printf("10. 药品信息查询\n");
 		printf("0. 返回主菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择患者服务操作: ");
@@ -149,12 +150,13 @@ void patientMenu(HIS_System* sys) {
 		case 1: registerPatient(sys, NULL); break;
 		case 2:	logInPatient(sys); break;
 		case 3: registerAppointment(sys); break;
-		case 4: viewMedicalRecordPat(sys, getCurrentPatientId()); break;
-		case 5: queryExamOrdersByPatient(sys, getCurrentPatientId()); break;
-		case 6: printf(">>> 模块待开发: 住院登记系统...\n"); break;
-		case 7: printf(">>> 模块待开发: 病房查询系统...\n"); break;
-		case 8: doctorManageMenuPat(sys, getCurrentPatientId()); break;
-		case 9: drugManageMenuPat(sys, getCurrentPatientId());	break;
+		case 4: queryExamOrdersByPatient(sys, getCurrentPatientId()); break;
+		case 5: doPatientExamCheck(sys, getCurrentPatientId()); break;
+		case 6: viewMedicalRecordPat(sys, getCurrentPatientId()); break;
+		case 7: wardInpatientRegister(sys, getCurrentPatientId()); break;
+		case 8: wardQueryMenuPat(sys, getCurrentPatientId()); break;
+		case 9: doctorManageMenuPat(sys, getCurrentPatientId()); break;
+		case 10: drugManageMenuPat(sys, getCurrentPatientId());	break;
 		case 0:
 			if (confirmFunc("退出", "患者服务台")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");

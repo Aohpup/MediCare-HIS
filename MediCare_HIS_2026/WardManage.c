@@ -7,6 +7,7 @@
 #include"InputUtils.h"
 #include"PauseUtil.h"
 #include"DepartmentManage.h"
+#include"PatientManage.h"
 #include<string.h>
 
 //检查病房编号是否存在
@@ -600,6 +601,259 @@ void wardManageMenu(HIS_System* sys) {
 		case 7: saveWardSystemData(sys); break;
 		case 0: return;
 		default: printf(">>> 无效选择，请重试。\n"); break;
+		}
+	}
+}
+
+// ============================================================
+// 患者端：住院登记
+// ============================================================
+void wardInpatientRegister(HIS_System* sys, const char* patientId) {
+	if (sys == NULL) {
+		printf(">>> 严重错误: 系统底座未初始化！！！\n");
+		return;
+	}
+	if (!isPatientLoggedIn()) {
+		printf(">>> 您尚未登录，请先登录后再进行相关操作！\n");
+		return;
+	}
+
+	loadWardSystemData(sys);
+
+	if (sys->wardHead == NULL) {
+		printf("\n>>> 系统内暂无病房数据，无法进行住院登记。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	printf("\n===== 住院登记 =====\n");
+
+	// 检查该患者是否已经住院
+	Ward* w = sys->wardHead;
+	while (w != NULL) {
+		Bed* b = w->bedListHead;
+		while (b != NULL) {
+			if (b->isOccupied && strcmp(b->patient, patientId) == 0) {
+				printf(">>> 您已在病房 [%s] 床位 [%s] 住院中，无需重复登记。\n",
+					w->wardId, b->bedId);
+				pressEnterToContinue();
+				return;
+			}
+			b = b->next;
+		}
+		w = w->next;
+	}
+
+	// 展示有空床的病房列表
+	printf("\n--- 可选病房列表（有空床） ---\n");
+	w = sys->wardHead;
+	int wCnt = 0;
+	while (w != NULL) {
+		int freeBeds = countBeds(w) - countOccupiedBeds(w);
+		if (freeBeds > 0) {
+			printf("  [%d] 病房:%s  科室:%s  种类:%s  剩余床位:%d\n",
+				++wCnt, w->wardId, w->department, wardTypeToStr(w->type), freeBeds);
+		}
+		w = w->next;
+	}
+
+	if (wCnt == 0) {
+		printf(">>> 当前所有病房已满，暂无可用床位。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 选择病房
+	char wardId[ID_LEN];
+	safeGetString(">>> 请输入要入住的病房编号 (输入 -1 取消): ", wardId, ID_LEN);
+	if (strcmp(wardId, "-1") == 0) {
+		printf(">>> 已取消住院登记。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 查找目标病房
+	Ward* target = sys->wardHead;
+	while (target != NULL && strcmp(target->wardId, wardId) != 0) {
+		target = target->next;
+	}
+	if (target == NULL) {
+		printf(">>> 未找到该病房编号。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 展示该病房的空床位
+	printf("\n--- 病房 [%s] 可用床位 ---\n", target->wardId);
+	Bed* bed = target->bedListHead;
+	int bCnt = 0;
+	while (bed != NULL) {
+		if (!bed->isOccupied) {
+			printf("  [%d] 床位编号:%s\n", ++bCnt, bed->bedId);
+		}
+		bed = bed->next;
+	}
+
+	if (bCnt == 0) {
+		printf(">>> 该病房已无空床位。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 选择床位
+	char bedId[BED_ID_LEN];
+	safeGetString(">>> 请输入要入住的床位编号 (输入 -1 取消): ", bedId, BED_ID_LEN);
+	if (strcmp(bedId, "-1") == 0) {
+		printf(">>> 已取消住院登记。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	Bed* targetBed = findBed(target, bedId);
+	if (targetBed == NULL) {
+		printf(">>> 未找到该床位编号。\n");
+		pressEnterToContinue();
+		return;
+	}
+	if (targetBed->isOccupied) {
+		printf(">>> 该床位已被占用，请选择其他床位。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 确认并登记
+	printf("\n>>> 住院登记确认:\n");
+	printf("    患者编号: %s\n", patientId);
+	printf("    病房编号: %s (%s, %s)\n",
+		target->wardId, target->department, wardTypeToStr(target->type));
+	printf("    床位编号: %s\n", targetBed->bedId);
+
+	if (!confirmFunc("住院登记", "以上住院信息")) {
+		printf(">>> 已取消住院登记。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 执行登记
+	strcpy(targetBed->patient, patientId);
+	targetBed->isOccupied = true;
+	saveWardSystemData(sys);
+	printf(">>> 住院登记成功！您已入住病房 [%s] 床位 [%s]。\n",
+		target->wardId, targetBed->bedId);
+	pressEnterToContinue();
+}
+
+// ============================================================
+// 患者端：病房查询
+// ============================================================
+void wardQueryMenuPat(HIS_System* sys, const char* patientId) {
+	if (sys == NULL) {
+		printf(">>> 严重错误: 系统底座未初始化！！！\n");
+		return;
+	}
+	if (!isPatientLoggedIn()) {
+		printf(">>> 您尚未登录，请先登录后再进行相关操作！\n");
+		return;
+	}
+
+	loadWardSystemData(sys);
+
+	if (sys->wardHead == NULL) {
+		printf("\n>>> 系统内暂无病房数据。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	int choice;
+	while (1) {
+		printf("\n========== 病房信息查询 ==========\n");
+		printf("1. 查询我的住院信息\n");
+		printf("2. 按病房编号查询\n");
+		printf("3. 按科室查询\n");
+		printf("4. 查询有空床的病房\n");
+		printf("5. 显示所有病房信息\n");
+		printf("0. 返回上一级菜单\n");
+		printf("==================================\n");
+		choice = safeGetInt("请选择查询方式: ");
+
+		char queryStr[STR_LEN];
+		Ward* curr;
+		bool found;
+
+		switch (choice) {
+		case 1: {
+			found = false;
+			curr = sys->wardHead;
+			while (curr != NULL) {
+				Bed* b = curr->bedListHead;
+				while (b != NULL) {
+					if (b->isOccupied && strcmp(b->patient, patientId) == 0) {
+						printf("\n>>> 您的住院信息: 病房 [%s] 床位 [%s] (%s, %s)\n",
+							curr->wardId, b->bedId, curr->department,
+							wardTypeToStr(curr->type));
+						found = true;
+					}
+					b = b->next;
+				}
+				curr = curr->next;
+			}
+			if (!found) {
+				printf(">>> 您当前未住院。\n");
+			}
+			break;
+		}
+		case 2:
+			safeGetString("请输入病房编号: ", queryStr, ID_LEN);
+			curr = sys->wardHead;
+			found = false;
+			while (curr != NULL) {
+				if (strcmp(curr->wardId, queryStr) == 0) {
+					printWardInfo(curr);
+					found = true;
+					break;
+				}
+				curr = curr->next;
+			}
+			if (!found) printf(">>> 未找到该病房。\n");
+			break;
+		case 3:
+			safeGetString("请输入科室名称: ", queryStr, STR_LEN);
+			curr = sys->wardHead;
+			found = false;
+			while (curr != NULL) {
+				if (strcmp(curr->department, queryStr) == 0) {
+					printWardInfo(curr);
+					found = true;
+				}
+				curr = curr->next;
+			}
+			if (!found) printf(">>> 未找到该科室的病房。\n");
+			break;
+		case 4: {
+			printf("\n--- 有空床的病房 ---\n");
+			curr = sys->wardHead;
+			found = false;
+			while (curr != NULL) {
+				int freeBeds = countBeds(curr) - countOccupiedBeds(curr);
+				if (freeBeds > 0) {
+					printf("  病房:%s 科室:%s 种类:%s 剩余床位:%d\n",
+						curr->wardId, curr->department,
+						wardTypeToStr(curr->type), freeBeds);
+					found = true;
+				}
+				curr = curr->next;
+			}
+			if (!found) printf(">>> 当前所有病房已满。\n");
+			break;
+		}
+		case 5:
+			displayAllWards(sys);
+			break;
+		case 0:
+			return;
+		default:
+			printf(">>> 无效选择，请重试！\n");
+			break;
 		}
 	}
 }

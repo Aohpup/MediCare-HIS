@@ -714,10 +714,13 @@ void doctorScheduleMenu(HIS_System* sys, const char* currentDoctorId) {
 }
 
 void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId) {
-	(void)sys;
+	(void)sys;//
 	char doctorId[ID_LEN];
 	char date[DATE_STR_LEN];
 	if(TEST_SYSTEM_DEBUG)
+		if(confirmFunc("使用","当前登录医生"))
+			strcpy(doctorId, currentDoctorId);
+		else
 		safeGetString(">>> 请输入叫号医生编号: ", doctorId, ID_LEN);
 	else 
 		strcpy(doctorId, currentDoctorId);
