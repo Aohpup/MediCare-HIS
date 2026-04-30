@@ -36,10 +36,26 @@ void deleteWardFunc(Ward** head, const char* queryStr, int mode);
 //显示所有病房信息
 void displayAllWards(HIS_System* sys);
 
-// 患者端：住院登记（选择病房和床位入住）
-void wardInpatientRegister(HIS_System* sys, const char* patientId);
+// 病房种类转字符串
+const char* wardTypeToStr(WardType type);
 
-// 患者端：病房查询
+// 统计床位数/已占用数
+int countBeds(Ward* ward);
+int countOccupiedBeds(Ward* ward);
+
+// 按床位编号查找
+Bed* findBed(Ward* ward, const char* bedId);
+
+// 患者端：查看我的住院信息（只读）
+void patientViewStayInfo(HIS_System* sys, const char* patientId);
+
+// 患者端：病房查询（仅可查看自己所住病房）
 void wardQueryMenuPat(HIS_System* sys, const char* patientId);
+
+// 自动推荐病房（按优先级规则，供医生分配时调用）
+Ward* autoRecommendWard(HIS_System* sys, PatientType patientType, const char* doctorDept);
+
+// 查找患者入住病房
+Ward* findPatientWard(HIS_System* sys, const char* patientId);
 
 #endif // !WARDMANAGE_H

@@ -412,6 +412,8 @@ void registerAppointment(HIS_System* sys) {
 		}
 
 		TimeSlot slot = SLOT_INVALID;
+		char testTime[TIME_STR_LEN];
+		bool isUseCustomTime = false;	//标记是否使用了自定义时间，主要用于当场挂号后自动签到时的时间判断
 		if (choice == 1){
 			slot = inputTimeSlotChoice();
 			if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
@@ -423,11 +425,11 @@ void registerAppointment(HIS_System* sys) {
 			if(TEST_SYSTEM_DEBUG) {
 				printf(">>> 测试模式下，当场挂号可以选择使用自定义当前时间。\n");
 				if (confirmFunc("使用", "自定义当前时间")) {
-					char testTime[TIME_STR_LEN];
 					safeGetString(">>> 请输入自定义当前时间(HH:MM): ", testTime, TIME_STR_LEN);
 					sprintf(testTime, "%s:00", testTime);	//将用户输入的时间补全为HH:MM:SS格式，秒部分默认为00
 					strcpy(testTime, setTestTime(testTime));
 					slot = changeTimeToSlot(testTime);
+					isUseCustomTime = true;
 				}
 				else
 					slot = changeTimeToSlot(getCurrentTimeStr());
@@ -479,7 +481,10 @@ void registerAppointment(HIS_System* sys) {
 				char signTime[TIME_STR_LEN];
 					if(TEST_SYSTEM_DEBUG) {
 						if (confirmFunc("使用", "自定义时间")) {
-							safeGetString(">>> 请输入自定义时间(HH:MM): ", signTime, TIME_STR_LEN);
+							if(isUseCustomTime)
+								strcpy(signTime, testTime);	//如果之前已经使用了自定义时间，直接使用该时间作为签到时间，避免用户再次输入；如果之前没有使用自定义时间，则让用户输入一个新的自定义时间
+							else
+								safeGetString(">>> 请输入自定义时间(HH:MM): ", signTime, TIME_STR_LEN);
 						}
 						else
 							strcpy(signTime, getCurrentTimeStr());
@@ -664,7 +669,7 @@ static ConsultationRecord* findConsultationRecordByPatientId(HIS_System* sys, co
 	return target->viewHead; //返回看诊记录链表头指针，供医生查看病例信息时使用
 }
 
-// 医生查看患者病例信息
+// 医生查看患者病例信息（子菜单）
 void viewMedicalRecordDoc(HIS_System* sys, const char* doctorId) {
 	if (sys == NULL) {
 		printf(">>> 系统未初始化，无法查看病例信息。\n");
@@ -674,41 +679,100 @@ void viewMedicalRecordDoc(HIS_System* sys, const char* doctorId) {
 		printf(">>> 医生身份无效，无法查看病例信息。\n");
 		return;
 	}
-	char patientId[ID_LEN];
-	safeGetString(">>> 请输入需要查看的患者编号(输入 -1 取消): ", patientId, ID_LEN);
 
-	if (strcmp(patientId, "-1") == 0) {
-		printf(">>> 已取消查看。\n");
-		return;
-	}
+	int choice;
+	while (1) {
+		printf("\n====== 查看患者病历 ======\n");
+		printf("1. 查看当前叫号患者最新病历\n");
+		printf("2. 按日期搜索病历\n");
+		printf("3. 查看指定患者全部病历\n");
+		printf("0. 返回上一级\n");
+		printf("============================\n");
+		choice = safeGetInt("请选择操作: ");
 
-	Patient* targetPatient = findPatientById(sys, patientId);
-	if (targetPatient == NULL) {
-		printf(">>> 未找到患者 %s 的信息。\n", patientId);
-		return;
-	}
-
-	// 权限判定：
-	// 1) 如果该患者已被本医生叫号（QueueTicket状态为CALLED或IN_ROOM），直接允许查看
-	if (isPatientCalledByDoctor(patientId, doctorId)) {
-		printf(">>> 权限验证通过：患者已由您叫号，正在加载病历...\n");
-		viewMedicalRecordPat(sys, patientId);
-		return;
-	}
-
-	// 2) 如果患者在本医生名下已有看诊记录（复诊/随访场景），允许查看
-	ConsultationRecord* targetView = findConsultationRecordByPatientId(sys, patientId);
-	if (targetView != NULL) {
-		if (strcmp(doctorId, targetView->doctorId) == 0) {
-			printf(">>> 权限验证通过：您曾为该患者看诊，正在加载病历...\n");
-			viewMedicalRecordPat(sys, patientId);
+		switch (choice) {
+		case 1: {
+			// 查找当前被本医生叫号的患者
+			const char* calledId = findCalledPatientIdByDoctor(doctorId);
+			if (calledId == NULL) {
+				printf(">>> 当前没有被您叫号的患者。\n");
+				break;
+			}
+			Patient* p = findPatientById(sys, calledId);
+			if (p == NULL) {
+				printf(">>> 未找到患者 %s 的信息。\n", calledId);
+				break;
+			}
+			printf(">>> 当前叫号患者: %s (%s)，正在加载病历...\n", p->name, calledId);
+			viewMedicalRecordPat(sys, calledId);
+			break;
+		}
+		case 2: {
+			// 按日期搜索本医生的看诊记录
+			char date[DATE_STR_LEN];
+			safeGetString("请输入搜索日期(YYYY-MM-DD, 输入 -1 取消): ", date, DATE_STR_LEN);
+			if (strcmp(date, "-1") == 0) {
+				printf(">>> 已取消搜索。\n");
+				break;
+			}
+			printf("\n--- %s 看诊记录 [%s] ---\n", doctorId, date);
+			bool found = false;
+			Patient* curr = sys->patientHead;
+			while (curr != NULL) {
+				ConsultationRecord* rec = curr->viewHead;
+				while (rec != NULL) {
+					if (strcmp(rec->doctorId, doctorId) == 0
+						&& strcmp(rec->date, date) == 0) {
+						printf("患者: %s (%s)\n", curr->name, curr->patientId);
+						printConsultationRecord(rec);
+						printf("------------------------------\n");
+						found = true;
+					}
+					rec = rec->next;
+				}
+				curr = curr->next;
+			}
+			if (!found) {
+				printf(">>> 该日期暂无看诊记录。\n");
+			}
+			pressEnterToContinue();
+			break;
+		}
+		case 3: {
+			// 输入患者编号查看全部病历（含权限判定）
+			char patientId[ID_LEN];
+			safeGetString("请输入需要查看的患者编号(输入 -1 取消): ", patientId, ID_LEN);
+			if (strcmp(patientId, "-1") == 0) {
+				printf(">>> 已取消查看。\n");
+				break;
+			}
+			Patient* targetPatient = findPatientById(sys, patientId);
+			if (targetPatient == NULL) {
+				printf(">>> 未找到患者 %s 的信息。\n", patientId);
+				break;
+			}
+			// 权限判定：已叫号 或 曾有看诊记录
+			if (isPatientCalledByDoctor(patientId, doctorId)) {
+				printf(">>> 权限验证通过：患者已由您叫号，正在加载病历...\n");
+				viewMedicalRecordPat(sys, patientId);
+			} else {
+				ConsultationRecord* targetView = findConsultationRecordByPatientId(sys, patientId);
+				if (targetView != NULL && strcmp(doctorId, targetView->doctorId) == 0) {
+					printf(">>> 权限验证通过：您曾为该患者看诊，正在加载病历...\n");
+					viewMedicalRecordPat(sys, patientId);
+				} else {
+					printf(">>> 权限不足：该患者未被您叫号，且您不是该患者的主治医生。\n");
+					printf(">>> 提示：请先通过【排队叫号】叫号该患者，或确认患者编号是否正确。\n");
+				}
+			}
+			break;
+		}
+		case 0:
 			return;
+		default:
+			printf(">>> 无效选择，请重试。\n");
 		}
 	}
-
-	// 3) 都不满足则拒绝查看
-	printf(">>> 权限不足：该患者未被您叫号，且您不是该患者的主治医生。\n");
-	printf(">>> 提示：请先通过【排队叫号】叫号该患者，或确认患者编号是否正确。\n");
 }
 
 // 根据医生编号查找当前正在看诊的患者编号，供写入诊断时自动选择患者使用
@@ -718,7 +782,8 @@ static const char* findCurrentConsultationPatientId(HIS_System* sys, const char*
 		return NULL;
 	}
 	// 优先查找已叫号的患者（QueueTicket状态为CALLED或IN_ROOM）
-	const char* calledId = findCalledPatientIdByDoctor(doctorId);
+	const char* calledId = findCalledPatientIdByDoctor
+	(doctorId);
 	if (calledId != NULL) {
 		return calledId;
 	}
@@ -739,7 +804,6 @@ static const char* findCurrentConsultationPatientId(HIS_System* sys, const char*
 
 
 // 医生写入患者病例信息（诊断记录）
-// TODOFIND
 void writeMedicalRecord(HIS_System* sys, const char* doctorId) {
 	if (sys == NULL) {
 		printf(">>> 系统未初始化，无法写入病例信息。\n");
@@ -819,6 +883,21 @@ void issueExaminationOrder(HIS_System* sys, const char* doctorId) {
 		printf(">>> 医生身份无效，无法开具检查单。\n");
 		return;
 	}
+
+	// 优先自动填充当前已叫号的患者
+	const char* calledId = findCalledPatientIdByDoctor(doctorId);
+	if (calledId != NULL) {
+		Patient* p = findPatientById(sys, calledId);
+		printf("\n>>> 当前叫号患者: %s (%s)\n", p ? p->name : "未知", calledId);
+		if (confirmFunc("快捷开具", "为当前叫号患者开具检查单")) {
+			if (!createExamOrder(sys, doctorId, calledId)) {
+				printf(">>> 检查单开具失败。\n");
+			}
+			return;
+		}
+	}
+
+	// 手动指定患者
 	if (!createExamOrder(sys, doctorId, NULL)) {
 		printf(">>> 检查单开具失败。\n");
 	}
@@ -971,8 +1050,10 @@ void viewConsultationHistory(HIS_System* sys, const char* doctorId) {
 	int sel = safeGetInt("请选择: ");
 	if (sel > 0 && sel <= entryCount) {
 		viewMedicalRecordPat(sys, entries[sel - 1].patient->patientId);
+		// viewMedicalRecordPat 末尾已有 pressEnterToContinue，此处不再重复
+		return;
 	}
-	else if (sel != 0) {
+	if (sel != 0) {
 		printf(">>> 无效选择，返回上级菜单。\n");
 	}
 	pressEnterToContinue();

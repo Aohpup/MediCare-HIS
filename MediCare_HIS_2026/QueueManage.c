@@ -520,7 +520,7 @@ Patient* callNextPatient(const char* doctorId, const char* date, TimeSlot slot) 
 }
 
 void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot) {
-	if(TEST_SYSTEM_DEBUG) {
+	/*if (TEST_SYSTEM_DEBUG) {
 		if (confirmFunc("使用", "自定义时间")) {
 			char timeStr[16];
 			safeGetString("请输入时间（格式 HH:MM）：", timeStr, sizeof(timeStr));
@@ -532,7 +532,7 @@ void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot) {
 			safeGetString("请输入日期（格式 YYYY-MM-DD）：", dateStr, sizeof(dateStr));
 			strcpy(date, dateStr);
 		}
-	}
+	}*/
 	// 先刷新队列（refreshSlotQueue内部会按需创建WaitingQueue）
 	refreshSlotQueue(doctorId, date, slot);
 	WaitingQueue* waiting = getWaitingQueue(doctorId, date, slot, false);

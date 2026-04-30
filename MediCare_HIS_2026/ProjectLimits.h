@@ -7,6 +7,7 @@
 #define BED_ID_LEN 64      // bedId 床位编号长度
 #define DEPT_NUM 5         // department 科室最少数量
 #define WARD_TYPE_NUM 3    // ward 病房种类最少数量
+#define MAX_WARD_BEDS 10     // ward 每个病房的最大床位数量
 #define MAX_APP 5         // appointment 预约挂号每个时段的最大挂号数量
 #define SLOT_COUNT 13     // appointment 时间段数量
 #define DATE_STR_LEN 20     // date 日期字符串长度 XXXX-XX-XX or XXXX/XX/XX

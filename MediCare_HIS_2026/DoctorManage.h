@@ -60,4 +60,7 @@ void doctorViewScheduleBoardMenu(HIS_System* sys);
 //查看患者病历信息（医生视角）
 void writeMedicalRecord(HIS_System* sys, const char* doctorId);
 
+// 医生端：安排患者住院（分配病房和床位）
+void doctorArrangeWard(HIS_System* sys, const char* doctorId);
+
 #endif // !doctorMANAGE_H

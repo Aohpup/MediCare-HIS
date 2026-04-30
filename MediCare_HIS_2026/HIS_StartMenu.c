@@ -106,7 +106,7 @@ void doctorMenu(HIS_System* sys) {
 		case 4: writeMedicalRecord(sys, getCurrentDoctorId()); break;
 		case 5: issueExaminationOrder(sys, getCurrentDoctorId()); break;
 		case 6: queryExamOrdersByDoctor(sys, getCurrentDoctorId()); break;
-		case 7: printf(">>> 模块待开发: 住院安排与病房分配系统...\n"); break;
+		case 7: doctorArrangeWard(sys, getCurrentDoctorId()); break;
 		case 8: endConsultation(sys, getCurrentDoctorId()); break;
 		case 9: viewConsultationHistory(sys, getCurrentDoctorId()); break;
 		case 10: doctorScheduleMenu(sys, getCurrentDoctorId()); break; 
@@ -139,7 +139,7 @@ void patientMenu(HIS_System* sys) {
 		printf("4. 查看检查结果\n");
 		printf("5. 进行检查\n");
 		printf("6. 查看病例信息\n");
-		printf("7. 住院登记\n");
+		printf("7. 查看住院信息\n");
 		printf("8. 病房查询\n");
 		printf("9. 医生信息查询\n");
 		printf("10. 药品信息查询\n");
@@ -153,7 +153,7 @@ void patientMenu(HIS_System* sys) {
 		case 4: queryExamOrdersByPatient(sys, getCurrentPatientId()); break;
 		case 5: doPatientExamCheck(sys, getCurrentPatientId()); break;
 		case 6: viewMedicalRecordPat(sys, getCurrentPatientId()); break;
-		case 7: wardInpatientRegister(sys, getCurrentPatientId()); break;
+		case 7: patientViewStayInfo(sys, getCurrentPatientId()); break;
 		case 8: wardQueryMenuPat(sys, getCurrentPatientId()); break;
 		case 9: doctorManageMenuPat(sys, getCurrentPatientId()); break;
 		case 10: drugManageMenuPat(sys, getCurrentPatientId());	break;

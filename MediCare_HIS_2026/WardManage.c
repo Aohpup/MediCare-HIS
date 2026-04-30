@@ -30,7 +30,7 @@ bool isBedIdExist(Bed* head, const char* id) {
 	return false;
 }
 
-static const char* wardTypeToStr(WardType type) {
+const char* wardTypeToStr(WardType type) {
 	switch (type) {
 	case WARD_NORMAL: return "普通病房";
 	case WARD_VIP: return "VIP病房";
@@ -40,16 +40,16 @@ static const char* wardTypeToStr(WardType type) {
 }
 
 //统计床位数
-static int countBeds(Ward* ward) {
+int countBeds(Ward* ward) {
 	int c = 0; Bed* b = ward->bedListHead; while (b) { c++; b = b->next; } return c;
 }
 //统计已占用床位数
-static int countOccupiedBeds(Ward* ward) {
+int countOccupiedBeds(Ward* ward) {
 	int c = 0; Bed* b = ward->bedListHead; while (b) { if (b->isOccupied) c++; b = b->next; } return c;
 }
 
 //按床位编号查找
-static Bed* findBed(Ward* ward, const char* bedId) {
+Bed* findBed(Ward* ward, const char* bedId) {
 	Bed* b = ward->bedListHead; while (b) { if (strcmp(b->bedId, bedId) == 0) return b; b = b->next; } return NULL;
 }
 
@@ -109,7 +109,20 @@ void addWard(HIS_System* sys) {
 		if (cancel) {
 			free(newWard);
 			printf(">>> 已取消录入。\n");
-			return; 
+			return;
+		}
+
+		while (1) {
+			double p = safeGetDouble("请输入每日价格 (元): ");
+			if (p == -1.0) { cancel = true; break; }
+			if (p < 0.0) { printf(">>> 价格不能为负数！\n"); continue; }
+			newWard->price = p;
+			break;
+		}
+		if (cancel) {
+			free(newWard);
+			printf(">>> 已取消录入。\n");
+			return;
 		}
 
 		newWard->bedListHead = NULL;
@@ -184,6 +197,7 @@ void printWardInfo(Ward* ward) {
 	printf("病房编号: %s\n", ward->wardId);
 	printf("病房种类: %s\n", wardTypeToStr(ward->type));
 	printf("所属科室: %s\n", ward->department);
+	printf("每日价格: %.2f 元\n", ward->price);
 	printf("床位总数: %d\n", total);
 	printf("已占用数: %d\n", used);
 	printf("剩余床位: %d\n", freeCnt);
@@ -341,6 +355,7 @@ void modifyWard(HIS_System* sys) {
 		printf("4. 新增床位\n");
 		printf("5. 删除床位\n");
 		printf("6. 床位占用/释放\n");
+		printf("7. 修改每日价格\n");
 		int ch = safeGetInt("请选择要修改的内容 (输入 -1 取消): ");
 		if (ch == -1) return;
 		if (!confirmFunc("修改", "病房信息")) {
@@ -466,6 +481,16 @@ void modifyWard(HIS_System* sys) {
 			}
 			else 
 				printf(">>> 无效操作！\n");
+			break; }
+		case 7: {
+			while (1) {
+				double p = safeGetDouble("请输入新的每日价格 (输入 -1 取消): ");
+				if (p == -1.0) break;
+				if (p < 0.0) { printf(">>> 价格不能为负数！\n"); continue; }
+				target->price = p;
+				printf(">>> 每日价格修改成功！\n");
+				break;
+			}
 			break; }
 		default:
 			printf(">>> 无效选择。\n");
@@ -606,11 +631,11 @@ void wardManageMenu(HIS_System* sys) {
 }
 
 // ============================================================
-// 患者端：住院登记
+// 患者端：查看我的住院信息（只读，不能自主选择病房）
 // ============================================================
-void wardInpatientRegister(HIS_System* sys, const char* patientId) {
-	if (sys == NULL) {
-		printf(">>> 严重错误: 系统底座未初始化！！！\n");
+void patientViewStayInfo(HIS_System* sys, const char* patientId) {
+	if (sys == NULL || patientId == NULL) {
+		printf(">>> 患者未登录，无法查看住院信息。\n");
 		return;
 	}
 	if (!isPatientLoggedIn()) {
@@ -620,22 +645,19 @@ void wardInpatientRegister(HIS_System* sys, const char* patientId) {
 
 	loadWardSystemData(sys);
 
-	if (sys->wardHead == NULL) {
-		printf("\n>>> 系统内暂无病房数据，无法进行住院登记。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	printf("\n===== 住院登记 =====\n");
-
-	// 检查该患者是否已经住院
+	// 查找该患者是否已住院
 	Ward* w = sys->wardHead;
 	while (w != NULL) {
 		Bed* b = w->bedListHead;
 		while (b != NULL) {
 			if (b->isOccupied && strcmp(b->patient, patientId) == 0) {
-				printf(">>> 您已在病房 [%s] 床位 [%s] 住院中，无需重复登记。\n",
-					w->wardId, b->bedId);
+				printf("\n===== 我的住院信息 =====\n");
+				printf("病房编号: %s\n", w->wardId);
+				printf("病房种类: %s\n", wardTypeToStr(w->type));
+				printf("所属科室: %s\n", w->department);
+				printf("床位编号: %s\n", b->bedId);
+				printf("每日价格: %.2f 元\n", w->price);
+				printf("========================\n");
 				pressEnterToContinue();
 				return;
 			}
@@ -644,107 +666,12 @@ void wardInpatientRegister(HIS_System* sys, const char* patientId) {
 		w = w->next;
 	}
 
-	// 展示有空床的病房列表
-	printf("\n--- 可选病房列表（有空床） ---\n");
-	w = sys->wardHead;
-	int wCnt = 0;
-	while (w != NULL) {
-		int freeBeds = countBeds(w) - countOccupiedBeds(w);
-		if (freeBeds > 0) {
-			printf("  [%d] 病房:%s  科室:%s  种类:%s  剩余床位:%d\n",
-				++wCnt, w->wardId, w->department, wardTypeToStr(w->type), freeBeds);
-		}
-		w = w->next;
-	}
-
-	if (wCnt == 0) {
-		printf(">>> 当前所有病房已满，暂无可用床位。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	// 选择病房
-	char wardId[ID_LEN];
-	safeGetString(">>> 请输入要入住的病房编号 (输入 -1 取消): ", wardId, ID_LEN);
-	if (strcmp(wardId, "-1") == 0) {
-		printf(">>> 已取消住院登记。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	// 查找目标病房
-	Ward* target = sys->wardHead;
-	while (target != NULL && strcmp(target->wardId, wardId) != 0) {
-		target = target->next;
-	}
-	if (target == NULL) {
-		printf(">>> 未找到该病房编号。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	// 展示该病房的空床位
-	printf("\n--- 病房 [%s] 可用床位 ---\n", target->wardId);
-	Bed* bed = target->bedListHead;
-	int bCnt = 0;
-	while (bed != NULL) {
-		if (!bed->isOccupied) {
-			printf("  [%d] 床位编号:%s\n", ++bCnt, bed->bedId);
-		}
-		bed = bed->next;
-	}
-
-	if (bCnt == 0) {
-		printf(">>> 该病房已无空床位。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	// 选择床位
-	char bedId[BED_ID_LEN];
-	safeGetString(">>> 请输入要入住的床位编号 (输入 -1 取消): ", bedId, BED_ID_LEN);
-	if (strcmp(bedId, "-1") == 0) {
-		printf(">>> 已取消住院登记。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	Bed* targetBed = findBed(target, bedId);
-	if (targetBed == NULL) {
-		printf(">>> 未找到该床位编号。\n");
-		pressEnterToContinue();
-		return;
-	}
-	if (targetBed->isOccupied) {
-		printf(">>> 该床位已被占用，请选择其他床位。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	// 确认并登记
-	printf("\n>>> 住院登记确认:\n");
-	printf("    患者编号: %s\n", patientId);
-	printf("    病房编号: %s (%s, %s)\n",
-		target->wardId, target->department, wardTypeToStr(target->type));
-	printf("    床位编号: %s\n", targetBed->bedId);
-
-	if (!confirmFunc("住院登记", "以上住院信息")) {
-		printf(">>> 已取消住院登记。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	// 执行登记
-	strcpy(targetBed->patient, patientId);
-	targetBed->isOccupied = true;
-	saveWardSystemData(sys);
-	printf(">>> 住院登记成功！您已入住病房 [%s] 床位 [%s]。\n",
-		target->wardId, targetBed->bedId);
+	printf(">>> 您当前未住院。住院需由医生安排分配。\n");
 	pressEnterToContinue();
 }
 
 // ============================================================
-// 患者端：病房查询
+// 患者端：病房查询（仅可查看自己所住病房信息）
 // ============================================================
 void wardQueryMenuPat(HIS_System* sys, const char* patientId) {
 	if (sys == NULL) {
@@ -764,96 +691,139 @@ void wardQueryMenuPat(HIS_System* sys, const char* patientId) {
 		return;
 	}
 
-	int choice;
-	while (1) {
-		printf("\n========== 病房信息查询 ==========\n");
-		printf("1. 查询我的住院信息\n");
-		printf("2. 按病房编号查询\n");
-		printf("3. 按科室查询\n");
-		printf("4. 查询有空床的病房\n");
-		printf("5. 显示所有病房信息\n");
-		printf("0. 返回上一级菜单\n");
-		printf("==================================\n");
-		choice = safeGetInt("请选择查询方式: ");
-
-		char queryStr[STR_LEN];
-		Ward* curr;
-		bool found;
-
-		switch (choice) {
-		case 1: {
-			found = false;
-			curr = sys->wardHead;
-			while (curr != NULL) {
-				Bed* b = curr->bedListHead;
-				while (b != NULL) {
-					if (b->isOccupied && strcmp(b->patient, patientId) == 0) {
-						printf("\n>>> 您的住院信息: 病房 [%s] 床位 [%s] (%s, %s)\n",
-							curr->wardId, b->bedId, curr->department,
-							wardTypeToStr(curr->type));
-						found = true;
-					}
-					b = b->next;
-				}
-				curr = curr->next;
+	// 患者仅可查看自己所住的病房
+	Ward* w = sys->wardHead;
+	bool found = false;
+	while (w != NULL) {
+		Bed* b = w->bedListHead;
+		while (b != NULL) {
+			if (b->isOccupied && strcmp(b->patient, patientId) == 0) {
+				printWardInfo(w);
+				found = true;
 			}
-			if (!found) {
-				printf(">>> 您当前未住院。\n");
-			}
-			break;
+			b = b->next;
 		}
-		case 2:
-			safeGetString("请输入病房编号: ", queryStr, ID_LEN);
-			curr = sys->wardHead;
-			found = false;
-			while (curr != NULL) {
-				if (strcmp(curr->wardId, queryStr) == 0) {
-					printWardInfo(curr);
-					found = true;
-					break;
-				}
-				curr = curr->next;
-			}
-			if (!found) printf(">>> 未找到该病房。\n");
-			break;
-		case 3:
-			safeGetString("请输入科室名称: ", queryStr, STR_LEN);
-			curr = sys->wardHead;
-			found = false;
-			while (curr != NULL) {
-				if (strcmp(curr->department, queryStr) == 0) {
-					printWardInfo(curr);
-					found = true;
-				}
-				curr = curr->next;
-			}
-			if (!found) printf(">>> 未找到该科室的病房。\n");
-			break;
-		case 4: {
-			printf("\n--- 有空床的病房 ---\n");
-			curr = sys->wardHead;
-			found = false;
-			while (curr != NULL) {
-				int freeBeds = countBeds(curr) - countOccupiedBeds(curr);
-				if (freeBeds > 0) {
-					printf("  病房:%s 科室:%s 种类:%s 剩余床位:%d\n",
-						curr->wardId, curr->department,
-						wardTypeToStr(curr->type), freeBeds);
-					found = true;
-				}
-				curr = curr->next;
-			}
-			if (!found) printf(">>> 当前所有病房已满。\n");
-			break;
+		w = w->next;
+	}
+	if (!found) {
+		printf(">>> 您当前未住院，暂无病房信息可查看。\n");
+		printf(">>> 住院需由医生安排分配。\n");
+	}
+	pressEnterToContinue();
+}
+
+// ============================================================
+// 自动推荐病房（按科室+优先级规则匹配，供医生分配时调用）
+// 优先在医生所属科室的病房中选取，无匹配时回退到全院病房并警告
+// 返回最优 Ward*，若无可匹配病房返回 NULL
+// ============================================================
+Ward* autoRecommendWard(HIS_System* sys, PatientType patientType, const char* doctorDept) {
+	if (sys == NULL || sys->wardHead == NULL) return NULL;
+
+	// ① 患者类型 → 病房类型映射
+	WardType targetType;
+	switch (patientType) {
+	case PATIENT_EMERGENCY: targetType = WARD_ICU;    break;
+	case PATIENT_VIP:       targetType = WARD_VIP;    break;
+	default:                targetType = WARD_NORMAL;  break;
+	}
+
+	// 收集所有有空床的病房
+	Ward* allCandidates[256];
+	int allCnt = 0;
+	Ward* w = sys->wardHead;
+	while (w != NULL) {
+		if (countBeds(w) > countOccupiedBeds(w)) {
+			allCandidates[allCnt++] = w;
 		}
-		case 5:
-			displayAllWards(sys);
-			break;
-		case 0:
-			return;
-		default:
-			printf(">>> 无效选择，请重试！\n");
-			break;
+		w = w->next;
+	}
+	if (allCnt == 0) return NULL;
+
+	// 优先在医生所属科室的病房中选取
+	Ward* deptCandidates[256];
+	int deptCnt = 0;
+	for (int i = 0; i < allCnt; i++) {
+		if (strcmp(allCandidates[i]->department, doctorDept) == 0) {
+			deptCandidates[deptCnt++] = allCandidates[i];
 		}
 	}
+
+	Ward* candidates[256];
+	int cnt = 0;
+	bool fallback = false;
+	if (deptCnt > 0) {
+		// 使用同科室病房
+		for (int i = 0; i < deptCnt; i++) candidates[i] = deptCandidates[i];
+		cnt = deptCnt;
+	} else {
+		// 回退：全院范围匹配，给出提示
+		printf(">>> 提示：无同科室（%s）病房可选，将从全院范围推荐。\n", doctorDept);
+		for (int i = 0; i < allCnt; i++) candidates[i] = allCandidates[i];
+		cnt = allCnt;
+		fallback = true;
+	}
+
+	// 按优先级规则排序
+	for (int i = 0; i < cnt - 1; i++) {
+		for (int j = 0; j < cnt - 1 - i; j++) {
+			Ward* a = candidates[j];
+			Ward* b = candidates[j + 1];
+			bool swap = false;
+
+			// ① 类型匹配优先（匹配 > 不匹配）
+			bool aTypeMatch = (a->type == targetType);
+			bool bTypeMatch = (b->type == targetType);
+			if (aTypeMatch != bTypeMatch) {
+				if (bTypeMatch) swap = true;
+			} else {
+				// ② 价格策略（根据患者类型）
+				if (patientType == PATIENT_VIP) {
+					if (b->price > a->price) swap = true;
+				} else {
+					if (b->price < a->price) swap = true;
+				}
+
+				if (!swap && a->price == b->price) {
+					// ③ 入住率最低优先
+					double aOcc = (double)countOccupiedBeds(a) / countBeds(a);
+					double bOcc = (double)countOccupiedBeds(b) / countBeds(b);
+					if (bOcc < aOcc) swap = true;
+					else if (aOcc == bOcc) {
+						// ④ 总床位数少优先
+						if (countBeds(b) < countBeds(a)) swap = true;
+						// ⑤ 编号小优先
+						else if (countBeds(b) == countBeds(a) && strcmp(b->wardId, a->wardId) < 0)
+							swap = true;
+					}
+				}
+			}
+
+			if (swap) {
+				Ward* tmp = candidates[j];
+				candidates[j] = candidates[j + 1];
+				candidates[j + 1] = tmp;
+			}
+		}
+	}
+
+	return candidates[0];
+}
+
+// ============================================================
+// 找出患者当前入住的病房（供外部模块使用）
+// ============================================================
+Ward* findPatientWard(HIS_System* sys, const char* patientId) {
+	if (sys == NULL || patientId == NULL) return NULL;
+	Ward* w = sys->wardHead;
+	while (w != NULL) {
+		Bed* b = w->bedListHead;
+		while (b != NULL) {
+			if (b->isOccupied && strcmp(b->patient, patientId) == 0)
+				return w;
+			b = b->next;
+		}
+		w = w->next;
+	}
+	return NULL;
 }

@@ -165,6 +165,9 @@
     <ClCompile Include="PauseUtil.c">
       <Filter>源文件\src.\utils</Filter>
     </ClCompile>
+    <ClCompile Include="StringCheck.c">
+      <Filter>源文件\src.\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="HIS_wards.txt">
@@ -281,6 +284,9 @@
       <Filter>头文件\include\modules\Queue</Filter>
     </ClInclude>
     <ClInclude Include="PauseUtil.h">
+      <Filter>头文件\include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="StringCheck.h">
       <Filter>头文件\include\utils</Filter>
     </ClInclude>
   </ItemGroup>

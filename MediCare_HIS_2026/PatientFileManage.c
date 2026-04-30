@@ -32,6 +32,9 @@ static char* trimStr(char* s) {
 //patientTail用于快速查找最后一名患者
 //RegTail等用于快速查找对应患者对应项目的最后一条项目
 void loadPatientsSystemData(HIS_System* sys) {
+	if (is_Patient_File_Loaded) {
+		return;
+	}
 	printf(">>> 正在从患者文件中加载数据...\n");
 	FILE* fp = fopen(PATIENT_FILE, "r");
 	if (!fp) {

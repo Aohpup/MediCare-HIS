@@ -13,6 +13,9 @@ bool is_Ward_File_Loaded = false;	//标记是否加载过病房数据
 
 //从文件加载病房数据到系统
 void loadWardSystemData(HIS_System* sys) {
+	if (is_Ward_File_Loaded) {
+		return;
+	}
 	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 正在从病房文件中加载数据...\n");
 	FILE* fp = fopen(WARD_FILE, "r");
@@ -33,14 +36,36 @@ void loadWardSystemData(HIS_System* sys) {
 		if (strcmp(tag, "W") == 0) {	//病房信息行
 			Ward* ward = (Ward*)malloc(sizeof(Ward));
 			if (ward == NULL) { printf(">>> 内存分配失败，停止加载！\n"); break; }
-			int t = 0;
-			if (fscanf(fp, "%s %d %s", ward->wardId, &t, ward->department) != 3) { 
+			int t = 0; double p = 0.0;
+			if (fscanf(fp, "%s %d %s %lf", ward->wardId, &t, ward->department, &p) >= 3) {
+				ward->price = (p > 0.0) ? p : 0.0;
+			} else {
 				free(ward);
 				printf(">>> 警告: 病房数据格式错误，跳过该条记录。\n");
 				continue;
 			}
 			ward->type = (WardType)t;
 			ward->bedListHead = NULL;
+
+			// 检查是否已存在相同病房编号（防止重复加载），若重复则跳过
+			bool isDuplicate = false;
+			Ward* exist = sys->wardHead;
+			while (exist != NULL) {
+				if (strcmp(exist->wardId, ward->wardId) == 0) {
+					isDuplicate = true;
+					break;
+				}
+				exist = exist->next;
+			}
+			if (isDuplicate) {
+				free(ward);
+				// 跳过该病房的床位直到 END
+				while (fscanf(fp, "%5s", tag) == 1 && strcmp(tag, "END") != 0) {
+					/* 跳过 */;
+				}
+				continue;
+			}
+
 			ward->next = sys->wardHead;
 			sys->wardHead = ward;
 			// 读取床位
@@ -106,7 +131,7 @@ void saveWardSystemData(HIS_System* sys) {
 
 	Ward* ward = sys->wardHead;
 	while (ward) {
-		fprintf(fp, "W %s %d %s\n", ward->wardId, ward->type, ward->department);
+		fprintf(fp, "W %s %d %s %.2f\n", ward->wardId, ward->type, ward->department, ward->price);
 		Bed* bed = ward->bedListHead;
 		while (bed) {
 			fprintf(fp, "B %s %d %s\n", bed->bedId, 

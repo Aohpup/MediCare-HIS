@@ -83,6 +83,7 @@ typedef struct Department {
 		char wardId[ID_LEN];		//病房编号
 		WardType type;				//病房种类
 		char department[STR_LEN];	//病房所属科室
+		double price;				//病房每日价格（预留）
 		Bed* bedListHead;			//病房内床位数
 		struct Ward* next;
 	} Ward;

@@ -5,12 +5,16 @@
 #include"DepartmentManage.h"
 #include"DepartmentFileManage.h"
 #include"PatientManage.h"
+#include"PatientFileManage.h"
 #include"QueueManage.h"
 #include"QueueFileManage.h"
 #include"ConfirmFunc.h"
 #include"PauseUtil.h"
 #include"doctorSort.h"
 #include"InputUtils.h"
+#include"WardManage.h"
+#include"WardFileManage.h"
+#include"StringCheck.h"
 #include<string.h>
 
 bool is_Doctor_Logged_In = false;	//标记医生是否已登录
@@ -714,32 +718,49 @@ void doctorScheduleMenu(HIS_System* sys, const char* currentDoctorId) {
 }
 
 void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId) {
-	(void)sys;//
+	(void)sys;  // 当前函数不直接操作系统底座数据，但保留 sys 参数以便未来扩展使用
 	char doctorId[ID_LEN];
 	char date[DATE_STR_LEN];
-	if(TEST_SYSTEM_DEBUG)
-		if(confirmFunc("使用","当前登录医生"))
-			strcpy(doctorId, currentDoctorId);
+	if (TEST_SYSTEM_DEBUG)
+		if (currentDoctorId == NULL) {
+			safeGetString("请输入要叫号的医生", doctorId, ID_LEN);
+		}
 		else
-		safeGetString(">>> 请输入叫号医生编号: ", doctorId, ID_LEN);
+			strcpy(doctorId, currentDoctorId);	
 	else 
 		strcpy(doctorId, currentDoctorId);
-	safeGetString(">>> 请输入叫号日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+
+	if(TEST_SYSTEM_DEBUG) {
+		if (confirmFunc("选择", "当前日期"))
+			strcpy(date, getCurrentDateStr());
+		else
+			safeGetString(">>> 请输入叫号日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+	}
+	else
+		strcpy(date, getCurrentDateStr());
+
 	if (!isValidDate(date)) {
 		printf(">>> 日期格式无效。\n");
 		return;
 	}
 	int slotNo;
 	printAllTimeSlots();
-	if(confirmFunc("选择","当前时间段"))
-		slotNo = changeTimeToSlot(getCurrentTimeStr());
+
+	if (TEST_SYSTEM_DEBUG) {
+		if (confirmFunc("选择", "当前时间段"))
+			slotNo = changeTimeToSlot(getCurrentTimeStr());
+		else
+			slotNo = safeGetInt(">>> 请选择叫号时段: ");
+	}
 	else
-		slotNo = safeGetInt(">>> 请选择叫号时段: ");
+		slotNo = changeTimeToSlot(getCurrentTimeStr());
+
 	if (slotNo < 1 || slotNo > SLOT_COUNT) {
 		printf(">>> 时段编号无效。\n");
 		return;
 	}
 	TimeSlot slot = (TimeSlot)slotNo;
+	printf("当前列表：\n");
 	printSlotQueue(doctorId, date, slot);
 	if (!confirmFunc("执行", "下一位患者叫号")) {
 		return;
@@ -748,7 +769,6 @@ void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId) {
 	if (called != NULL) {
 		printf(">>> 请患者 %s (%s) 到诊室就诊。\n", called->name, called->patientId);
 	}
-	printSlotQueue(doctorId, date, slot);
 }
 
 void doctorViewScheduleBoardMenu(HIS_System* sys) {
@@ -831,13 +851,13 @@ void doctorManageMenu(HIS_System* sys) {
 			displayAllDoctors(sys);
 			break;
 		case 7:
-			doctorScheduleMenu(sys, "curr_logged_in_doctor_id");
+			doctorScheduleMenu(sys, "curr_logged_in_doctor_id");		//TODO
 			break;
 		case 8:
 			doctorViewScheduleBoardMenu(sys);
 			break;
 		case 9:
-			doctorCallQueueMenu(sys, "curr_logged_in_doctor_id");
+			doctorCallQueueMenu(sys, "curr_logged_in_doctor_id");		//TODO
 			break;
 		case 10:
 			if (confirmFunc("保存", "医生系统数据")) {
@@ -973,4 +993,235 @@ void doctorManageMenuPat(HIS_System* sys, const char* currentPatientId) {
 			break;
 		}
 	}
+}
+
+// ============================================================
+// 医生端：安排患者住院（分配病房和床位）
+// ============================================================
+void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
+	if (sys == NULL || doctorId == NULL) {
+		printf(">>> 医生未登录，无法进行病房分配。\n");
+		return;
+	}
+
+	loadWardSystemData(sys);
+	loadPatientsSystemData(sys);
+
+	if (sys->wardHead == NULL) {
+		printf("\n>>> 系统内暂无病房数据，无法分配。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	printf("\n===== 安排患者住院 =====\n");
+
+	// 输入患者编号
+	char patientId[ID_LEN];
+	safeGetString(">>> 请输入患者编号 (输入 -1 取消): ", patientId, ID_LEN);
+	if (strcmp(patientId, "-1") == 0) {
+		printf(">>> 已取消病房分配。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 查找患者
+	Patient* patient = findPatientById(sys, patientId);
+	if (patient == NULL) {
+		printf(">>> 未找到该患者，请检查编号。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 检查是否已住院
+	Ward* existingWard = findPatientWard(sys, patientId);
+	if (existingWard != NULL) {
+		printf(">>> 该患者已在病房 [%s] 住院中，无需重复分配。\n", existingWard->wardId);
+		pressEnterToContinue();
+		return;
+	}
+
+	// 显示患者信息
+	printf("\n患者编号: %s\n", patient->patientId);
+	printf("患者姓名: %s\n", patient->name);
+	printf("患者类型: %s\n",
+		patient->type == PATIENT_VIP ? "VIP" :
+		patient->type == PATIENT_EMERGENCY ? "急诊" : "普通");
+
+	// 获取医生科室（用于自动推荐）
+	doctor* doc = findDoctorByIdInQueue(sys, doctorId);
+	const char* docDept = (doc != NULL) ? doc->department : "";
+
+	// TODO: [权限接口] 在此处检查医生职位是否具有分配病房权限
+	// if (!hasWardAssignPermission(doc)) { printf(">>> 权限不足。\n"); return; }
+
+	// 自动推荐
+	bool useRecommend = false;
+	Ward* recommended = NULL;
+	if (confirmFunc("自动推荐", "使用系统自动推荐最优病房")) {
+		recommended = autoRecommendWard(sys, patient->type, docDept);
+		if (recommended != NULL) {
+			printf("\n>>> 系统推荐病房:\n");
+			printf("    病房编号: %s  科室: %s  种类: %s  价格: %.2f 元/日\n",
+				recommended->wardId, recommended->department,
+				wardTypeToStr(recommended->type), recommended->price);
+			printf("    已入住: %d/%d  剩余床位: %d\n",
+				countOccupiedBeds(recommended),
+				countBeds(recommended),
+				countBeds(recommended) - countOccupiedBeds(recommended));
+
+			if (confirmFunc("采纳推荐", "使用系统推荐的病房")) {
+				useRecommend = true;
+			}
+		}
+		else {
+			printf(">>> 系统未能推荐出合适的病房，请手动选择。\n");
+		}
+	}
+
+	// 医生选择病房（强制指定需二次确认）
+	char wardId[ID_LEN];
+	Ward* targetWard = NULL;
+
+	if (useRecommend) {
+		strcpy(wardId, recommended->wardId);
+		targetWard = recommended;
+	}
+	else {
+		// 展示所有有空床的病房供医生选择
+		printf("\n--- 可选病房（有空床） ---\n");
+		Ward* w = sys->wardHead;
+		int wCnt = 0;
+		while (w != NULL) {
+			int freeBeds = countBeds(w) - countOccupiedBeds(w);
+			if (freeBeds > 0) {
+				printf("  [%d] 病房:%s  科室:%s  种类:%s  价格:%.0f元  剩余:%d床\n",
+					++wCnt, w->wardId, w->department,
+					wardTypeToStr(w->type), w->price, freeBeds);
+			}
+			w = w->next;
+		}
+		if (wCnt == 0) {
+			printf(">>> 所有病房已满，无法分配。\n");
+			pressEnterToContinue();
+			return;
+		}
+
+		safeGetString(">>> 请输入目标病房编号 (输入 -1 取消): ", wardId, ID_LEN);
+		if (strcmp(wardId, "-1") == 0) {
+			printf(">>> 已取消病房分配。\n");
+			pressEnterToContinue();
+			return;
+		}
+
+		// 查找病房
+		targetWard = sys->wardHead;
+		while (targetWard != NULL && strcmp(targetWard->wardId, wardId) != 0)
+			targetWard = targetWard->next;
+		if (targetWard == NULL) {
+			printf(">>> 未找到该病房编号。\n");
+			pressEnterToContinue();
+			return;
+		}
+
+		// 非推荐病房需二次确认（强制指定）
+		if (!confirmFunc("强制指定", "非系统推荐的病房")) {
+			printf(">>> 已取消病房分配。\n");
+			pressEnterToContinue();
+			return;
+		}
+		char confirmMsg[256];
+		sprintf(confirmMsg, "指定病房 [%s] 给患者 [%s]",
+			targetWard->wardId, patient->name);
+		if (!confirmFunc("再度确认", confirmMsg)) {
+			printf(">>> 已取消病房分配。\n");
+			pressEnterToContinue();
+			return;
+		}
+	}
+
+	// 选择空闲床位
+	printf("\n--- 病房 [%s] 空闲床位 ---\n", targetWard->wardId);
+	Bed* bed = targetWard->bedListHead;
+	int bCnt = 0;
+	while (bed != NULL) {
+		if (!bed->isOccupied) {
+			printf("  [%d] 床位编号:%s\n", ++bCnt, bed->bedId);
+		}
+		bed = bed->next;
+	}
+	if (bCnt == 0) {
+		printf(">>> 该病房已无空床位。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	char bedInput[BED_ID_LEN];
+	safeGetString(">>> 请选择床位（输入序号或编号，-1 取消）: ", bedInput, BED_ID_LEN);
+	if (strcmp(bedInput, "-1") == 0) {
+		printf(">>> 已取消病房分配。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	Bed* targetBed = NULL;
+
+	// 纯数字 → 按序号查找（第 N 个空闲床位）
+	if (isAllDigits(bedInput)) {
+		int idx = atoi(bedInput);
+		if (idx >= 1 && idx <= bCnt) {
+			Bed* b = targetWard->bedListHead;
+			int n = 0;
+			while (b != NULL) {
+				if (!b->isOccupied) {
+					n++;
+					if (n == idx) { targetBed = b; break; }
+				}
+				b = b->next;
+			}
+		} else {
+			printf(">>> 床位序号超出范围（1-%d），请重试。\n", bCnt);
+			pressEnterToContinue();
+			return;
+		}
+	} else {
+		// 非纯数字 → 按床位编号查找
+		targetBed = findBed(targetWard, bedInput);
+		if (targetBed == NULL) {
+			printf(">>> 未找到床位编号 [%s]，请重试。\n", bedInput);
+			pressEnterToContinue();
+			return;
+		}
+	}
+
+	if (targetBed == NULL) {
+		printf(">>> 未找到匹配的床位。\n");
+		pressEnterToContinue();
+		return;
+	}
+	if (targetBed->isOccupied) {
+		printf(">>> 该床位已被占用。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 最终确认
+	printf("\n>>> 住院分配确认:\n");
+	printf("    患者: %s (%s)\n", patient->name, patient->patientId);
+	printf("    病房: %s (%s, %s)\n",
+		targetWard->wardId, targetWard->department, wardTypeToStr(targetWard->type));
+	printf("    床位: %s\n", targetBed->bedId);
+
+	if (!confirmFunc("住院分配", "以上住院分配信息")) {
+		printf(">>> 已取消病房分配。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 执行分配
+	strcpy(targetBed->patient, patientId);
+	targetBed->isOccupied = true;
+	saveWardSystemData(sys);
+	printf(">>> 住院分配成功！患者 [%s] 已入住病房 [%s] 床位 [%s]。\n",
+		patient->name, targetWard->wardId, targetBed->bedId);
+	pressEnterToContinue();
 }
