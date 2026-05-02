@@ -68,6 +68,7 @@ void loadQueueTicketData(HIS_System* sys) {
 	fclose(fp);
 	queueUpdateSignSeq(maxSeq);
 	is_Queue_Ticket_File_Loaded = true;
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 排队挂号数据加载完成！\n");
 
 	// 加载完挂号单数据后，立即重建所有候诊队列

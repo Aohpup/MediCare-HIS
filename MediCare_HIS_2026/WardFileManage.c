@@ -111,6 +111,7 @@ void loadWardSystemData(HIS_System* sys) {
 		curr = curr->next;
 	}
 
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 病房数据加载完成！\n");
 	is_Ward_File_Loaded = true;		//标记已加载过病房数据
 }

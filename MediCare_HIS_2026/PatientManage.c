@@ -114,11 +114,17 @@ static doctor* findDoctorById(HIS_System* sys, const char* doctorId) {
 // 打印所有可选的挂号预约时间段列表，并提示患者输入选择的时段编号，返回对应的TimeSlot枚举值
 static TimeSlot inputTimeSlotChoice(void) {
 	printAllTimeSlots();
-	int slotNo = safeGetInt(">>> 请选择时段编号(1-13): ");
+	printf(">>> 请选择时段编号(1-%d, 午休时段11:30-13:30暂不开放): ", SLOT_COUNT);
+	int slotNo = safeGetInt("");
 	if (slotNo < 1 || slotNo > SLOT_COUNT) {
 		return SLOT_INVALID;
 	}
-	return (TimeSlot)slotNo;
+	TimeSlot slot = (TimeSlot)slotNo;
+	if (isNoonSlot(slot)) {
+		printf(">>> 午休时段（11:30-13:30）暂不开放看诊，请选择其他时段。\n");
+		return SLOT_INVALID;
+	}
+	return slot;
 }
 
 // 将新的挂号记录追加到患者的挂号记录链表末尾
@@ -890,7 +896,9 @@ void issueExaminationOrder(HIS_System* sys, const char* doctorId) {
 		Patient* p = findPatientById(sys, calledId);
 		printf("\n>>> 当前叫号患者: %s (%s)\n", p ? p->name : "未知", calledId);
 		if (confirmFunc("快捷开具", "为当前叫号患者开具检查单")) {
-			if (!createExamOrder(sys, doctorId, calledId)) {
+			if (createExamOrder(sys, doctorId, calledId)) {
+				markTicketAsInRoom(calledId, doctorId);
+			} else {
 				printf(">>> 检查单开具失败。\n");
 			}
 			return;

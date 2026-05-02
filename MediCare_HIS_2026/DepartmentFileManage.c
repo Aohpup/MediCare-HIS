@@ -78,6 +78,7 @@ void loadDepartmentSystemData(HIS_System* sys) {
 		}
 	}
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 科室数据加载完成！\n");
 	is_Department_File_Loaded = true;	//标记已加载过科室数据
 

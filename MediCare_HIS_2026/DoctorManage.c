@@ -625,6 +625,10 @@ static void setDoctorSchedule(HIS_System* sys, const char* doctorId, const char*
 			printf(">>> 时段无效，请重试。\n");
 			continue;
 		}
+		if (isNoonSlot((TimeSlot)slotNo)) {
+			printf(">>> 午休时段（11:30-13:30）暂不开放看诊，请选择其他时段。\n");
+			continue;
+		}
 		if (isDoctorSlotOpen(doctorId, date, (TimeSlot)slotNo)) {
 			printf(">>> 时段 [%s] 已经开放过了，无需重复开放。\n", slot_names[slotNo - 1]);
 			continue;
@@ -998,9 +1002,55 @@ void doctorManageMenuPat(HIS_System* sys, const char* currentPatientId) {
 	}
 }
 
-// ============================================================
+// 医生端：查看患者住院信息（当前叫号患者 / 手动指定）
+void doctorViewStayInfo(HIS_System* sys, const char* doctorId) {
+	if (sys == NULL || doctorId == NULL) {
+		printf(">>> 医生未登录，无法查看住院信息。\n");
+		return;
+	}
+
+	loadWardSystemData(sys);
+	loadPatientsSystemData(sys);
+
+	if (sys->wardHead == NULL) {
+		printf("\n>>> 系统内暂无病房数据。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 优先展示当前叫号患者
+	const char* calledId = findCalledPatientIdByDoctor(doctorId);
+	if (calledId != NULL) {
+		Patient* p = findPatientById(sys, calledId);
+		if (p != NULL) {
+			printf("\n>>> 当前叫号患者: %s (%s)\n", p->name, calledId);
+			if (confirmFunc("查看", "当前叫号患者住院信息")) {
+				docterViewPatientStayInfo(sys, calledId);
+				return;
+			}
+		}
+	}
+
+	// 手动输入患者编号
+	char pid[ID_LEN];
+	safeGetString("请输入患者编号 (输入 -1 取消): ", pid, ID_LEN);
+	if (strcmp(pid, "-1") == 0) {
+		printf(">>> 已取消查看。\n");
+		return;
+	}
+	if(!isPatientCalledByDoctor(pid, doctorId)) {
+		printf(">>> 该患者不是您的患者或者未在候诊队列中，您无法查看住院信息。\n");
+		return;
+	}
+	Patient* p = findPatientById(sys, pid);
+	if (p == NULL) {
+		printf(">>> 未找到患者 %s 的信息。\n", pid);
+		return;
+	}
+	docterViewPatientStayInfo(sys, pid);
+}
+
 // 医生端：安排患者住院（分配病房和床位）
-// ============================================================
 void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 	if (sys == NULL || doctorId == NULL) {
 		printf(">>> 医生未登录，无法进行病房分配。\n");
@@ -1020,19 +1070,36 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 
 	// 输入患者编号
 	char patientId[ID_LEN];
-	safeGetString(">>> 请输入患者编号 (输入 -1 取消): ", patientId, ID_LEN);
-	if (strcmp(patientId, "-1") == 0) {
-		printf(">>> 已取消病房分配。\n");
-		pressEnterToContinue();
-		return;
+	const char* calledId = findCalledPatientIdByDoctor(doctorId);
+	Patient* patient = NULL;
+
+	bool useCalledPatient = false;
+
+	if (calledId != NULL) {
+		Patient* p = findPatientById(sys, calledId);
+		if (p != NULL) {
+			printf("\n>>> 当前叫号患者: %s (%s)\n", p->name, calledId);
+			if (confirmFunc("分配病房", "给当前叫号患者")) {
+				strcpy(patientId, calledId);	// 直接使用当前叫号患者编号，无需再输入
+				patient = p;					// 直接使用当前叫号患者信息，无需再查询
+				useCalledPatient = true;
+			}
+		}
 	}
 
-	// 查找患者
-	Patient* patient = findPatientById(sys, patientId);
-	if (patient == NULL) {
-		printf(">>> 未找到该患者，请检查编号。\n");
-		pressEnterToContinue();
-		return;
+	if(!useCalledPatient) {
+		safeGetString(">>> 请输入患者编号 (输入 -1 取消): ", patientId, ID_LEN);
+		if (strcmp(patientId, "-1") == 0) {
+			printf(">>> 已取消病房分配。\n");
+			pressEnterToContinue();
+			return;
+		}
+		patient = findPatientById(sys, patientId);
+		if (patient == NULL) {
+			printf(">>> 未找到该患者，请检查编号。\n");
+			pressEnterToContinue();
+			return;
+		}
 	}
 
 	// 检查是否已住院
@@ -1226,5 +1293,7 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 	saveWardSystemData(sys);
 	printf(">>> 住院分配成功！患者 [%s] 已入住病房 [%s] 床位 [%s]。\n",
 		patient->name, targetWard->wardId, targetBed->bedId);
+	// 推进叫号状态为就诊中
+	markTicketAsInRoom(patientId, doctorId);
 	pressEnterToContinue();
 }

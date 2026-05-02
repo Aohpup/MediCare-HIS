@@ -117,6 +117,7 @@ void loadExamItemData(HIS_System* sys) {
 	}
 	fclose(fp);
 	is_Exam_Item_File_Loaded = true;
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 检查项目字典加载完成！\n");
 }
 
@@ -198,6 +199,7 @@ void loadExamOrderData(HIS_System* sys) {
 	}
 	fclose(fp);
 	is_Exam_Order_File_Loaded = true;
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 检查申请数据加载完成！\n");
 }
 

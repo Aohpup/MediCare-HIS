@@ -116,19 +116,23 @@ static void rebuildAllWaitingQueues(void) {
 static int slotStartMinute(TimeSlot slot) {
 	static const int starts[SLOT_COUNT + 1] = {
 		0,
-		8 * 60 + 0,
-		8 * 60 + 30,
-		9 * 60 + 0,
-		9 * 60 + 30,
-		10 * 60 + 0,
-		10 * 60 + 30,
-		11 * 60 + 0,
-		13 * 60 + 30,
-		14 * 60 + 0,
-		14 * 60 + 30,
-		15 * 60 + 0,
-		15 * 60 + 30,
-		16 * 60 + 0
+		8 * 60 + 0,    // SLOT_0800_0830 = 1
+		8 * 60 + 30,   // SLOT_0830_0900 = 2
+		9 * 60 + 0,    // SLOT_0900_0930 = 3
+		9 * 60 + 30,   // SLOT_0930_1000 = 4
+		10 * 60 + 0,   // SLOT_1000_1030 = 5
+		10 * 60 + 30,  // SLOT_1030_1100 = 6
+		11 * 60 + 0,   // SLOT_1100_1130 = 7
+		11 * 60 + 30,  // SLOT_1130_1200 = 8
+		12 * 60 + 0,   // SLOT_1200_1230 = 9
+		12 * 60 + 30,  // SLOT_1230_1300 = 10
+		13 * 60 + 0,   // SLOT_1300_1330 = 11
+		13 * 60 + 30,  // SLOT_1330_1400 = 12
+		14 * 60 + 0,   // SLOT_1400_1430 = 13
+		14 * 60 + 30,  // SLOT_1430_1500 = 14
+		15 * 60 + 0,   // SLOT_1500_1530 = 15
+		15 * 60 + 30,  // SLOT_1530_1600 = 16
+		16 * 60 + 0    // SLOT_1600_1630 = 17
 	};
 	if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
 		return -1;
@@ -340,6 +344,10 @@ int getDoctorSlotBooked(const char* doctorId, const char* date, TimeSlot slot) {
 
 bool bookQueueTicket(Patient* patient, doctor* doctor, const char* date, TimeSlot slot, bool isOnsite) {
 	if (patient == NULL || doctor == NULL || date == NULL || slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+		return false;
+	}
+	if (isNoonSlot(slot)) {
+		printf(">>> 午休时段（11:30-13:30）暂不开放看诊，请选择其他时段。\n");
 		return false;
 	}
 	DoctorDaySchedule* schedule = getSchedule(doctor->doctorId, date, false);
@@ -609,9 +617,15 @@ void importDoctorSchedule(const char* doctorId, const char* date, TimeSlot slot,
 	schedule->bookingCount[slot] = bookingCount;
 }
 
+// 判断时段是否为午休时段（11:30-13:30），午休时段暂不开放看诊
+bool isNoonSlot(TimeSlot slot) {
+	return (slot >= SLOT_1130_1200 && slot <= SLOT_1300_1330);
+}
+
 void printAllTimeSlots(void) {
 	for (int i = 0; i < SLOT_COUNT; ++i) {
-		printf("%d. %s\n", i + 1, slot_names[i]);
+		printf("%d. %s%s\n", i + 1, slot_names[i],
+			isNoonSlot((TimeSlot)(i + 1)) ? " (午休)" : "");
 	}
 }
 

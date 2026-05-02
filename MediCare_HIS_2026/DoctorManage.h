@@ -34,7 +34,7 @@ void printDoctorInfo(doctor* doctor);
 void queryDoctor(HIS_System* sys, const char* currDocterId);
 
 //修改医生信息
-void modifyDoctor(HIS_System* sys, const char* currDocterId);
+void modifyDoctor(HIS_System* sys);
 
 //排序医生数据
 //排序功能在doctorSort.h中实现
@@ -59,6 +59,9 @@ void doctorViewScheduleBoardMenu(HIS_System* sys);
 
 //查看患者病历信息（医生视角）
 void writeMedicalRecord(HIS_System* sys, const char* doctorId);
+
+// 医生端：查看患者住院信息（当前叫号患者 / 手动指定）
+void doctorViewStayInfo(HIS_System* sys, const char* doctorId);
 
 // 医生端：安排患者住院（分配病房和床位）
 void doctorArrangeWard(HIS_System* sys, const char* doctorId);

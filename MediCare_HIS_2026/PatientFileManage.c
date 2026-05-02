@@ -35,6 +35,7 @@ void loadPatientsSystemData(HIS_System* sys) {
 	if (is_Patient_File_Loaded) {
 		return;
 	}
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 正在从患者文件中加载数据...\n");
 	FILE* fp = fopen(PATIENT_FILE, "r");
 	if (!fp) {
@@ -312,6 +313,7 @@ void loadPatientsSystemData(HIS_System* sys) {
 	}
 	currentPatientId = maxId + 1;
 
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 患者数据加载完成！当前患者编号计数器已更新为 %d。\n", currentPatientId);
 	is_Patient_File_Loaded = true;	//标记已加载患者数据
 }

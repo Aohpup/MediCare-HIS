@@ -123,6 +123,9 @@ void importDoctorSchedule(const char* doctorId, const char* date, TimeSlot slot,
 // 时间段展示工具
 void printAllTimeSlots(void);
 
+// 判断时段是否为午休时段（11:30-13:30），午休时段暂不开放看诊
+bool isNoonSlot(TimeSlot slot);
+
 // ========== 跨模块状态查询与流转函数（供PatientManage使用） ==========
 
 // 根据患者编号和医生编号查找对应的挂号记录（排除已取消的），用于权限判定

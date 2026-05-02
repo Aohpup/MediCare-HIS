@@ -6,5 +6,8 @@
 void pressEnterToContinue(void) {
 	printf(">>> 按回车键返回上一级菜单...");
 	fflush(stdout);
-	getchar();
+	char ch;
+	while((ch = getchar()) != '\n' && ch != EOF) {
+		// 继续读取直到遇到换行符或文件结束，清除输入缓冲区
+	}
 }

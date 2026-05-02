@@ -49,6 +49,9 @@ Bed* findBed(Ward* ward, const char* bedId);
 // 患者端：查看我的住院信息（只读）
 void patientViewStayInfo(HIS_System* sys, const char* patientId);
 
+// 医生端：查看患者病房信息（只读，显示患者姓名、病房号、床位号等基本信息）
+void docterViewPatientStayInfo(HIS_System* sys, const char* doctorId);
+
 // 患者端：病房查询（仅可查看自己所住病房）
 void wardQueryMenuPat(HIS_System* sys, const char* patientId);
 

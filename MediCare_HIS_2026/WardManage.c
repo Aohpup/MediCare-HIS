@@ -630,9 +630,7 @@ void wardManageMenu(HIS_System* sys) {
 	}
 }
 
-// ============================================================
 // 患者端：查看我的住院信息（只读，不能自主选择病房）
-// ============================================================
 void patientViewStayInfo(HIS_System* sys, const char* patientId) {
 	if (sys == NULL || patientId == NULL) {
 		printf(">>> 患者未登录，无法查看住院信息。\n");
@@ -670,9 +668,41 @@ void patientViewStayInfo(HIS_System* sys, const char* patientId) {
 	pressEnterToContinue();
 }
 
-// ============================================================
+
+
+//医生端：医生查看患者的住院信息（只读，不能自主选择病房）
+void docterViewPatientStayInfo(HIS_System* sys, const char* patientId) {
+	if (sys == NULL || patientId == NULL) {
+		printf(">>> 无法查看患者住院信息。\n");
+		return;
+	}
+
+	loadWardSystemData(sys);
+	// 查找该患者是否已住院
+	Ward* w = sys->wardHead;
+	while (w != NULL) {
+		Bed* b = w->bedListHead;
+		while (b != NULL) {
+			if (b->isOccupied && strcmp(b->patient, patientId) == 0) {
+				printf("\n===== 患者住院信息 =====\n");
+				printf("病房编号: %s\n", w->wardId);
+				printf("病房种类: %s\n", wardTypeToStr(w->type));
+				printf("所属科室: %s\n", w->department);
+				printf("床位编号: %s\n", b->bedId);
+				printf("每日价格: %.2f 元\n", w->price);
+				printf("========================\n");
+				pressEnterToContinue();
+				return;
+			}
+			b = b->next;
+		}
+		w = w->next;
+	}
+	printf(">>> 该患者当前未住院。住院需由医生安排分配。\n");
+	pressEnterToContinue();
+}
+
 // 患者端：病房查询（仅可查看自己所住病房信息）
-// ============================================================
 void wardQueryMenuPat(HIS_System* sys, const char* patientId) {
 	if (sys == NULL) {
 		printf(">>> 严重错误: 系统底座未初始化！！！\n");

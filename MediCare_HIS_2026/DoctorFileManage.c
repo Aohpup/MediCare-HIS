@@ -117,6 +117,7 @@ void loadDoctorSystemData(HIS_System* sys) {
 	}
 
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 医生数据加载完成！\n");
 	is_Doctor_File_Loaded = true;
 }

@@ -18,7 +18,6 @@
 #include"QueueFileManage.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
-#include <stdio.h>
 
 static void messageBox(const char* message) {
 	if (TEST_SYSTEM_DEBUG)
@@ -88,12 +87,13 @@ void doctorMenu(HIS_System* sys) {
 		printf("4. 患者看诊与开具处方\n");
 		printf("5. 开具检查单(面诊患者检查开单)\n");
 		printf("6. 查看患者检查结果\n");
-		printf("7. 安排患者住院 (病房分配)\n");
-		printf("8. 结束看诊\n");
-		printf("9. 查看就诊历史\n");
-		printf("10. 医生排班管理\n");
-		printf("11. 医生信息查询与修改\n");
-		printf("12. 药品信息查询\n");
+		printf("7. 分配住院\n");
+		printf("8. 查看住院信息\n");
+		printf("9. 结束看诊\n");
+		printf("10. 查看就诊历史\n");
+		printf("11. 医生排班管理\n");
+		printf("12. 医生信息查询与修改\n");
+		printf("13. 药品信息查询\n");
 		printf("0. 返回主菜单\n");
 		printf("================================\n");
 		choice = safeGetInt("请选择医护操作: ");
@@ -107,11 +107,12 @@ void doctorMenu(HIS_System* sys) {
 		case 5: issueExaminationOrder(sys, getCurrentDoctorId()); break;
 		case 6: queryExamOrdersByDoctor(sys, getCurrentDoctorId()); break;
 		case 7: doctorArrangeWard(sys, getCurrentDoctorId()); break;
-		case 8: endConsultation(sys, getCurrentDoctorId()); break;
-		case 9: viewConsultationHistory(sys, getCurrentDoctorId()); break;
-		case 10: doctorScheduleMenu(sys, getCurrentDoctorId()); break; 
-		case 11: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;	
-		case 12: drugSortMenuDoc(sys); break;
+		case 8: doctorViewStayInfo(sys, getCurrentDoctorId()); break;
+		case 9: endConsultation(sys, getCurrentDoctorId()); break;
+		case 10: viewConsultationHistory(sys, getCurrentDoctorId()); break;
+		case 11: doctorScheduleMenu(sys, getCurrentDoctorId()); break;
+		case 12: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;
+		case 13: drugSortMenuDoc(sys); break;
 		case 0:
 			if (confirmFunc("退出", "医生工作站")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
