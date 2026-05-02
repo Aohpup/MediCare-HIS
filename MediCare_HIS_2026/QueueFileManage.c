@@ -104,5 +104,6 @@ void saveQueueTicketData(HIS_System* sys) {
 		curr = curr->next;
 	}
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 排队挂号数据保存完成！\n");
 }

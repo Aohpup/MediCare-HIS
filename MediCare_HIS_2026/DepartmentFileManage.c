@@ -108,6 +108,7 @@ void saveDepartmentSystemData(HIS_System* sys) {
 	}
 
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 科室数据保存成功！\n");
 
 }

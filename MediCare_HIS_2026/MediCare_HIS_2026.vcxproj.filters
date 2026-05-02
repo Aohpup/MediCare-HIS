@@ -170,9 +170,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="HIS_wards.txt">
-      <Filter>资源文件\data</Filter>
-    </Text>
     <Text Include="HIS_doctors.txt">
       <Filter>资源文件\data</Filter>
     </Text>
@@ -198,6 +195,9 @@
       <Filter>资源文件\data</Filter>
     </Text>
     <Text Include="HIS_queue_tickets.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="HIS_wards.txt">
       <Filter>资源文件\data</Filter>
     </Text>
   </ItemGroup>

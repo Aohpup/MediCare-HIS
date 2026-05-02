@@ -122,6 +122,7 @@ void saveDrugSystemData(HIS_System* sys) {
 		curr = curr->next;
 	}
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 药品数据保存成功！\n");
 }
 

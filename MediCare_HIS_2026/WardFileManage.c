@@ -145,5 +145,6 @@ void saveWardSystemData(HIS_System* sys) {
 		ward = ward->next;
 	}
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 病房数据保存完成！\n");
 }

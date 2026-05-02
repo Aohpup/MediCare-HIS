@@ -177,36 +177,18 @@ void loadPatientsSystemData(HIS_System* sys) {
 				break;
 			}
 			if (fgets(line, sizeof(line), fp) == NULL) {
+				if(TEST_SYSTEM_DEBUG)
 				printf(">>> 警告: 看诊记录数据格式错误，跳过该条记录。\n");
 				free(view);
 				continue;
 			}
-			char* payload = trimStr(line);
-			if (strchr(payload, '|') != NULL) {
-				char* p1 = strtok(payload, "|");
-				char* p2 = strtok(NULL, "|");
-				char* p3 = strtok(NULL, "|");
-				char* p4 = strtok(NULL, "|");
-				if (p1 == NULL || p2 == NULL || p3 == NULL || p4 == NULL) {
-					printf(">>> 警告: 看诊记录数据格式错误，跳过该条记录。\n");
-					free(view);
-					continue;
-				}
-				strncpy(view->recordId, trimStr(p1), ID_LEN - 1);
-				view->recordId[ID_LEN - 1] = '\0';
-				strncpy(view->date, trimStr(p2), ID_LEN - 1);
-				view->date[ID_LEN - 1] = '\0';
-				strncpy(view->doctorId, trimStr(p3), ID_LEN - 1);
-				view->doctorId[ID_LEN - 1] = '\0';
-				strncpy(view->details, trimStr(p4), sizeof(view->details) - 1);
-				view->details[sizeof(view->details) - 1] = '\0';
-			}
-			else {
-				if (sscanf(payload, "%24s %511s %24s %24s", view->recordId, view->details, view->date, view->doctorId) != 4) {
-					printf(">>> 警告: 看诊记录数据格式错误，跳过该条记录。\n");
-					free(view);
-					continue;
-				}
+			// sscanf 一次性解析 4 个字段，格式: recordId|date|doctorId|details
+			if (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%511[^\n]",
+				view->recordId, view->date, view->doctorId, view->details) != 4) {
+				if(TEST_SYSTEM_DEBUG)
+				printf(">>> 警告: 看诊记录数据格式错误，跳过该条记录。\n");
+				free(view);
+				continue;
 			}
 			view->record = REC_VIEW;
 			view->next = NULL;
@@ -242,46 +224,19 @@ void loadPatientsSystemData(HIS_System* sys) {
 				break;
 			}
 			if (fgets(line, sizeof(line), fp) == NULL) {
+				if(TEST_SYSTEM_DEBUG)
 				printf(">>> 警告: 住院记录数据格式错误，跳过该条记录。\n");
 				free(stay);
 				continue;
 			}
-			char* payload = trimStr(line);
-			if (strchr(payload, '|') != NULL) {
-				char* p1 = strtok(payload, "|");
-				char* p2 = strtok(NULL, "|");
-				char* p3 = strtok(NULL, "|");
-				char* p4 = strtok(NULL, "|");
-				char* p5 = strtok(NULL, "|");
-				char* p6 = strtok(NULL, "|");
-				char* p7 = strtok(NULL, "|");
-				if (p1 == NULL || p2 == NULL || p3 == NULL || p4 == NULL || p5 == NULL || p6 == NULL || p7 == NULL) {
-					printf(">>> 警告: 住院记录数据格式错误，跳过该条记录。\n");
-					free(stay);
-					continue;
-				}
-				strncpy(stay->recordId, trimStr(p1), ID_LEN - 1);
-				stay->recordId[ID_LEN - 1] = '\0';
-				strncpy(stay->startDate, trimStr(p2), ID_LEN - 1);
-				stay->startDate[ID_LEN - 1] = '\0';
-				strncpy(stay->duration, trimStr(p3), ID_LEN - 1);
-				stay->duration[ID_LEN - 1] = '\0';
-				strncpy(stay->endDate, trimStr(p4), ID_LEN - 1);
-				stay->endDate[ID_LEN - 1] = '\0';
-				strncpy(stay->doctorId, trimStr(p5), ID_LEN - 1);
-				stay->doctorId[ID_LEN - 1] = '\0';
-				strncpy(stay->wardId, trimStr(p6), ID_LEN - 1);
-				stay->wardId[ID_LEN - 1] = '\0';
-				strncpy(stay->details, trimStr(p7), sizeof(stay->details) - 1);
-				stay->details[sizeof(stay->details) - 1] = '\0';
-			}
-			else {
-				if (sscanf(payload, "%24s %511s %24s %24s %24s %24s %24s", stay->recordId, stay->details, stay->startDate,
-					stay->duration, stay->endDate, stay->doctorId, stay->wardId) != 7) {
-					printf(">>> 警告: 住院记录数据格式错误，跳过该条记录。\n");
-					free(stay);
-					continue;
-				}
+			// sscanf 一次性解析 7 个字段，格式: recordId|startDate|duration|endDate|doctorId|wardId|details
+			if (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%511[^\n]",
+				stay->recordId, stay->startDate, stay->duration, stay->endDate,
+				stay->doctorId, stay->wardId, stay->details) != 7) {
+				if(TEST_SYSTEM_DEBUG)
+				printf(">>> 警告: 住院记录数据格式错误，跳过该条记录。\n");
+				free(stay);
+				continue;
 			}
 			stay->next = NULL;
 			if(currPatient->stayHead == NULL) {	//住院记录链表为空，新记录成为头节点
@@ -353,5 +308,6 @@ void savePatientsSystemData(HIS_System* sys) {
 		patient = patient->next;
 	}
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 患者数据保存完成！\n");
 }

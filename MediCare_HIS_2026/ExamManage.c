@@ -5,6 +5,7 @@
 #include"ConfirmFunc.h"
 #include"PauseUtil.h"
 #include"PrintFormattedStr.h"
+#include"StringCheck.h"
 #include<string.h>
 #include<stdlib.h>
 #include<time.h>
@@ -371,20 +372,98 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 	order->itemHead = NULL;
 	order->next = NULL;
 
-	printf(">>> 请选择检查项目(输入 -1 结束)：\n");
+	// 收集并打印检查项目序号清单
+	ExamItem* allItems[256];
+	int totalItems = 0;
+	ExamItem* ei = sys->examItemHead;
+	while (ei != NULL && totalItems < 256) {
+		allItems[totalItems++] = ei;
+		ei = ei->next;
+	}
+	printf("\n--- 可选检查项目清单 ---\n");
+	for (int i = 0; i < totalItems; i++) {
+		printf("  %d. %s  %s\n", i + 1, allItems[i]->itemId, allItems[i]->itemName);
+	}
+	printf("------------------------\n");
+	printf("输入序号(1-%d)/项目编号 或 \"全选\" 添加全部 (输入 -1 结束)\n", totalItems);
+
 	while (1) {
 		char itemId[ID_LEN];
-		safeGetString(">>> 项目编号: ", itemId, ID_LEN);
+		safeGetString(">>> 项目选择: ", itemId, ID_LEN);
 		if (strcmp(itemId, "-1") == 0) {
 			break;
 		}
-		ExamItem* dictItem = findExamItem(sys, itemId);	//检查项目字典中查找对应编号的项目
-		if (dictItem == NULL) {
-			printf(">>> 未找到项目编号 %s，请重试。\n", itemId);
+
+		// 全选：添加所有项目
+		if (strcmp(itemId, "全选") == 0) {
+			int added = 0;
+			for (int i = 0; i < totalItems; i++) {
+				// 跳过已添加的项目
+				bool alreadyAdded = false;
+				ExamOrderItem* check = order->itemHead;
+				while (check != NULL) {
+					if (strcmp(check->itemId, allItems[i]->itemId) == 0) {
+						alreadyAdded = true;
+						break;
+					}
+					check = check->next;
+				}
+				if (alreadyAdded) continue;
+
+				ExamOrderItem* newItem = (ExamOrderItem*)malloc(sizeof(ExamOrderItem));
+				if (newItem == NULL) { printf(">>> 内存不足，停止全选。\n"); break; }
+				memset(newItem, 0, sizeof(ExamOrderItem));
+				strcpy(newItem->itemId, allItems[i]->itemId);
+				strcpy(newItem->itemName, allItems[i]->itemName);
+				newItem->price = allItems[i]->price;
+				newItem->finished = false;
+				newItem->next = NULL;
+				if (order->itemHead == NULL) {
+					order->itemHead = newItem;
+				} else {
+					ExamOrderItem* tail = order->itemHead;
+					while (tail->next != NULL) tail = tail->next;
+					tail->next = newItem;
+				}
+				added++;
+			}
+			printf(">>> 已全选添加 %d 个项目。\n", added);
 			continue;
 		}
 
-		ExamOrderItem* newItem = (ExamOrderItem*)malloc(sizeof(ExamOrderItem));	//为检查单创建新的项目节点
+		// 纯数字 → 按序号选择
+		ExamItem* dictItem = NULL;
+		if (isAllDigits(itemId)) {
+			int idx = atoi(itemId);
+			if (idx >= 1 && idx <= totalItems) {
+				dictItem = allItems[idx - 1];
+			} else {
+				printf(">>> 序号超出范围（1-%d），请重试。\n", totalItems);
+				continue;
+			}
+		} else {
+			// 按项目编号查找
+			dictItem = findExamItem(sys, itemId);
+			if (dictItem == NULL) {
+				printf(">>> 未找到项目编号 %s，请重试。\n", itemId);
+				continue;
+			}
+		}
+
+		// 检查是否已添加
+		bool alreadyAdded = false;
+		ExamOrderItem* check = order->itemHead;
+		while (check != NULL) {
+			if (strcmp(check->itemId, dictItem->itemId) == 0) {
+				printf(">>> 项目 [%s] %s 已添加，无需重复选择。\n", dictItem->itemId, dictItem->itemName);
+				alreadyAdded = true;
+				break;
+			}
+			check = check->next;
+		}
+		if (alreadyAdded) continue;
+
+		ExamOrderItem* newItem = (ExamOrderItem*)malloc(sizeof(ExamOrderItem));
 		if (newItem == NULL) {
 			printf(">>> 内存不足，无法添加项目。\n");
 			break;
@@ -805,14 +884,14 @@ void printExamOrderDetail(const ExamOrder* order) {
 	char buffer[256];
 	printf("\n--- 检查单 [%s] 状态:%s ---\n", order->orderId, order->status);
 	printf("患者:%s 医生:%s 日期:%s\n", order->patientId, order->doctorId, order->date);
-	printf("--------------------------------------------------------------------------------------\n");
+	printf("----------------------------------------------------------------------------\n");
 	printFormattedStr("序号", 6);
 	printFormattedStr("项目编号", 12);
 	printFormattedStr("项目名称", 20);
 	printFormattedStr("结果", 30);
 	printFormattedStr("完成", 8);
 	printf("\n");
-	printf("--------------------------------------------------------------------------------------\n");
+	printf("----------------------------------------------------------------------------\n");
 
 	ExamOrderItem* item = order->itemHead;
 	int idx = 1;
@@ -826,5 +905,5 @@ void printExamOrderDetail(const ExamOrder* order) {
 		printf("\n");
 		item = item->next;
 	}
-	printf("--------------------------------------------------------------------------------------\n");
+	printf("----------------------------------------------------------------------------\n");
 }

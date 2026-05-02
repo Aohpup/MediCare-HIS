@@ -148,6 +148,7 @@ void saveDoctorSystemData(HIS_System* sys) {
 		curr = curr->next;
 	}
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 医生数据保存成功！\n");
 }
 

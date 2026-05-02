@@ -528,7 +528,7 @@ Patient* callNextPatient(const char* doctorId, const char* date, TimeSlot slot) 
 }
 
 void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot) {
-	/*if (TEST_SYSTEM_DEBUG) {
+	if (TEST_SYSTEM_DEBUG) {
 		if (confirmFunc("使用", "自定义时间")) {
 			char timeStr[16];
 			safeGetString("请输入时间（格式 HH:MM）：", timeStr, sizeof(timeStr));
@@ -540,7 +540,7 @@ void printSlotQueue(const char* doctorId, const char* date, TimeSlot slot) {
 			safeGetString("请输入日期（格式 YYYY-MM-DD）：", dateStr, sizeof(dateStr));
 			strcpy(date, dateStr);
 		}
-	}*/
+	}
 	// 先刷新队列（refreshSlotQueue内部会按需创建WaitingQueue）
 	refreshSlotQueue(doctorId, date, slot);
 	WaitingQueue* waiting = getWaitingQueue(doctorId, date, slot, false);
@@ -567,7 +567,8 @@ void printDoctorScheduleTable(HIS_System* sys, const char* doctorId, const char*
 	printf("\n========== 医生排班表 ==========\n医生: %s\n编号: %s\n日期: %s\n--------------------------------\n", doctorName, doctorId, date);
 	for (int i = 1; i <= SLOT_COUNT; ++i) {
 		if (!isDoctorSlotOpen(doctorId, date, (TimeSlot)i)) {
-			printf("[%s] 未排班\n", slot_names[i - 1]);
+			printf("[%s] %s\n", slot_names[i - 1],
+				isNoonSlot((TimeSlot)i) ? "午休" : "未排班");
 		}
 		else {
 			int booked = getDoctorSlotBooked(doctorId, date, (TimeSlot)i);

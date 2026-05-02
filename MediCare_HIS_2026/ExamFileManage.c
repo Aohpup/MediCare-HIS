@@ -135,6 +135,7 @@ void saveExamItemData(HIS_System* sys) {
 		curr = curr->next;
 	}
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 检查项目字典保存完成！\n");
 }
 
@@ -224,5 +225,6 @@ void saveExamOrderData(HIS_System* sys) {
 		order = order->next;
 	}
 	fclose(fp);
+	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 检查申请数据保存完成！\n");
 }

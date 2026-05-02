@@ -598,16 +598,27 @@ void displayAllDoctors(HIS_System* sys) {
 }
 
 // 以下函数实现医生排班设置和取消功能，医生可以选择特定日期的特定时间段进行排班或取消排班
-static void setDoctorSchedule(HIS_System* sys, const char* doctorId, const char* date) {
-	safeGetString(">>> 请输入需要排班的医生编号: ", doctorId, ID_LEN);
-	doctor* doctor = sys->docHead;
-	while (doctor != NULL && strcmp(doctor->doctorId, doctorId) != 0) {
-		doctor = doctor->next;
+static void setDoctorSchedule(HIS_System* sys, char* doctorId, const char* date) {
+	// 若当前已登录医生则直接使用其编号，否则手动输入
+	doctor* Doctor = NULL;
+	if (doctorId[0] == '\0') {
+		safeGetString(">>> 请输入需要排班的医生编号: ", doctorId, ID_LEN);
+		Doctor = findDoctorByIdInQueue(sys->docHead, doctorId);
+		if(Doctor == NULL) {
+			printf(">>> 未找到该医生，无法设置排班。\n");
+			return;
+		}
+
 	}
-	if (doctor == NULL) {
-		printf(">>> 未找到该医生，无法排班。\n");
-		return;
+	else {	// 已登录医生只能设置自己的排班
+		Doctor = findDoctorByIdInQueue(sys->docHead, doctorId);
+		if(Doctor == NULL) {
+			printf(">>> 未找到该医生，无法设置排班。\n");
+			return;
+		}
+		printf(">>> 当前登录医生: %s，将为其设置排班。\n", Doctor->doctorName);
 	}
+
 	safeGetString(">>> 请输入排班日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
 	if (!isValidDate(date)) {
 		printf(">>> 日期格式无效。\n");
@@ -639,8 +650,13 @@ static void setDoctorSchedule(HIS_System* sys, const char* doctorId, const char*
 	}
 }
 
-static void cancelDoctorSchedule(HIS_System* sys, const char* doctorId, const char* date) {
-	safeGetString(">>> 请输入需要取消排班的医生编号: ", doctorId, ID_LEN);
+static void cancelDoctorSchedule(HIS_System* sys, char* doctorId, const char* date) {
+	// 若当前已登录医生则直接使用其编号，否则手动输入
+	if (doctorId[0] == '\0') {
+		safeGetString(">>> 请输入需要取消排班的医生编号: ", doctorId, ID_LEN);
+	} else {
+		printf(">>> 当前登录医生: %s，将为其取消排班。\n", doctorId);
+	}
 	doctor* doctor = sys->docHead;
 	while (doctor != NULL && strcmp(doctor->doctorId, doctorId) != 0) {
 		doctor = doctor->next;
@@ -1293,6 +1309,15 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 	saveWardSystemData(sys);
 	printf(">>> 住院分配成功！患者 [%s] 已入住病房 [%s] 床位 [%s]。\n",
 		patient->name, targetWard->wardId, targetBed->bedId);
+
+	// 同步住院记录到患者数据，确保患者病历可查询到住院信息
+	char stayDetail[256];
+	sprintf(stayDetail, "入住病房[%s] 床位[%s] 科室[%s]",
+		targetWard->wardId, targetBed->bedId, targetWard->department);
+	appendStayMedicalRecord(sys, patientId, doctorId, stayDetail,
+		getCurrentDateStr(), "待定", "未出院", targetWard->wardId);
+	savePatientsSystemData(sys);
+
 	// 推进叫号状态为就诊中
 	markTicketAsInRoom(patientId, doctorId);
 	pressEnterToContinue();
