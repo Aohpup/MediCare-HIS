@@ -232,6 +232,7 @@ void printDoctorInfo(doctor* doctor) {
 	printf("所属诊室编号: %s\n", (roomId[0] != '\0') ? roomId : "未绑定");
 	//printf("诊号数量: %d\n", doctor->consultationCount);
 	printf("=============================\n");
+	pressEnterToContinue();
 }
 
 void queryDoctor(HIS_System* sys, const char* doctorId) {
@@ -744,13 +745,14 @@ void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId) {
 		return;
 	}
 	int slotNo;
-	printAllTimeSlots();
 
 	if (TEST_SYSTEM_DEBUG) {
 		if (confirmFunc("选择", "当前时间段"))
 			slotNo = changeTimeToSlot(getCurrentTimeStr());
-		else
+		else{
+			printAllTimeSlots();
 			slotNo = safeGetInt(">>> 请选择叫号时段: ");
+		}
 	}
 	else
 		slotNo = changeTimeToSlot(getCurrentTimeStr());
@@ -768,6 +770,7 @@ void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId) {
 	Patient* called = callNextPatient(doctorId, date, slot);
 	if (called != NULL) {
 		printf(">>> 请患者 %s (%s) 到诊室就诊。\n", called->name, called->patientId);
+		pressEnterToContinue();
 	}
 }
 
