@@ -6,6 +6,7 @@
 #include"DepartmentFileManage.h"
 #include"DepartmentManage.h"
 #include"WardFileManage.h"
+#include"WardManage.h"
 #include"PatientManage.h"
 #include"PatientFileManage.h"
 #include"ExamManage.h"
@@ -86,9 +87,11 @@ static void printStayRecord(const StayRecord* rec) {
 	printf("开始日期: %s\n", rec->startDate);
 	printf("住院时长: %s\n", rec->duration);
 	printf("结束日期: %s\n", rec->endDate);
+	printf("科室描述: %s\n", rec->deptInfo);
 	printf("医生编号: %s\n", rec->doctorId);
 	printf("病房编号: %s\n", rec->wardId);
-	printf("记录内容: %s\n", rec->details);
+	printf("床位编号: %s\n", rec->bedId);
+	printf("事件描述: %s\n", rec->details);
 }
 
 // 设置当前登录的患者信息指针，并根据指针是否为NULL更新登录状态标志
@@ -544,9 +547,9 @@ bool appendViewMedicalRecord(HIS_System* sys, const char* patientId, const char*
 	return true;
 }
 
-// 写入住院病例信息（预留接口）
-bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* startDate, const char* duration, const char* endDate, const char* wardId) {
-	if (sys == NULL || patientId == NULL || doctorId == NULL || details == NULL || startDate == NULL || duration == NULL || endDate == NULL || wardId == NULL) {
+// 写入住院病例信息（deptInfo/床位置由调用方传入，details 固定为"入院"）
+bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* deptInfo, const char* bedId, const char* startDate, const char* duration, const char* endDate, const char* wardId) {
+	if (sys == NULL || patientId == NULL || doctorId == NULL || deptInfo == NULL || bedId == NULL || startDate == NULL || duration == NULL || endDate == NULL || wardId == NULL) {
 		return false;
 	}
 	Patient* target = findPatientById(sys, patientId);
@@ -560,18 +563,22 @@ bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char*
 	}
 	memset(rec, 0, sizeof(StayRecord));
 	generateRecordId(rec->recordId, "S", patientId);
-	strncpy(rec->details, details, sizeof(rec->details) - 1);
-	rec->details[sizeof(rec->details) - 1] = '\0';
 	strncpy(rec->startDate, startDate, ID_LEN - 1);
 	rec->startDate[ID_LEN - 1] = '\0';
 	strncpy(rec->duration, duration, ID_LEN - 1);
 	rec->duration[ID_LEN - 1] = '\0';
 	strncpy(rec->endDate, endDate, ID_LEN - 1);
 	rec->endDate[ID_LEN - 1] = '\0';
+	strncpy(rec->deptInfo, deptInfo, STR_LEN - 1);
+	rec->deptInfo[STR_LEN - 1] = '\0';
 	strncpy(rec->doctorId, doctorId, ID_LEN - 1);
 	rec->doctorId[ID_LEN - 1] = '\0';
 	strncpy(rec->wardId, wardId, ID_LEN - 1);
 	rec->wardId[ID_LEN - 1] = '\0';
+	strncpy(rec->bedId, bedId, BED_ID_LEN - 1);
+	rec->bedId[BED_ID_LEN - 1] = '\0';
+	strncpy(rec->details, "入院", sizeof(rec->details) - 1);
+	rec->details[sizeof(rec->details) - 1] = '\0';
 	rec->next = NULL;
 
 	if (target->stayHead == NULL) {
@@ -827,7 +834,7 @@ void writeMedicalRecord(HIS_System* sys, const char* doctorId) {
 	printf("\n--- 写入诊断记录 ---\n");
 	printf("1. 选择当前正在看诊的患者\n");
 	printf("2. 输入患者编号\n");
-	printf("-1. 取消写入诊断");
+	printf("-1. 取消写入诊断\n");
 	choice = safeGetInt("请选择操作：");
 
 	switch (choice) {
@@ -897,8 +904,9 @@ void issueExaminationOrder(HIS_System* sys, const char* doctorId) {
 		printf("\n>>> 当前叫号患者: %s (%s)\n", p ? p->name : "未知", calledId);
 		if (confirmFunc("快捷开具", "为当前叫号患者开具检查单")) {
 			if (createExamOrder(sys, doctorId, calledId)) {
-				markTicketAsInRoom(calledId, doctorId);
-			} else {
+				markTicketAsInRoom(calledId, doctorId); //开具检查单后将患者挂号单状态推进为IN_ROOM，表示患者已进入诊室就诊
+			}
+			else{
 				printf(">>> 检查单开具失败。\n");
 			}
 			return;
@@ -1064,5 +1072,193 @@ void viewConsultationHistory(HIS_System* sys, const char* doctorId) {
 	if (sel != 0) {
 		printf(">>> 无效选择，返回上级菜单。\n");
 	}
+	pressEnterToContinue();
+}
+
+// 计算两日期之间的天数（简易近似算法，日期格式 YYYY-MM-DD）
+int daysBetweenDates(const char* start, const char* end) {
+	if (start == NULL || end == NULL) return 0;
+	int y1 = 0, m1 = 0, d1 = 0, y2 = 0, m2 = 0, d2 = 0;
+	if (sscanf(start, "%d-%d-%d", &y1, &m1, &d1) != 3) return 0;
+	if (sscanf(end, "%d-%d-%d", &y2, &m2, &d2) != 3) return 0;
+	int total1 = y1 * 365 + m1 * 30 + d1;
+	int total2 = y2 * 365 + m2 * 30 + d2;
+	int diff = total2 - total1;
+	return diff > 0 ? diff : 1;	// 最少算作1天
+}
+
+// 更新住院记录的出院日期与时长
+bool updateStayRecordEnd(HIS_System* sys, const char* patientId, const char* wardId, const char* endDate, const char* duration) {
+	if (sys == NULL || patientId == NULL || wardId == NULL || endDate == NULL || duration == NULL) return false;
+	Patient* p = findPatientById(sys, patientId);
+	if (p == NULL) return false;
+	StayRecord* s = p->stayHead;
+	while (s != NULL) {
+		if (strcmp(s->wardId, wardId) == 0 && (strcmp(s->endDate, "未出院") == 0 || strcmp(s->endDate, "待出院") == 0)) {
+			strncpy(s->endDate, endDate, ID_LEN - 1);
+			s->endDate[ID_LEN - 1] = '\0';
+			strncpy(s->duration, duration, ID_LEN - 1);
+			s->duration[ID_LEN - 1] = '\0';
+			return true;
+		}
+		s = s->next;
+	}
+	return false;
+}
+
+// 执行出院核心流程（释放床位、更新记录、回写病历、保存数据）
+void executeDischargePatient(HIS_System* sys, const char* patientId, const char* wardId, const char* bedId) {
+	if (sys == NULL || patientId == NULL || wardId == NULL || bedId == NULL) return;
+
+	loadWardSystemData(sys);
+	loadPatientsSystemData(sys);
+
+	// 获取入院日期用于计算住院天数
+	Patient* p = findPatientById(sys, patientId);
+	const char* startDate = NULL;
+	if (p != NULL) {
+		StayRecord* s = p->stayHead;
+		while (s != NULL) {
+			if (strcmp(s->wardId, wardId) == 0 && (strcmp(s->endDate, "未出院") == 0 || strcmp(s->endDate, "待出院") == 0)) {
+				startDate = s->startDate;
+				break;
+			}
+			s = s->next;
+		}
+	}
+
+	const char* today = getCurrentDateStr();
+	char duration[ID_LEN];
+	if (startDate != NULL) {
+		int days = daysBetweenDates(startDate, today);
+		sprintf(duration, "%d天", days);
+	} else {
+		strcpy(duration, "待定");
+	}
+
+	// 1. 释放床位
+	freeBed(sys, wardId, bedId);
+
+	// 2. 更新住院记录
+	updateStayRecordEnd(sys, patientId, wardId, today, duration);
+
+	// 3. 保存所有受影响的数据
+	saveWardSystemData(sys);
+	savePatientsSystemData(sys);
+
+	if(TEST_SYSTEM_DEBUG)
+	printf(">>> 患者 %s 出院流程完成（病床 %s:%s 已释放）。\n", patientId, wardId, bedId);
+}
+
+// 患者端办理出院手续
+void patientDischargeCheckout(HIS_System* sys, const char* patientId) {
+	if (sys == NULL || patientId == NULL || patientId[0] == '\0') {
+		printf(">>> 您尚未登录，请先登录后再办理出院手续！\n");
+		return;
+	}
+	if (!isPatientLoggedIn()) {
+		printf(">>> 您尚未登录，请先登录后再办理出院手续！\n");
+		return;
+	}
+
+	loadWardSystemData(sys);
+	loadPatientsSystemData(sys);
+
+	// 查找患者当前住院的病房和床位
+	Ward* currentWard = findPatientWard(sys, patientId);
+	if (currentWard == NULL) {
+		printf(">>> 您当前未住院，无需办理出院手续。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 找到对应的床位
+	Bed* currentBed = NULL;
+	Bed* b = currentWard->bedListHead;
+	while (b != NULL) {
+		if (b->isOccupied && strcmp(b->patient, patientId) == 0) {
+			currentBed = b;
+			break;
+		}
+		b = b->next;
+	}
+	if (currentBed == NULL) {
+		printf(">>> 未找到当前床位信息，请联系管理员。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 查找住院记录，获取入院日期
+	Patient* p = findPatientById(sys, patientId);
+	if (p == NULL) {
+		printf(">>> 患者信息异常，请联系管理员。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	const char* startDate = NULL;
+	StayRecord* activeStay = NULL;
+	StayRecord* s = p->stayHead;
+	while (s != NULL) {
+		if (strcmp(s->wardId, currentWard->wardId) == 0 && (strcmp(s->endDate, "未出院") == 0 || strcmp(s->endDate, "待出院") == 0)) {
+			activeStay = s;
+			startDate = s->startDate;
+			break;
+		}
+		s = s->next;
+	}
+
+	const char* today = getCurrentDateStr();
+	int days = (startDate != NULL) ? daysBetweenDates(startDate, today) : 0;
+	double dailyPrice = currentWard->price;
+	double totalCost = days * dailyPrice;
+
+	// 显示出院结算信息
+	printf("\n========== 出院结算 ==========\n");
+	printf("病房编号: %s\n", currentWard->wardId);
+	printf("病房类型: %s\n", wardTypeToStr(currentWard->type));
+	printf("所属科室: %s\n", currentWard->department);
+	printf("床位编号: %s\n", currentBed->bedId);
+	if (startDate != NULL) {
+		printf("入院日期: %s\n", startDate);
+	}
+	printf("已住天数: %d 天\n", days);
+	printf("每日价格: %.2f 元\n", dailyPrice);
+	printf("费用合计: %.2f 元\n", totalCost);
+	printf("==============================\n");
+
+	if (totalCost > 0.0) {
+		printf("\n>>> 费用合计 %.2f 元，请前往住院处窗口缴费结算。\n", totalCost);
+		// 预留收费扩展点：此处可接入实际支付/收费系统
+		if (!confirmFunc("缴费确认", "模拟缴费结算")) {
+			printf(">>> 已取消出院结算。\n");
+			pressEnterToContinue();
+			return;
+		}
+		printf(">>> 缴费成功！\n");
+	} else {
+		printf("\n>>> 当前费用为零，自动确认出院。\n");
+	}
+
+	// 确认出院
+	if (!confirmFunc("出院确认", "完成出院手续")) {
+		printf(">>> 已取消出院结算。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 执行出院
+	executeDischargePatient(sys, patientId, currentWard->wardId, currentBed->bedId);
+
+	// 更新叫号状态（住院结束视为就诊结束）
+	const char* doctorId = NULL;
+	if (activeStay != NULL) {
+		doctorId = activeStay->doctorId;
+	}
+	if (doctorId != NULL && doctorId[0] != '\0') {
+		// 尝试将患者叫号状态推进为已结束
+		markTicketAsInRoom(patientId, doctorId);  // 先确认为就诊中状态
+	}
+	printf(">>> 出院手续办理完毕，祝您健康！\n");
 	pressEnterToContinue();
 }

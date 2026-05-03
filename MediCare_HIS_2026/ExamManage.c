@@ -1,13 +1,12 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include"HIS_System.h"
 #include"ExamManage.h"
 #include"ExamFileManage.h"
+#include"QueueManage.h"
 #include"InputUtils.h"
-#include"ConfirmFunc.h"
-#include"PauseUtil.h"
 #include"PrintFormattedStr.h"
 #include"StringCheck.h"
 #include<string.h>
-#include<stdlib.h>
 #include<time.h>
 
 // 查找检查项目字典中对应编号的项目
@@ -363,6 +362,7 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 		printf(">>> 内存不足，无法创建检查单。\n");	
 		return false;
 	}
+
 	memset(order, 0, sizeof(ExamOrder));
 	generateExamOrderId(sys, order->orderId);
 	strcpy(order->patientId, selectedPatientId);
@@ -380,11 +380,31 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 		allItems[totalItems++] = ei;
 		ei = ei->next;
 	}
+	// 固定列宽，与药品表格风格一致
+	const int wIdx  = 8;   // 序号
+	const int wId   = 14;  // 编号
+	const int wName = 22;  // 项目
+	const int totalW = wIdx + wId + wName;
+
 	printf("\n--- 可选检查项目清单 ---\n");
+	for (int i = 0; i < totalW; i++) printf("-");
+	printf("\n");
+	printFormattedStr("序号", wIdx);
+	printFormattedStr("编号", wId);
+	printFormattedStr("项目", wName);
+	printf("\n");
+	for (int i = 0; i < totalW; i++) printf("-");
+	printf("\n");
 	for (int i = 0; i < totalItems; i++) {
-		printf("  %d. %s  %s\n", i + 1, allItems[i]->itemId, allItems[i]->itemName);
+		char buf[16];
+		sprintf(buf, "%d", i + 1);
+		printFormattedStr(buf, wIdx);
+		printFormattedStr(allItems[i]->itemId, wId);
+		printFormattedStr(allItems[i]->itemName, wName);
+		printf("\n");
 	}
-	printf("------------------------\n");
+	for (int i = 0; i < totalW; i++) printf("-");
+	printf("\n");
 	printf("输入序号(1-%d)/项目编号 或 \"全选\" 添加全部 (输入 -1 结束)\n", totalItems);
 
 	while (1) {
@@ -859,7 +879,12 @@ void queryExamOrdersByDoctor(HIS_System* sys, const char* doctorId) {
 }
 
 void queryExamOrdersByPatient(HIS_System* sys, const char* patientId) {
-	if (sys == NULL || patientId == NULL) {
+	if (sys == NULL) {
+		printf(">>> 系统错误，无法查询检查单。\n");
+		return;
+	}
+	if(patientId == NULL) {
+		printf(">>> 患者未登录，无法查询检查单。\n");
 		return;
 	}
 	ExamOrder* order = sys->examOrderHead;
@@ -881,29 +906,48 @@ void printExamOrderDetail(const ExamOrder* order) {
 	if (order == NULL) {
 		return;
 	}
+
+	// 固定列宽，与药品表格风格一致
+	const int wIdx   = 8;   // 序号
+	const int wId    = 14;  // 项目编号
+	const int wName  = 22;  // 项目名称
+	const int wRes   = 127;  // 结果
+	const int wDone  = 8;   // 完成（"是"/"否"）
+	const int totalW = wIdx + wId + wName + wRes + wDone;
+
 	char buffer[256];
+
 	printf("\n--- 检查单 [%s] 状态:%s ---\n", order->orderId, order->status);
 	printf("患者:%s 医生:%s 日期:%s\n", order->patientId, order->doctorId, order->date);
-	printf("----------------------------------------------------------------------------\n");
-	printFormattedStr("序号", 6);
-	printFormattedStr("项目编号", 12);
-	printFormattedStr("项目名称", 20);
-	printFormattedStr("结果", 30);
-	printFormattedStr("完成", 8);
-	printf("\n");
-	printf("----------------------------------------------------------------------------\n");
 
+	// 分隔线
+	for (int i = 0; i < totalW; i++) printf("-");
+	printf("\n");
+
+	// 表头
+	printFormattedStr("序号",     wIdx);
+	printFormattedStr("项目编号", wId);
+	printFormattedStr("项目名称", wName);
+	printFormattedStr("结果",     wRes);
+	printFormattedStr("完成",     wDone);
+	printf("\n");
+
+	for (int i = 0; i < totalW; i++) printf("-");
+	printf("\n");
+
+	// 数据行
 	ExamOrderItem* item = order->itemHead;
 	int idx = 1;
 	while (item != NULL) {
 		sprintf(buffer, "%d", idx++);
-		printFormattedStr(buffer, 6);
-		printFormattedStr(item->itemId, 12);
-		printFormattedStr(item->itemName, 20);
-		printFormattedStr(item->result[0] == '\0' ? "(未填写)" : item->result, 30);
-		printFormattedStr(item->finished ? "是" : "否", 8);
+		printFormattedStr(buffer, wIdx);
+		printFormattedStr(item->itemId, wId);
+		printFormattedStr(item->itemName, wName);
+		printFormattedStr(item->result[0] == '\0' ? "(未填写)" : item->result, wRes);
+		printFormattedStr(item->finished ? "是" : "否", wDone);
 		printf("\n");
 		item = item->next;
 	}
-	printf("----------------------------------------------------------------------------\n");
+	for (int i = 0; i < totalW; i++) printf("-");
+	printf("\n");
 }

@@ -107,7 +107,7 @@ static void rebuildAllWaitingQueues(void) {
 		}
 		curr = curr->next;
 	}
-	if (rebuiltCount > 0) {
+	if (rebuiltCount > 0 && TEST_SYSTEM_DEBUG) {
 		printf(">>> 候诊队列重建完成，共重建 %d 个队列。\n", rebuiltCount);
 	}
 }

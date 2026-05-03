@@ -87,13 +87,12 @@ void doctorMenu(HIS_System* sys) {
 		printf("4. 患者看诊与开具处方\n");
 		printf("5. 开具检查单(面诊患者检查开单)\n");
 		printf("6. 查看患者检查结果\n");
-		printf("7. 分配住院\n");
-		printf("8. 查看住院信息\n");
-		printf("9. 结束看诊\n");
-		printf("10. 查看就诊历史\n");
-		printf("11. 医生排班管理\n");
-		printf("12. 医生信息查询与修改\n");
-		printf("13. 药品信息查询\n");
+		printf("7. 住院管理\n");
+		printf("8. 结束看诊\n");
+		printf("9. 查看就诊历史\n");
+		printf("10. 医生排班管理\n");
+		printf("11. 医生信息查询与修改\n");
+		printf("12. 药品信息查询\n");
 		printf("0. 返回主菜单\n");
 		printf("================================\n");
 		choice = safeGetInt("请选择医护操作: ");
@@ -106,13 +105,12 @@ void doctorMenu(HIS_System* sys) {
 		case 4: writeMedicalRecord(sys, getCurrentDoctorId()); break;
 		case 5: issueExaminationOrder(sys, getCurrentDoctorId()); break;
 		case 6: queryExamOrdersByDoctor(sys, getCurrentDoctorId()); break;
-		case 7: doctorArrangeWard(sys, getCurrentDoctorId()); break;
-		case 8: doctorViewStayInfo(sys, getCurrentDoctorId()); break;
-		case 9: endConsultation(sys, getCurrentDoctorId()); break;
-		case 10: viewConsultationHistory(sys, getCurrentDoctorId()); break;
-		case 11: doctorScheduleMenu(sys, getCurrentDoctorId()); break;
-		case 12: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;
-		case 13: drugSortMenuDoc(sys); break;
+		case 7: doctorWardMenu(sys, getCurrentDoctorId()); break;
+		case 8: endConsultation(sys, getCurrentDoctorId()); break;
+		case 9: viewConsultationHistory(sys, getCurrentDoctorId()); break;
+		case 10: doctorScheduleMenu(sys, getCurrentDoctorId()); break;
+		case 11: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;
+		case 12: drugSortMenuDoc(sys); break;
 		case 0:
 			if (confirmFunc("退出", "医生工作站")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
@@ -141,9 +139,10 @@ void patientMenu(HIS_System* sys) {
 		printf("5. 进行检查\n");
 		printf("6. 查看病例信息\n");
 		printf("7. 查看住院信息\n");
-		printf("8. 病房查询\n");
-		printf("9. 医生信息查询\n");
-		printf("10. 药品信息查询\n");
+		printf("8. 办理出院手续\n");
+		printf("9. 病房查询\n");
+		printf("10. 医生信息查询\n");
+		printf("11. 药品信息查询\n");
 		printf("0. 返回主菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择患者服务操作: ");
@@ -155,9 +154,10 @@ void patientMenu(HIS_System* sys) {
 		case 5: doPatientExamCheck(sys, getCurrentPatientId()); break;
 		case 6: viewMedicalRecordPat(sys, getCurrentPatientId()); break;
 		case 7: patientViewStayInfo(sys, getCurrentPatientId()); break;
-		case 8: wardQueryMenuPat(sys, getCurrentPatientId()); break;
-		case 9: doctorManageMenuPat(sys, getCurrentPatientId()); break;
-		case 10: drugManageMenuPat(sys, getCurrentPatientId());	break;
+		case 8: patientDischargeCheckout(sys, getCurrentPatientId()); break;
+		case 9: wardQueryMenuPat(sys, getCurrentPatientId()); break;
+		case 10: doctorManageMenuPat(sys, getCurrentPatientId()); break;
+		case 11: drugManageMenuPat(sys, getCurrentPatientId());	break;
 		case 0:
 			if (confirmFunc("退出", "患者服务台")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
@@ -184,7 +184,7 @@ void showMainMenu(HIS_System* sys) {
 	messageBox("例如：内科 V100201 心内科 A234");*/
 	int choice;
 	while (1) {
-		printf("\n*********** 医疗管理系统 (HIS) ***********\n");
+		printf("*********** 医疗管理系统 (HIS) ***********\n");
 		printf("1. 管理员登录 (系统维护与数据统计)\n");
 		printf("2. 医生办公 (门诊看病与病房管理)\n");
 		printf("3. 患者服务台 (挂号与信息查询)\n");

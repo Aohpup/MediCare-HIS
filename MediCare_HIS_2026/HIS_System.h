@@ -6,7 +6,9 @@
 #include<stdlib.h>
 #include"PauseUtil.h"
 #include"DayTimeUtils.h"
+#include"ConfirmFunc.h"
 #include"ProjectLimits.h"
+#include"StringCheck.h"
 
 //测试信息
 extern bool TEST_SYSTEM_DEBUG;		//是否启用测试（true启用，false禁用）
@@ -157,12 +159,14 @@ typedef struct ExamOrder {
 
 typedef struct StayRecord {
 	char recordId[ID_LEN];			// 住院记录编号
-	char details[512];				// 住院细节内容
 	char startDate[ID_LEN];			// 住院开始日期
 	char duration[ID_LEN];			// 住院时长
 	char endDate[ID_LEN];			// 住院结束日期，如果仍在住院则为"未出院"或类似标识
+	char deptInfo[STR_LEN];			// 科室描述（如 "科室[内科]"）
 	char doctorId[ID_LEN];			// 所属医生编号
 	char wardId[ID_LEN];			// 关联病房编号
+	char bedId[BED_ID_LEN];			// 床位编号（如 "P10401"）
+	char details[512];				// 住院事件描述（入院 | 出院）
 	struct StayRecord* next;
 } StayRecord;
 

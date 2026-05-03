@@ -25,7 +25,7 @@ static char* trimStr(char* s) {
 // P patientId name phone id card gender type
 // R recordId department doctorId date time  (挂号记录)
 // V recordId details date doctorId  (看诊记录)
-// S recordId details startDate duration endDate doctorId wardId  (住院记录)
+// S recordId startDate duration endDate deptInfo doctorId wardId bedId details  (住院记录，9字段)
 // END  (结束当前患者)
 
 //尾插法
@@ -229,10 +229,28 @@ void loadPatientsSystemData(HIS_System* sys) {
 				free(stay);
 				continue;
 			}
-			// sscanf 一次性解析 7 个字段，格式: recordId|startDate|duration|endDate|doctorId|wardId|details
-			if (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%511[^\n]",
-				stay->recordId, stay->startDate, stay->duration, stay->endDate,
-				stay->doctorId, stay->wardId, stay->details) != 7) {
+			// 判断新旧格式：旧格式6个|(7字段)，新格式8个|(9字段)
+			memset(stay, 0, sizeof(StayRecord));
+			int pipes = 0;
+			for (const char* p = line; *p != '\0'; p++) {
+				if (*p == '|') pipes++;
+			}
+			bool parseOk = false;
+			if (pipes == 8) {
+				// 新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|details
+				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%511[^\n]",
+					stay->recordId, stay->startDate, stay->duration, stay->endDate,
+					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, stay->details) == 9);
+			} else if (pipes == 6) {
+				// 旧格式兼容: recordId|startDate|duration|endDate|doctorId|wardId|details
+				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%511[^\n]",
+					stay->recordId, stay->startDate, stay->duration, stay->endDate,
+					stay->doctorId, stay->wardId, stay->details) == 7);
+				// deptInfo 与 bedId 保持 memset 置零的结果（空字符串）
+			} else {
+				// 其他字段数均不支持
+			}
+			if (!parseOk) {
 				if(TEST_SYSTEM_DEBUG)
 				printf(">>> 警告: 住院记录数据格式错误，跳过该条记录。\n");
 				free(stay);
@@ -300,8 +318,9 @@ void savePatientsSystemData(HIS_System* sys) {
 		}
 		StayRecord* stay = patient->stayHead;
 		while (stay) {
-			fprintf(fp, "S %s|%s|%s|%s|%s|%s|%s\n", stay->recordId, stay->startDate,
-				stay->duration, stay->endDate, stay->doctorId, stay->wardId, stay->details);
+			fprintf(fp, "S %s|%s|%s|%s|%s|%s|%s|%s|%s\n", stay->recordId, stay->startDate,
+				stay->duration, stay->endDate, stay->deptInfo,
+				stay->doctorId, stay->wardId, stay->bedId, stay->details);
 			stay = stay->next;
 		}
 		fprintf(fp, "END\n");

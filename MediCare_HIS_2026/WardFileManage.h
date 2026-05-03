@@ -11,4 +11,7 @@ void saveWardSystemData(HIS_System* sys);
 //从文件加载病房数据到系统
 void loadWardSystemData(HIS_System* sys);
 
+//释放指定病房的指定床位（出院时调用）
+void freeBed(HIS_System* sys, const char* wardId, const char* bedId);
+
 #endif // !WARDFILEMANAGE_H

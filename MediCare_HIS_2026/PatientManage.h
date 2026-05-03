@@ -50,7 +50,19 @@ void viewConsultationHistory(HIS_System* sys, const char* doctorId);
 //写入看诊病例（医生开具）
 bool appendViewMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* date);
 
-//写入住院病例（预留接口）
-bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* startDate, const char* duration, const char* endDate, const char* wardId);
+//写入住院病例（新增 deptInfo、bedId 参数，details 由函数写入"入院"）
+bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* deptInfo, const char* bedId, const char* startDate, const char* duration, const char* endDate, const char* wardId);
+
+//更新住院记录的出院日期与时长（出院时调用）
+bool updateStayRecordEnd(HIS_System* sys, const char* patientId, const char* wardId, const char* endDate, const char* duration);
+
+//执行出院核心流程（释放床位、更新记录、回写病历）
+void executeDischargePatient(HIS_System* sys, const char* patientId, const char* wardId, const char* bedId);
+
+//患者端办理出院手续
+void patientDischargeCheckout(HIS_System* sys, const char* patientId);
+
+//计算两日期之间的天数（简易近似算法，日期格式 YYYY-MM-DD）
+int daysBetweenDates(const char* start, const char* end);
 
 #endif // !PATIENTMANAGE_H

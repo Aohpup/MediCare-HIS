@@ -148,3 +148,28 @@ void saveWardSystemData(HIS_System* sys) {
 	if(TEST_SYSTEM_DEBUG)
 	printf(">>> 病房数据保存完成！\n");
 }
+
+// 释放指定病房的指定床位（出院时调用）
+void freeBed(HIS_System* sys, const char* wardId, const char* bedId) {
+	if (sys == NULL || wardId == NULL || bedId == NULL) return;
+	loadWardSystemData(sys);
+	Ward* w = sys->wardHead;
+	while (w != NULL) {
+		if (strcmp(w->wardId, wardId) == 0) {
+			Bed* b = w->bedListHead;
+			while (b != NULL) {
+				if (strcmp(b->bedId, bedId) == 0) {
+					b->isOccupied = false;
+					b->patient[0] = '\0';
+					saveWardSystemData(sys);
+					if(TEST_SYSTEM_DEBUG)
+					printf(">>> 床位 %s (病房 %s) 已释放。\n", bedId, wardId);
+					return;
+				}
+				b = b->next;
+			}
+			return;
+		}
+		w = w->next;
+	}
+}

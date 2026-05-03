@@ -66,4 +66,10 @@ void doctorViewStayInfo(HIS_System* sys, const char* doctorId);
 // 医生端：安排患者住院（分配病房和床位）
 void doctorArrangeWard(HIS_System* sys, const char* doctorId);
 
+// 医生端：住院管理二级菜单（分配/查看/出院）
+void doctorWardMenu(HIS_System* sys, const char* doctorId);
+
+// 医生端：办理患者出院（开具出院医嘱 / 直接完成出院）
+void doctorDischargePatient(HIS_System* sys, const char* doctorId);
+
 #endif // !doctorMANAGE_H
