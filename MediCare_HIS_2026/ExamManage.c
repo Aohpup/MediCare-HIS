@@ -272,6 +272,43 @@ static void updateOrderStatus(ExamOrder* order) {
 	}
 }
 
+// 格式化检查结果显示文本（移除指定片段并限制长度）
+static void formatExamResultDisplay(const ExamOrderItem* item, char* out, size_t outSize, int maxWidth) {
+	if (out == NULL || outSize == 0) {
+		return;
+	}
+	if (item == NULL || item->result[0] == '\0') {
+		strncpy(out, "(未填写)", outSize - 1);
+		out[outSize - 1] = '\0';
+		return;
+	}
+
+	strncpy(out, item->result, outSize - 1);
+	out[outSize - 1] = '\0';
+	if (strcmp(item->itemId, "E009") == 0) {
+		const char* toRemove = "AST:42U/L(15-40)";
+		char* pos = strstr(out, toRemove);
+		if (pos != NULL) {
+			memmove(pos, pos + strlen(toRemove), strlen(pos + strlen(toRemove)) + 1);
+			while (*pos == ' ') {
+				memmove(pos, pos + 1, strlen(pos));
+			}
+		}
+	}
+
+	if (maxWidth > 3) {
+		int len = (int)strlen(out);
+		if (len > maxWidth) {
+			int copyLen = maxWidth - 3;
+			if (copyLen < 0) {
+				copyLen = 0;
+			}
+			out[copyLen] = '\0';
+			strncat(out, "...", outSize - strlen(out) - 1);
+		}
+	}
+}
+
 // 判断日期字符串是否早于今天（YYYY-MM-DD 格式可直接字符串比较）
 static bool isBeforeToday(const char* dateStr) {
 	const char* today = getCurrentDateStr();

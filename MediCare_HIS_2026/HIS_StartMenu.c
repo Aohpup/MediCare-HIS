@@ -135,9 +135,9 @@ void patientMenu(HIS_System* sys) {
 		printf("1. 患者注册\n");
 		printf("2. 患者登录\n");
 		printf("3. 挂号和签到\n");
-		printf("4. 查看检查结果\n");
+		printf("4. 查看病历信息\n");
 		printf("5. 进行检查\n");
-		printf("6. 查看病例信息\n");
+		printf("6. 查看检查结果\n");
 		printf("7. 查看住院信息\n");
 		printf("8. 办理出院手续\n");
 		printf("9. 病房查询\n");
@@ -151,9 +151,9 @@ void patientMenu(HIS_System* sys) {
 		case 1: registerPatient(sys, NULL); break;
 		case 2:	logInPatient(sys); break;
 		case 3: registerAppointment(sys); break;
-		case 4: queryExamOrdersByPatient(sys, getCurrentPatientId()); break;
+		case 4: viewMedicalRecordPat(sys, getCurrentPatientId()); break;
 		case 5: doPatientExamCheck(sys, getCurrentPatientId()); break;
-		case 6: viewMedicalRecordPat(sys, getCurrentPatientId()); break;
+		case 6: queryExamOrdersByPatient(sys, getCurrentPatientId()); break;
 		case 7: patientViewStayInfo(sys, getCurrentPatientId()); break;
 		case 8: patientDischargeCheckout(sys, getCurrentPatientId()); break;
 		case 9: wardQueryMenuPat(sys, getCurrentPatientId()); break;

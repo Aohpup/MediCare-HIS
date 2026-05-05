@@ -55,6 +55,21 @@ Patient* findPatientById(HIS_System* sys, const char* patientId) {
 	return NULL;
 }
 
+// 根据药品编号查找药品信息
+static Drug* findDrugById(HIS_System* sys, const char* drugId) {
+	if (sys == NULL || drugId == NULL) {
+		return NULL;
+	}
+	Drug* curr = sys->drugHead;
+	while (curr != NULL) {
+		if (strcmp(curr->drugId, drugId) == 0) {
+			return curr;
+		}
+		curr = curr->next;
+	}
+	return NULL;
+}
+
 // 生成病例编号，格式为 [prefix]+患者编号后4位+3位随机数
 static void generateRecordId(char* outId, const char* prefix, const char* patientId) {
 	if (outId == NULL || prefix == NULL || patientId == NULL) {
@@ -628,6 +643,7 @@ bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char*
 	rec->wardId[ID_LEN - 1] = '\0';
 	strncpy(rec->bedId, bedId, BED_ID_LEN - 1);
 	rec->bedId[BED_ID_LEN - 1] = '\0';
+	rec->dischargeApproved = 0;
 	strncpy(rec->details, "入院", sizeof(rec->details) - 1);
 	rec->details[sizeof(rec->details) - 1] = '\0';
 	rec->next = NULL;
@@ -698,6 +714,70 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 		view = view->next;
 	}
 
+	// 处方记录（从药品链表查找单价显示）
+	printf("\n--- 处方记录 ---\n");
+	if (target->medHead == NULL) {
+		printf(">>> 暂无处方记录。\n");
+	} else {
+		ConsultationRecord* med = target->medHead;
+		while (med != NULL) {
+			char buffer[256];
+			printf("记录编号: %s\n", med->recordId);
+			printf("记录日期: %s\n", med->date);
+			printf("医生编号: %s\n", med->doctorId);
+			printf("明细:\n");
+
+			// 解析药品清单: drugId:genericName:qty;drugId:genericName:qty;...
+			char detailsCopy[512];
+			strncpy(detailsCopy, med->details, sizeof(detailsCopy) - 1);
+			detailsCopy[sizeof(detailsCopy) - 1] = '\0';
+
+			double prescTotal = 0.0;
+			printFormattedStr("序号", 6);
+			printFormattedStr("药品编号", 12);
+			printFormattedStr("通用名", 20);
+			printFormattedStr("数量", 6);
+			printFormattedStr("单价", 8);
+			printFormattedStr("小计", 10);
+			printf("\n");
+			printf("-------------------------------------------------------------\n");
+
+			char* token = strtok(detailsCopy, ";");
+			int idx = 1;
+			while (token != NULL) {
+				char dId[ID_LEN] = "";
+				char dName[STR_LEN] = "";
+				int qty = 0;
+				if (sscanf(token, "%24[^:]:%49[^:]:%d", dId, dName, &qty) == 3) {
+					Drug* d = findDrugById(sys, dId);
+					double unitPrice = (d != NULL) ? d->price : 0.0;
+					double sub = unitPrice * qty;
+					prescTotal += sub;
+					sprintf(buffer, "%d", idx);
+					printFormattedStr(buffer, 6);
+					printFormattedStr(dId, 12);
+					printFormattedStr(dName, 20);
+					sprintf(buffer, "%d", qty);
+					printFormattedStr(buffer, 6);
+					sprintf(buffer, "%.2f", unitPrice);
+					printFormattedStr(buffer, 8);
+					sprintf(buffer, "%.2f", sub);
+					printFormattedStr(buffer, 10);
+					printf("\n");
+				}
+				token = strtok(NULL, ";");
+				idx++;
+			}
+			printf("-------------------------------------------------------------\n");
+			printf("处方总计: %.2f 元\n", prescTotal);
+
+			med = med->next;
+			if (med != NULL) {
+				printf("------------------------------\n");
+			}
+		}
+	}
+
 	printf("\n--- 检查记录 ---\n");
 	bool hasExam = false;
 	ExamOrder* order = sys->examOrderHead;
@@ -757,60 +837,6 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 				printf("------------------------------\n");
 			}
 			free(stays);
-		}
-	}
-	// 处方记录（从药品链表查找单价显示）
-	printf("\n--- 处方记录 ---\n");
-	if (target->medHead == NULL) {
-		printf(">>> 暂无处方记录。\n");
-	} else {
-		ConsultationRecord* med = target->medHead;
-		while (med != NULL) {
-			printf("记录编号: %s\n", med->recordId);
-			printf("记录日期: %s\n", med->date);
-			printf("医生编号: %s\n", med->doctorId);
-			printf("--- 处方明细 ---\n");
-
-			// 解析药品清单: drugId:genericName:qty;drugId:genericName:qty;...
-			char detailsCopy[512];
-			strncpy(detailsCopy, med->details, sizeof(detailsCopy) - 1);
-			detailsCopy[sizeof(detailsCopy) - 1] = '\0';
-
-			double prescTotal = 0.0;
-			printf("%-4s %-8s %-20s %-6s %-8s %-8s\n", "序号", "药品编号", "通用名", "数量", "单价", "小计");
-			printf("-------------------------------------------------------------\n");
-
-			char* token = strtok(detailsCopy, ";");
-			int idx = 1;
-			while (token != NULL) {
-				char dId[ID_LEN] = "";
-				char dName[STR_LEN] = "";
-				int qty = 0;
-				if (sscanf(token, "%24[^:]:%49[^:]:%d", dId, dName, &qty) == 3) {
-					double unitPrice = 0.0;
-					Drug* d = sys->drugHead;
-					while (d != NULL) {
-						if (strcmp(d->drugId, dId) == 0) {
-							unitPrice = d->price;
-							break;
-						}
-						d = d->next;
-					}
-					double sub = unitPrice * qty;
-					prescTotal += sub;
-					printf("%-4d %-8s %-20s %-6d %-8.2f %-8.2f\n",
-						idx, dId, dName, qty, unitPrice, sub);
-				}
-				token = strtok(NULL, ";");
-				idx++;
-			}
-			printf("-------------------------------------------------------------\n");
-			printf("处方总计: %.2f 元\n", prescTotal);
-
-			med = med->next;
-			if (med != NULL) {
-				printf("------------------------------\n");
-			}
 		}
 	}
 	printf("================================\n");
@@ -1501,6 +1527,16 @@ void patientDischargeCheckout(HIS_System* sys, const char* patientId) {
 		}
 		s = s->next;
 	}
+	if (activeStay == NULL) {
+		printf(">>> 未找到住院记录，请联系管理员。\n");
+		pressEnterToContinue();
+		return;
+	}
+	if (activeStay->dischargeApproved == 0) {
+		printf(">>> 未获医生出院许可，暂无法办理出院手续。\n");
+		pressEnterToContinue();
+		return;
+	}
 
 	const char* today = getCurrentDateStr();
 	int days = (startDate != NULL) ? daysBetweenDates(startDate, today) : 0;
@@ -1590,6 +1626,8 @@ void patientInfoMenu(HIS_System* sys, const char* patientId) {
 		printf("身份证号: %s\n", patient->idCard);
 		printf("==================================\n");
 		printf("1. 修改联系电话\n");
+		printf("2. 修改年龄\n");
+		printf("3. 修改患者类型(普通/VIP)\n");
 		printf("0. 返回上级菜单\n");
 		choice = safeGetInt("请选择操作: ");
 
@@ -1607,6 +1645,56 @@ void patientInfoMenu(HIS_System* sys, const char* patientId) {
 				printf(">>> 联系电话修改成功！\n");
 			} else {
 				printf(">>> 已取消修改。\n");
+			}
+			break;
+		}
+		case 2: {
+			int newAge = safeGetInt("请输入新的年龄(输入 -1 取消): ");
+			if (newAge == -1) {
+				printf(">>> 已取消修改。\n");
+				break;
+			}
+			if (newAge <= 0) {
+				printf(">>> 年龄无效，请重新操作。\n");
+				break;
+			}
+			if (confirmFunc("修改", "年龄")) {
+				patient->age = newAge;
+				savePatientsSystemData(sys);
+				printf(">>> 年龄修改成功！\n");
+			} else {
+				printf(">>> 已取消修改。\n");
+			}
+			break;
+		}
+		case 3: {
+			if (patient->type == PATIENT_EMERGENCY) {
+				printf(">>> 急诊类型仅限医生端修改，暂无法变更。\n");
+				break;
+			}
+			if (patient->type == PATIENT_GENERAL) {
+				printf(">>> 提示：升级为 VIP 将扣除 500 元余额，并享受相关权益(优先病房)。\n");
+				if (!confirmFunc("升级", "普通患者转为 VIP")) {
+					printf(">>> 已取消修改。\n");
+					break;
+				}
+				patient->balance -= 500.0;
+				patient->type = PATIENT_VIP;
+				savePatientsSystemData(sys);
+				printf(">>> 已升级为 VIP，已扣费 500 元，当前余额: %.2f 元。\n", patient->balance);
+			} else if (patient->type == PATIENT_VIP) {
+				printf(">>> 提示：VIP 转普通将失去相关权益。\n");
+				if (!confirmFunc("确认", "VIP 转普通")) {
+					printf(">>> 已取消修改。\n");
+					break;
+				}
+				if (!confirmFunc("二次确认", "继续将 VIP 转为普通")) {
+					printf(">>> 已取消修改。\n");
+					break;
+				}
+				patient->type = PATIENT_GENERAL;
+				savePatientsSystemData(sys);
+				printf(">>> 患者类型已调整为普通。\n");
 			}
 			break;
 		}

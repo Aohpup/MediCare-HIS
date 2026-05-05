@@ -1483,6 +1483,89 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 	pressEnterToContinue();
 }
 
+// 医生端：批准患者出院
+void doctorApproveDischarge(HIS_System* sys, const char* doctorId) {
+	if (sys == NULL || doctorId == NULL) {
+		printf(">>> 医生未登录，无法批准出院。\n");
+		return;
+	}
+
+	loadWardSystemData(sys);
+	loadPatientsSystemData(sys);
+
+	char patientId[ID_LEN];
+	bool useCalledPatient = false;
+	const char* calledId = findCalledPatientIdByDoctor(doctorId);
+	if (calledId != NULL) {
+		Patient* p = findPatientById(sys, calledId);
+		if (p != NULL) {
+			printf("\n>>> 当前叫号患者: %s (%s)\n", p->name, calledId);
+			if (confirmFunc("批准出院", "叫号患者")) {
+				strcpy(patientId, calledId);
+				useCalledPatient = true;
+			}
+		}
+	}
+
+	if (!useCalledPatient) {
+		safeGetString(">>> 请输入要批准出院的患者编号 (输入 -1 取消): ", patientId, ID_LEN);
+		if (strcmp(patientId, "-1") == 0) {
+			printf(">>> 已取消批准出院。\n");
+			return;
+		}
+		if (!isPatientCalledByDoctor(patientId, doctorId)) {
+			printf(">>> 该患者不是您的患者或者未在候诊队列中，您无法批准出院。\n");
+			return;
+		}
+	}
+
+	Patient* patient = findPatientById(sys, patientId);
+	if (patient == NULL) {
+		printf(">>> 未找到患者信息。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	Ward* currentWard = findPatientWard(sys, patientId);
+	if (currentWard == NULL) {
+		printf(">>> 患者 %s (%s) 当前未住院，无法批准出院。\n", patient->name, patientId);
+		pressEnterToContinue();
+		return;
+	}
+
+	StayRecord* activeStay = NULL;
+	StayRecord* s = patient->stayHead;
+	while (s != NULL) {
+		if (strcmp(s->wardId, currentWard->wardId) == 0 && (strcmp(s->endDate, "未出院") == 0 || strcmp(s->endDate, "待出院") == 0)) {
+			activeStay = s;
+			break;
+		}
+		s = s->next;
+	}
+
+	if (activeStay == NULL) {
+		printf(">>> 未找到患者住院记录，无法批准出院。\n");
+		pressEnterToContinue();
+		return;
+	}
+	if (activeStay->dischargeApproved == 1) {
+		printf(">>> 该患者已获出院许可，无需重复批准。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	if (!confirmFunc("批准", "患者出院")) {
+		printf(">>> 已取消批准出院。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	activeStay->dischargeApproved = 1;
+	savePatientsSystemData(sys);
+	printf(">>> 患者 %s 出院许可已批准。\n", patient->name);
+	pressEnterToContinue();
+}
+
 // 医生端：住院管理二级菜单
 void doctorWardMenu(HIS_System* sys, const char* doctorId) {
 	int choice;
@@ -1491,6 +1574,7 @@ void doctorWardMenu(HIS_System* sys, const char* doctorId) {
 		printf("1. 分配住院\n");
 		printf("2. 查看住院信息\n");
 		printf("3. 办理出院\n");
+		printf("4. 批准出院\n");
 		printf("0. 返回上级菜单\n");
 		printf("==========================\n");
 		choice = safeGetInt("请选择操作: ");
@@ -1498,6 +1582,7 @@ void doctorWardMenu(HIS_System* sys, const char* doctorId) {
 		case 1: doctorArrangeWard(sys, doctorId); break;
 		case 2: doctorViewStayInfo(sys, doctorId); break;
 		case 3: doctorDischargePatient(sys, doctorId); break;
+		case 4: doctorApproveDischarge(sys, doctorId); break;
 		case 0: return;
 		default: printf(">>> 无效选择，请重试。\n");
 		}

@@ -169,6 +169,7 @@ typedef struct StayRecord {
 	char doctorId[ID_LEN];			// 所属医生编号
 	char wardId[ID_LEN];			// 关联病房编号
 	char bedId[BED_ID_LEN];			// 床位编号（如 "P10401"）
+	int dischargeApproved;			// 出院许可(0=不可出院,1=准许出院)
 	char details[512];				// 住院事件描述（入院 | 出院）
 	struct StayRecord* next;
 } StayRecord;
