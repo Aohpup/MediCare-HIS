@@ -13,7 +13,8 @@
 //git push -u origin main
 //初始化医疗管理系统的所有子模块链表
 //sys 医疗管理系统底座指针
-bool TEST_SYSTEM_DEBUG = true;		//是否启用测试（true启用，false禁用）
+bool TEST_SYSTEM_DEBUG = false;		//是否启用测试（true启用，false禁用）
+bool AUTO_BACKUP_DATA = true;		//自动备份数据到backup目录（true启用，false禁用）
 
 int currentPatientId = STARTING_PATIENT_ID;	//当前患者编号计数器（全局变量，初始值为STARTING_PATIENT_ID）
 

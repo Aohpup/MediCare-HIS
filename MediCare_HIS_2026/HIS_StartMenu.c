@@ -143,6 +143,7 @@ void patientMenu(HIS_System* sys) {
 		printf("9. 病房查询\n");
 		printf("10. 医生信息查询\n");
 		printf("11. 药品信息查询\n");
+		printf("12. 患者信息(查询与修改)\n");
 		printf("0. 返回主菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择患者服务操作: ");
@@ -158,6 +159,7 @@ void patientMenu(HIS_System* sys) {
 		case 9: wardQueryMenuPat(sys, getCurrentPatientId()); break;
 		case 10: doctorManageMenuPat(sys, getCurrentPatientId()); break;
 		case 11: drugManageMenuPat(sys, getCurrentPatientId());	break;
+		case 12: patientInfoMenu(sys, getCurrentPatientId()); break;
 		case 0:
 			if (confirmFunc("退出", "患者服务台")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
@@ -174,6 +176,12 @@ void patientMenu(HIS_System* sys) {
 
 // 主菜单入口
 void showMainMenu(HIS_System* sys) {
+	static int firstRun = 1;
+	if (!firstRun)
+	{
+		printf("\n");
+	}
+	firstRun = 0;
 /*	messageBox("目前仅支持管理员登录功能，医生和患者登录功能待开发。");
 	messageBox("请使用管理员登录进入系统，管理员系统只支持药品管理功能、医生管理功能和科室管理功能。");
 	messageBox("药品信息格式：ID 国标码 通用名 商品名 别名 库存 价格");
@@ -202,7 +210,7 @@ void showMainMenu(HIS_System* sys) {
 			if (confirmFunc("退出", "系统")) {
 				cleanupSystemMemory(sys);
 				printf(">>> 感谢使用，系统已安全退出！\n");
-				exit(0);
+				return;
 			}
 			break;
 		default:

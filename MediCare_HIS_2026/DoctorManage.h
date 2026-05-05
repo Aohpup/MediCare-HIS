@@ -13,7 +13,10 @@ char* getCurrentDoctorId();
 bool isDoctorIdExist(doctor* head, const char* id);
 
 //检查医生姓名是否存在
-//bool isDoctorNameExist(doctor* head, const char* name);
+bool isDoctorNameExist(doctor* head, const char* name);
+
+//患者端医生查询二级菜单（按科室/编号/姓名）
+void queryDoctorPat(HIS_System* sys, const char* patientId);
 
 //医生管理菜单界面
 void doctorManageMenu(HIS_System* sys);

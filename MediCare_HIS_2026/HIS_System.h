@@ -13,6 +13,8 @@
 //测试信息
 extern bool TEST_SYSTEM_DEBUG;		//是否启用测试（true启用，false禁用）
 
+extern bool AUTO_BACKUP_DATA;		//自动备份数据到backup目录（true启用，false禁用）
+
 //S链表存储数据
 //S.1药品
 typedef struct Drug {
@@ -95,7 +97,8 @@ typedef struct Department {
 typedef enum {
 	REC_REG = 1,    // 挂号 Registration
 	REC_VIEW,       // 看诊 Consultation
-	REC_STAY        // 住院 Hospitalization
+	REC_STAY,       // 住院 Hospitalization
+	REC_MED         // 处方 Medication
 } RecordType;
 
 typedef enum {
@@ -177,15 +180,19 @@ typedef struct Patient {
 	char phone[ID_LEN];				//患者电话
 	char idCard[18 + 3];			//患者身份证号
 	char gender[STR_LEN];			//患者性别
+	int age;					//患者年龄
 	PatientType type;				//患者类别 (普通/VIP/急诊)
+	double balance;				//患者账户余额
 
 	RegistrationRecord* regHead;		// 挂号记录链表头
 	ConsultationRecord* viewHead;		// 看诊记录链表头
 	StayRecord* stayHead;				// 住院记录链表头
+	ConsultationRecord* medHead;		// 处方记录链表头（复用ConsultationRecord）
 
 	RegistrationRecord* currRegTail;			// 当前患者挂号记录链表的末尾指针
 	ConsultationRecord* currViewTail;		// 当前患者看诊记录链表的末尾指针
 	StayRecord* currStayTail;				// 当前患者住院记录链表的末尾指针
+	ConsultationRecord* currMedTail;		// 当前患者处方记录链表的末尾指针
 
 	struct Patient* next;
 } Patient;

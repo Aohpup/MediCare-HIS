@@ -65,4 +65,7 @@ void patientDischargeCheckout(HIS_System* sys, const char* patientId);
 //计算两日期之间的天数（简易近似算法，日期格式 YYYY-MM-DD）
 int daysBetweenDates(const char* start, const char* end);
 
+//患者个人信息查询与修改菜单
+void patientInfoMenu(HIS_System* sys, const char* patientId);
+
 #endif // !PATIENTMANAGE_H

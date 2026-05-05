@@ -12,6 +12,7 @@
 #include"PauseUtil.h"
 #include"doctorSort.h"
 #include"InputUtils.h"
+#include"StringCheck.h"
 #include"WardManage.h"
 #include"WardFileManage.h"
 #include"StringCheck.h"
@@ -83,8 +84,7 @@ bool isDoctorIdExist(doctor* head, const char* id) {
 	return false;
 }
 
-// 医生姓名防重复（可选功能，根据实际需求决定是否启用）
-/*
+// 该函数目前未被使用，但保留以备后续可能的需求
 bool isDoctorNameExist(doctor* head, const char* name) {
 	doctor* curr = head;
 	while (curr != NULL) {
@@ -93,7 +93,6 @@ bool isDoctorNameExist(doctor* head, const char* name) {
 	}
 	return false;
 }
-*/
 
 static bool getSubDepartmentNameUnderCategory(HIS_System* sys, const char* categoryName, const char* subDeptId, char* outSubDeptName) {
 	if (sys == NULL || categoryName == NULL || subDeptId == NULL) return false;
@@ -235,6 +234,43 @@ void printDoctorInfo(doctor* doctor) {
 	pressEnterToContinue();
 }
 
+// 按姓名查询医生，统一处理重名：唯一显示，重名则带序号展示并让用户选择
+// 返回 true 表示找到并已显示
+static bool queryDoctorByNameWithDupHandling(HIS_System* sys, const char* name) {
+	doctor* matches[100];
+	int matchCount = 0;			// 最多支持100个同名医生的查询结果，超过则只显示前100个，请联系管理员优化数据
+	doctor* curr = sys->docHead;
+	while (curr != NULL) {
+		if (strcmp(curr->doctorName, name) == 0 && matchCount < 100) {
+			matches[matchCount++] = curr;
+		}
+		curr = curr->next;
+	}
+	if (matchCount == 0) return false;
+
+	if (matchCount == 1) {
+		printDoctorInfo(matches[0]);
+		return true;
+	}
+
+	// 重名：带序号展示
+	printf("\n>>> 找到 %d 位同名医生:\n", matchCount);
+	for (int i = 0; i < matchCount; i++) {
+		printf("#%d:", i + 1);
+		printDoctorInfo(matches[i]);
+	}
+	int sel = safeGetInt("请选择您要进一步查看的医生序号(输入 -1 取消): ");
+	if (sel == -1) {
+		printf(">>> 已取消选择。\n");
+		return true;
+	}
+	if (sel >= 1 && sel <= matchCount) {
+		printf("\n--- 您选择的医生详细信息 ---\n");
+		printDoctorInfo(matches[sel - 1]);
+	}
+	return true;
+}
+
 void queryDoctor(HIS_System* sys, const char* doctorId) {
 	if (sys->docHead == NULL) {
 		printf("\n>>> 系统内没有医生数据！\n");
@@ -282,17 +318,7 @@ void queryDoctor(HIS_System* sys, const char* doctorId) {
 		break;
 	case 2:
 		safeGetString("请输入医生姓名: ", queryStr, STR_LEN);
-		while (curr != NULL) {
-			if (strcmp(curr->doctorName, queryStr) == 0) {
-				printDoctorInfo(curr);
-				if (curr->subDeptId[0] != '\0' && getSubDepartmentNameUnderCategory(sys, curr->department, curr->subDeptId, subDeptName)) {
-					printf("关联诊室名称: %s\n", subDeptName);
-				}
-				found = true;
-				break;
-			}
-			curr = curr->next;
-		}
+		found = queryDoctorByNameWithDupHandling(sys, queryStr);
 		break;
 	case 3:
 		safeGetString("请输入所属一级科室名称: ", queryDept, STR_LEN);
@@ -319,6 +345,125 @@ void queryDoctor(HIS_System* sys, const char* doctorId) {
 
 	if (!found && choice != 0) {
 		printf(">>> 没有找到匹配的医生信息！\n");
+	}
+}
+
+// 患者端医生查询二级菜单
+void queryDoctorPat(HIS_System* sys, const char* patientId) {
+	if (sys == NULL) {
+		printf(">>> 系统未初始化。\n");
+		return;
+	}
+	if (!isPatientLoggedIn()) {
+		printf(">>> 您尚未登录，请先登录后再进行查询！\n");
+		return;
+	}
+	if (sys->docHead == NULL) {
+		printf("\n>>> 系统内没有医生数据！\n");
+		return;
+	}
+
+	int choice;
+	char queryStr[STR_LEN];
+
+	while (1) {
+		printf("\n--- 医生信息查询 ---\n");
+		printf("1. 按一级科室查询\n");
+		printf("2. 按序号查询\n");
+		printf("3. 按名字查询\n");
+		printf("0. 返回上一级菜单\n");
+		choice = safeGetInt("请选择查询方式: ");
+
+		switch (choice) {
+		case 1: {
+			// 列出所有一级科室
+			Department* deptArr[100];
+			int deptCount = 0;
+			Department* d = sys->deptHead;
+			if (d == NULL) {
+				printf(">>> 系统中暂无科室数据。\n");
+				break;
+			}
+			printf("\n--- 科室列表 ---\n");
+			while (d != NULL && deptCount < 100) {
+				deptArr[deptCount++] = d;
+				printf("%d. %s\n", deptCount, d->categoryName);
+				d = d->next;
+			}
+
+			char input[STR_LEN];
+			safeGetString("请输入科室序号或名称(输入 -1 返回): ", input, STR_LEN);
+			if (strcmp(input, "-1") == 0) break;
+
+			Department* targetDept = NULL;
+			if (isAllDigits(input)) {
+				int idx = atoi(input);
+				if (idx >= 1 && idx <= deptCount)
+					targetDept = deptArr[idx - 1];
+			} else {
+				for (int i = 0; i < deptCount; i++) {
+					if (strcmp(deptArr[i]->categoryName, input) == 0) {
+						targetDept = deptArr[i];
+						break;
+					}
+				}
+			}
+			if (targetDept == NULL) {
+				printf(">>> 未找到该科室。\n");
+				break;
+			}
+
+			// 筛选该科室医生
+			doctor* cur = sys->docHead;
+			int foundCount = 0;
+			while (cur != NULL) {
+				if (strcmp(cur->department, targetDept->categoryName) == 0) {
+					foundCount++;
+					printDoctorInfo(cur);
+				}
+				cur = cur->next;
+			}
+			if (foundCount == 0) {
+				printf(">>> %s 科室下暂无医生。\n", targetDept->categoryName);
+			} else {
+				printf(">>> 共找到 %d 位 %s 科室医生。\n", foundCount, targetDept->categoryName);
+			}
+			break;
+		}
+		case 2: {
+			// 按医生编号查询
+			char doctorId[ID_LEN];
+			safeGetString("请输入医生编号(输入 -1 返回): ", doctorId, ID_LEN);
+			if (strcmp(doctorId, "-1") == 0) break;
+			doctor* cur = sys->docHead;
+			bool found = false;
+			while (cur != NULL) {
+				if (strcmp(cur->doctorId, doctorId) == 0) {
+					printDoctorInfo(cur);
+					found = true;
+					break;
+				}
+				cur = cur->next;
+			}
+			if (!found)
+				printf(">>> 没有找到医生编号 %s 的信息！\n", doctorId);
+			break;
+		}
+		case 3: {
+			// 按医生姓名查询（含重名处理）
+			char name[STR_LEN];
+			safeGetString("请输入医生姓名(输入 -1 返回): ", name, STR_LEN);
+			if (strcmp(name, "-1") == 0) break;
+			if (!queryDoctorByNameWithDupHandling(sys, name))
+				printf(">>> 没有找到医生姓名 %s 的信息！\n", name);
+			break;
+		}
+		case 0:
+			return;
+		default:
+			printf(">>> 无效选择，请重试！\n");
+			break;
+		}
 	}
 }
 
@@ -1000,8 +1145,15 @@ void doctorManageMenuPat(HIS_System* sys, const char* currentPatientId) {
 		char queryRoom[ID_LEN];
 		switch (choice) {
 		case 1:
-			strcpy(queryStr, findPatientById(sys, currentPatientId)->viewHead->doctorId); //TODO:根据患者的就诊记录找到相关医生ID，目前先占位为患者个人中心界面查询自己的主治医生，后续可根据实际需求调整为查询所有相关医生（如曾经就诊过的医生、当前排班的医生等）
-			queryDoctor(sys, queryStr);
+			{
+				Patient* pat = findPatientById(sys, currentPatientId);
+				if (pat == NULL || pat->viewHead == NULL) {
+					printf(">>> 您当前没有就诊医生记录，请先挂号或就诊。\n");
+					break;
+				}
+				strcpy(queryStr, pat->viewHead->doctorId);
+				queryDoctor(sys, queryStr);
+			}
 			break;
 		case 2:
 			queryDoctor(sys, NULL);

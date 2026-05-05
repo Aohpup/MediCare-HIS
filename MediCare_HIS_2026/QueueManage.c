@@ -624,9 +624,32 @@ bool isNoonSlot(TimeSlot slot) {
 }
 
 void printAllTimeSlots(void) {
+	int prefixTargetWidth;
+	// 1. 根据 SLOT_COUNT 决定前缀宽度，确保所有时段的 XX:XX 部分自然对齐
+	if (SLOT_COUNT < 10) {
+		prefixTargetWidth = 3;
+	}
+	else if (SLOT_COUNT < 100) {
+		prefixTargetWidth = 4;
+	}
+	else {
+		prefixTargetWidth = 5;
+	}
+
 	for (int i = 0; i < SLOT_COUNT; ++i) {
-		printf("%d. %s%s\n", i + 1, slot_names[i],
-			isNoonSlot((TimeSlot)(i + 1)) ? " (午休)" : "");
+		char prefix[16];
+		sprintf(prefix, "%d.", i + 1);   // 构造 "1."、"13." 等前缀
+
+		// 打印前缀并自动补齐空格（纯 ASCII，printFormattedStr 完全适用）
+		printFormattedStr(prefix, prefixTargetWidth);
+
+		//打印时间段，此时所有 XX:XX 已自然对齐
+		printf("%s", slot_names[i]);
+
+		if (isNoonSlot((TimeSlot)(i + 1))) {
+			printf(" (午休)");
+		}
+		printf("\n");
 	}
 }
 

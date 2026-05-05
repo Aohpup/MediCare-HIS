@@ -124,6 +124,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BackupRestore.c" />
     <ClCompile Include="ConfirmFunc.c" />
     <ClCompile Include="DayTimeUtils.c" />
     <ClCompile Include="DepartmentFileManage.c" />
@@ -156,6 +157,14 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="C:\Users\27918\Desktop\要求\README.txt" />
+    <Text Include="data_backup\HIS_departments.txt" />
+    <Text Include="data_backup\HIS_doctors.txt" />
+    <Text Include="data_backup\HIS_drugs.txt" />
+    <Text Include="data_backup\HIS_exam_items.txt" />
+    <Text Include="data_backup\HIS_exam_orders.txt" />
+    <Text Include="data_backup\HIS_patients.txt" />
+    <Text Include="data_backup\HIS_queue_tickets.txt" />
+    <Text Include="data_backup\HIS_wards.txt" />
     <Text Include="HIS_departments.txt" />
     <Text Include="HIS_doctors.txt" />
     <Text Include="HIS_drugs.txt" />
@@ -167,6 +176,7 @@
     <Text Include="TODOLIST.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BackupRestore.h" />
     <ClInclude Include="ConfirmFunc.h" />
     <ClInclude Include="DayTimeUtils.h" />
     <ClInclude Include="DepartmentFileManage.h" />

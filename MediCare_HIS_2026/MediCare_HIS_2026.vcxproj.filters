@@ -79,6 +79,9 @@
     <Filter Include="头文件\include\modules\Queue">
       <UniqueIdentifier>{971466c0-175d-4d68-b1bf-3cb31d708c6b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="资源文件\data_backup">
+      <UniqueIdentifier>{af6af834-3163-467a-87a2-adcbd089877b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -168,6 +171,9 @@
     <ClCompile Include="StringCheck.c">
       <Filter>源文件\src.\utils</Filter>
     </ClCompile>
+    <ClCompile Include="BackupRestore.c">
+      <Filter>源文件\src.\core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="HIS_doctors.txt">
@@ -199,6 +205,30 @@
     </Text>
     <Text Include="HIS_wards.txt">
       <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="data_backup\HIS_departments.txt">
+      <Filter>资源文件\data_backup</Filter>
+    </Text>
+    <Text Include="data_backup\HIS_doctors.txt">
+      <Filter>资源文件\data_backup</Filter>
+    </Text>
+    <Text Include="data_backup\HIS_drugs.txt">
+      <Filter>资源文件\data_backup</Filter>
+    </Text>
+    <Text Include="data_backup\HIS_exam_items.txt">
+      <Filter>资源文件\data_backup</Filter>
+    </Text>
+    <Text Include="data_backup\HIS_exam_orders.txt">
+      <Filter>资源文件\data_backup</Filter>
+    </Text>
+    <Text Include="data_backup\HIS_patients.txt">
+      <Filter>资源文件\data_backup</Filter>
+    </Text>
+    <Text Include="data_backup\HIS_queue_tickets.txt">
+      <Filter>资源文件\data_backup</Filter>
+    </Text>
+    <Text Include="data_backup\HIS_wards.txt">
+      <Filter>资源文件\data_backup</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
@@ -288,6 +318,9 @@
     </ClInclude>
     <ClInclude Include="StringCheck.h">
       <Filter>头文件\include\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="BackupRestore.h">
+      <Filter>头文件\include\core</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

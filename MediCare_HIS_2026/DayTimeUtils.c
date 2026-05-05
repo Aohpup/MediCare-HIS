@@ -56,7 +56,7 @@ void getCurrentTime(int* hour, int* minute, int* second) {
 	*second = tm_info->tm_sec;
 }
 
-int changeTimeToSlot(const char* timeStr) {
+int changeTimeToSlot(char* timeStr) {
 	int hour = 0, min = 0, sec = 0;
 
 	if (sscanf(timeStr, "%d:%d:%d", &hour, &min, &sec) != 3) {

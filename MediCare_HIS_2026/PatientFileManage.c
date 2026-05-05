@@ -25,6 +25,7 @@ static char* trimStr(char* s) {
 // P patientId name phone id card gender type
 // R recordId department doctorId date time  (挂号记录)
 // V recordId details date doctorId  (看诊记录)
+// M recordId details date doctorId  (处方记录，details格式: drugId:通用名:数量;...)
 // S recordId startDate duration endDate deptInfo doctorId wardId bedId details  (住院记录，9字段)
 // END  (结束当前患者)
 
@@ -64,21 +65,49 @@ void loadPatientsSystemData(HIS_System* sys) {
 		if (strcmp(tag, "P") == 0) {
 			Patient* patient = (Patient*)malloc(sizeof(Patient));
 			if (patient == NULL) { printf(">>> 内存分配失败，停止加载！\n"); break; }
+			// 读取P标签后整行，按空格数判断新旧格式
+			char patientLine[512];
+			if (fgets(patientLine, sizeof(patientLine), fp) == NULL) {
+				free(patient);
+				break;
+			}
+			char* pl = trimStr(patientLine);
+			int spaceCnt = 0;
+			for (const char* p = pl; *p != '\0'; p++) {
+				if (*p == ' ') spaceCnt++;
+			}
 			int t = 0;
-			if (fscanf(fp, "%s %s %s %s %s %d", patient->patientId, patient->name, patient->phone,
-				patient->idCard, patient->gender, &t) != 6) {
+			patient->age = 0;
+			patient->balance = 0.0;
+			bool parseOk = false;
+			if (spaceCnt >= 7) {
+				// 新格式: patientId name phone idCard gender age type balance (8字段)
+				parseOk = (sscanf(pl, "%s %s %s %s %s %d %d %lf",
+					patient->patientId, patient->name, patient->phone,
+					patient->idCard, patient->gender, &patient->age, &t,
+					&patient->balance) >= 7);
+			} else {
+				// 旧格式兼容: patientId name phone idCard gender type (6字段)
+				parseOk = (sscanf(pl, "%s %s %s %s %s %d",
+					patient->patientId, patient->name, patient->phone,
+					patient->idCard, patient->gender, &t) == 6);
+			}
+			if (!parseOk) {
+				if(TEST_SYSTEM_DEBUG)
 				printf(">>> 警告: 患者数据格式错误，跳过该条记录。\n");
 				free(patient);
-				currPatient = NULL;	//重置当前患者指针，确保下一个记录必须是新的患者
+				currPatient = NULL;
 				continue;
 			}
 			patient->type = (PatientType)t;
 			patient->regHead = NULL;
 			patient->viewHead = NULL;
 			patient->stayHead = NULL;
+			patient->medHead = NULL;
 			patient->currRegTail = NULL;
 			patient->currViewTail = NULL;
 			patient->currStayTail = NULL;
+			patient->currMedTail = NULL;
 
 			// 检查是否已存在相同患者编号（历史数据可能有重复），若重复则跳过该患者整段记录
 			bool isDuplicate = false;
@@ -201,6 +230,43 @@ void loadPatientsSystemData(HIS_System* sys) {
 				currPatient->currViewTail = view;	//更新末尾指针
 			}
 		}
+		else if (strcmp(tag, "M") == 0) {
+			if (currPatient == NULL) {
+				printf(">>> 警告: 处方记录缺少所属患者，跳过该条记录。\n");
+				fgets(line, sizeof(line), fp);
+				continue;
+			}
+			// 处理处方记录，复用ConsultationRecord结构体
+			// 文件格式: M recordId|date|doctorId|details (details为药品清单，不含价格)
+			ConsultationRecord* med = (ConsultationRecord*)malloc(sizeof(ConsultationRecord));
+			if (med == NULL) {
+				printf(">>> 内存分配失败，停止加载！\n");
+				break;
+			}
+			if (fgets(line, sizeof(line), fp) == NULL) {
+				if(TEST_SYSTEM_DEBUG)
+				printf(">>> 警告: 处方记录数据格式错误，跳过该条记录。\n");
+				free(med);
+				continue;
+			}
+			if (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%511[^\n]",
+				med->recordId, med->date, med->doctorId, med->details) != 4) {
+				if(TEST_SYSTEM_DEBUG)
+				printf(">>> 警告: 处方记录数据格式错误，跳过该条记录。\n");
+				free(med);
+				continue;
+			}
+			med->record = REC_MED;
+			med->next = NULL;
+			if(currPatient->medHead == NULL) {
+				currPatient->medHead = med;
+				currPatient->currMedTail = med;
+			}
+			else {
+				currPatient->currMedTail->next = med;
+				currPatient->currMedTail = med;
+			}
+		}
 		else if (strcmp(tag, "E") == 0) {
 			if (currPatient == NULL) {
 				printf(">>> 警告: 检查记录缺少所属患者，跳过该条记录。\n");
@@ -236,12 +302,13 @@ void loadPatientsSystemData(HIS_System* sys) {
 				if (*p == '|') pipes++;
 			}
 			bool parseOk = false;
-			if (pipes == 8) {
+			if (pipes >= 8) {
 				// 新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|details
+				// 使用 >=8 而非 ==8，以兼容 details 中包含 '|' 的情况
 				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%511[^\n]",
 					stay->recordId, stay->startDate, stay->duration, stay->endDate,
 					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, stay->details) == 9);
-			} else if (pipes == 6) {
+			} else if (pipes >= 6) {
 				// 旧格式兼容: recordId|startDate|duration|endDate|doctorId|wardId|details
 				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%511[^\n]",
 					stay->recordId, stay->startDate, stay->duration, stay->endDate,
@@ -303,8 +370,8 @@ void savePatientsSystemData(HIS_System* sys) {
 
 	Patient* patient = sys->patientHead;
 	while (patient) {
-		fprintf(fp, "P %s %s %s %s %s %d\n", patient->patientId, patient->name, patient->phone,
-			patient->idCard, patient->gender, patient->type);
+		fprintf(fp, "P %s %s %s %s %s %d %d %.2f\n", patient->patientId, patient->name, patient->phone,
+			patient->idCard, patient->gender, patient->age, patient->type, patient->balance);
 		RegistrationRecord* reg = patient->regHead;
 		while (reg) {
 			fprintf(fp, "R %s %s %s %s %s\n", reg->recordId, reg->department, reg->doctorId,
@@ -315,6 +382,11 @@ void savePatientsSystemData(HIS_System* sys) {
 		while (view) {
 			fprintf(fp, "V %s|%s|%s|%s\n", view->recordId, view->date, view->doctorId, view->details);
 			view = view->next;
+		}
+		ConsultationRecord* med = patient->medHead;
+		while (med) {
+			fprintf(fp, "M %s|%s|%s|%s\n", med->recordId, med->date, med->doctorId, med->details);
+			med = med->next;
 		}
 		StayRecord* stay = patient->stayHead;
 		while (stay) {

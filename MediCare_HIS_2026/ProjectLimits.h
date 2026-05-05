@@ -23,4 +23,8 @@
 #define EXAM_ITEM_FILE "HIS_exam_items.txt"      //检查项目字典文件
 #define EXAM_ORDER_FILE "HIS_exam_orders.txt"    //检查申请/结果文件
 
+//备份与状态文件
+#define BACKUP_DIR "data_backup"                 //数据备份目录
+#define STATUS_FILE "HIS_status.txt"             //退出状态文件
+
 #endif // !LIMITS_H
