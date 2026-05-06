@@ -47,7 +47,7 @@ void adminMenu(HIS_System* sys) {
 		case 2: doctorManageMenu(sys); break;
 		case 3: departmentManageMenu(sys); break;
 		case 4: wardManageMenu(sys); break;
-		case 5: printf(">>> 模块待开发: 多维数据报表统计...\n"); break;
+		case 5: showFinanceStatistics(sys); break;
 		case 6: saveSystemData(sys); break;
 		case 0:
 			if (adminConfirmFunc("退出", "管理员控制台")) {
@@ -112,6 +112,22 @@ void doctorMenu(HIS_System* sys) {
 		case 11: doctorManageMenuDoc(sys, getCurrentDoctorId()); break;
 		case 12: drugSortMenuDoc(sys); break;
 		case 0:
+			// 检查当前是否有在诊患者
+			{
+				const char* inConsultId = findCalledPatientIdByDoctor(getCurrentDoctorId());
+				if (inConsultId != NULL) {
+					Patient* inConsultPat = findPatientById(sys, inConsultId);
+					if (inConsultPat != NULL) {
+						printf("\n>>> 当前有在诊患者: %s (%s)\n", inConsultPat->name, inConsultId);
+						if (confirmFunc("结束看诊", "在诊患者看诊")) {
+							endConsultation(sys, getCurrentDoctorId());
+						} else {
+							printf(">>> 已取消退出，返回工作站。\n");
+							break;
+						}
+					}
+				}
+			}
 			if (confirmFunc("退出", "医生工作站")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
 				return;
@@ -144,6 +160,7 @@ void patientMenu(HIS_System* sys) {
 		printf("10. 医生信息查询\n");
 		printf("11. 药品信息查询\n");
 		printf("12. 患者信息(查询与修改)\n");
+		printf("13. 余额充值\n");
 		printf("0. 返回主菜单\n");
 		printf("==================================\n");
 		choice = safeGetInt("请选择患者服务操作: ");
@@ -160,6 +177,7 @@ void patientMenu(HIS_System* sys) {
 		case 10: doctorManageMenuPat(sys, getCurrentPatientId()); break;
 		case 11: drugManageMenuPat(sys, getCurrentPatientId());	break;
 		case 12: patientInfoMenu(sys, getCurrentPatientId()); break;
+		case 13: patientRechargeMenu(sys); break;
 		case 0:
 			if (confirmFunc("退出", "患者服务台")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
@@ -206,8 +224,8 @@ void showMainMenu(HIS_System* sys) {
 		case 2: doctorMenu(sys); break;
 		case 3: patientMenu(sys); break;
 		case 0:
-			saveSystemData(sys);
 			if (confirmFunc("退出", "系统")) {
+				saveSystemData(sys);
 				cleanupSystemMemory(sys);
 				printf(">>> 感谢使用，系统已安全退出！\n");
 				return;

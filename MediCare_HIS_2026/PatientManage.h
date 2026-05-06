@@ -68,4 +68,13 @@ int daysBetweenDates(const char* start, const char* end);
 //患者个人信息查询与修改菜单
 void patientInfoMenu(HIS_System* sys, const char* patientId);
 
+//通用余额充值函数
+bool addBalance(Patient* patient, double amount);
+
+//患者余额充值菜单（需先登录，内部获取当前患者）
+void patientRechargeMenu(HIS_System* sys);
+
+//指定患者的充值菜单（锁定跳转用，不要求已登录）
+void patientRechargeMenuForPatient(HIS_System* sys, Patient* patient);
+
 #endif // !PATIENTMANAGE_H

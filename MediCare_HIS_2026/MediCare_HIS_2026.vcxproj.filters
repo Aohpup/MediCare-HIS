@@ -19,9 +19,6 @@
     <Filter Include="资源文件\data">
       <UniqueIdentifier>{066647de-b7b7-4f2e-b487-e4b6851f9d1f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="头文件\include\utils">
-      <UniqueIdentifier>{8b2a6464-d8b3-4a78-9a87-72687ce4e4eb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="头文件\include\core">
       <UniqueIdentifier>{4cd6db02-8a4e-424b-b372-7583235b2fe2}</UniqueIdentifier>
     </Filter>
@@ -81,6 +78,9 @@
     </Filter>
     <Filter Include="资源文件\data_backup">
       <UniqueIdentifier>{af6af834-3163-467a-87a2-adcbd089877b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\include\utils">
+      <UniqueIdentifier>{8b2a6464-d8b3-4a78-9a87-72687ce4e4eb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -230,6 +230,15 @@
     <Text Include="data_backup\HIS_wards.txt">
       <Filter>资源文件\data_backup</Filter>
     </Text>
+    <Text Include="HIS_status.txt">
+      <Filter>资源文件</Filter>
+    </Text>
+    <Text Include="HIS_finance.txt">
+      <Filter>资源文件\data</Filter>
+    </Text>
+    <Text Include="data_backup\HIS_finance.txt">
+      <Filter>资源文件\data_backup</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfirmFunc.h">
@@ -243,9 +252,6 @@
     </ClInclude>
     <ClInclude Include="BufferClear.h">
       <Filter>头文件\include\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="HIS_System.h">
-      <Filter>头文件\include\core</Filter>
     </ClInclude>
     <ClInclude Include="HIS_StartMenu.h">
       <Filter>头文件\include\core</Filter>
@@ -320,6 +326,9 @@
       <Filter>头文件\include\utils</Filter>
     </ClInclude>
     <ClInclude Include="BackupRestore.h">
+      <Filter>头文件\include\core</Filter>
+    </ClInclude>
+    <ClInclude Include="HIS_System.h">
       <Filter>头文件\include\core</Filter>
     </ClInclude>
   </ItemGroup>

@@ -6,6 +6,8 @@
 #include"InputUtils.h"
 #include"PrintFormattedStr.h"
 #include"StringCheck.h"
+#include"PatientManage.h"
+#include"ConfirmFunc.h"
 #include<string.h>
 #include<time.h>
 
@@ -79,15 +81,14 @@ static void genBiochemistry(ExamOrderItem* item, unsigned int seed) {
 	srand(seed);
 	double glu = randDouble(3.8, 6.8);            // 空腹 3.9-6.1
 	double alt = randDouble(8.0, 55.0);           // 正常 9-50 U/L
-	double ast = randDouble(10.0, 45.0);          // 正常 15-40 U/L
 	double cre = randDouble(44.0, 115.0);         // 正常 44-133 umol/L
 	double bun = randDouble(2.5, 8.5);            // 正常 2.9-8.2 mmol/L
-	const char* verdict = (glu > 6.1 || alt > 50 || ast > 40) ? "部分指标偏高，请结合临床。" : "各项指标均在正常参考范围内。";
+	const char* verdict = (glu > 6.1 || alt > 50) ? "部分指标偏高，请结合临床。" : "各项指标均在正常参考范围内。";
 
 	sprintf(item->result,
-		"GLU:%.1fmmol/L(3.9-6.1) ALT:%.0fU/L(9-50) AST:%.0fU/L(15-40) "
+		"GLU:%.1fmmol/L(3.9-6.1) ALT:%.0fU/L(9-50) "
 		"Cr:%.0fumol/L(44-133) BUN:%.1fmmol/L(2.9-8.2) %s",
-		glu, alt, ast, cre, bun, verdict);
+		glu, alt, cre, bun, verdict);
 }
 
 static void genECG(ExamOrderItem* item, unsigned int seed) {
@@ -178,19 +179,18 @@ static void genMRIScan(ExamOrderItem* item, unsigned int seed) {
 static void genLiverFunction(ExamOrderItem* item, unsigned int seed) {
 	srand(seed);
 	double alt = randDouble(8.0, 58.0);
-	double ast = randDouble(10.0, 48.0);
 	double tbil = randDouble(6.0, 24.0);
 	double dbil = randDouble(1.5, 7.5);
 	double alb = randDouble(32.0, 52.0);
-	const char* verdict = (alt > 50 || ast > 40 || tbil > 21)
+	const char* verdict = (alt > 50 || tbil > 21)
 		? "部分指标轻度异常，建议复查并戒酒。"
 		: "肝功能指标均在正常参考范围内。";
 
 	sprintf(item->result,
-		"ALT:%.0fU/L(9-50) AST:%.0fU/L(15-40) "
+		"ALT:%.0fU/L(9-50) "
 		"TBIL:%.1fumol/L(5.1-21) DBIL:%.1fumol/L(1.7-6.8) "
 		"ALB:%.1fg/L(35-52) %s",
-		alt, ast, tbil, dbil, alb, verdict);
+		alt, tbil, dbil, alb, verdict);
 }
 
 static void genRenalFunction(ExamOrderItem* item, unsigned int seed) {
@@ -265,47 +265,10 @@ static void updateOrderStatus(ExamOrder* order) {
 		return;
 	}
 	if (hasPendingItems(order)) {
-		strcpy(order->status, "待执行");
+		strcpy(order->status, "已申请");
 	}
 	else {
 		strcpy(order->status, "已完成");
-	}
-}
-
-// 格式化检查结果显示文本（移除指定片段并限制长度）
-static void formatExamResultDisplay(const ExamOrderItem* item, char* out, size_t outSize, int maxWidth) {
-	if (out == NULL || outSize == 0) {
-		return;
-	}
-	if (item == NULL || item->result[0] == '\0') {
-		strncpy(out, "(未填写)", outSize - 1);
-		out[outSize - 1] = '\0';
-		return;
-	}
-
-	strncpy(out, item->result, outSize - 1);
-	out[outSize - 1] = '\0';
-	if (strcmp(item->itemId, "E009") == 0) {
-		const char* toRemove = "AST:42U/L(15-40)";
-		char* pos = strstr(out, toRemove);
-		if (pos != NULL) {
-			memmove(pos, pos + strlen(toRemove), strlen(pos + strlen(toRemove)) + 1);
-			while (*pos == ' ') {
-				memmove(pos, pos + 1, strlen(pos));
-			}
-		}
-	}
-
-	if (maxWidth > 3) {
-		int len = (int)strlen(out);
-		if (len > maxWidth) {
-			int copyLen = maxWidth - 3;
-			if (copyLen < 0) {
-				copyLen = 0;
-			}
-			out[copyLen] = '\0';
-			strncat(out, "...", outSize - strlen(out) - 1);
-		}
 	}
 }
 
@@ -405,7 +368,7 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 	strcpy(order->patientId, selectedPatientId);
 	strcpy(order->doctorId, doctorId);
 	strcpy(order->date, getCurrentDateStr());
-	strcpy(order->status, "待执行");
+	strcpy(order->status, "已申请");
 	order->itemHead = NULL;
 	order->next = NULL;
 
@@ -550,6 +513,23 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 		return false;
 	}
 
+	// 计算检查费用（供医生和患者参考，不在此扣费）
+	double totalExamCost = 0.0;
+	ExamOrderItem* ci = order->itemHead;
+	while (ci != NULL) { totalExamCost += ci->price; ci = ci->next; }
+
+	if (totalExamCost > 0) {
+		printf("\n--- 检查申请 ---\n");
+		printf("检查费用总计: %.2f 元（将在执行检查时扣费）\n", totalExamCost);
+		if (!confirmFunc("确认", "开具以上检查单")) {
+			ExamOrderItem* fi = order->itemHead;
+			while (fi != NULL) { ExamOrderItem* next = fi->next; free(fi); fi = next; }
+			free(order);
+			printf(">>> 已取消开具检查单。\n");
+			return false;
+		}
+	}
+
 	if (sys->examOrderHead == NULL) {
 		sys->examOrderHead = order;
 	}
@@ -579,7 +559,7 @@ void listPendingExamOrders(HIS_System* sys) {
 	ExamOrder* order = sys->examOrderHead;
 	while (order != NULL) {
 		if (isBeforeToday(order->date)
-			&& strcmp(order->status, "待执行") == 0
+			&& strcmp(order->status, "已申请") == 0
 			&& hasPendingItems(order)) {
 			strcpy(order->status, "超时封停");
 			dataChanged = true;
@@ -600,7 +580,7 @@ void listPendingExamOrders(HIS_System* sys) {
 	while (order != NULL) {
 		if (hasPendingItems(order)
 			&& strcmp(order->date, today) == 0
-			&& strcmp(order->status, "待执行") == 0) {
+			&& strcmp(order->status, "已申请") == 0) {
 			printExamOrderDetail(order);
 			found = true;
 		}
@@ -620,7 +600,7 @@ void listPendingExamOrders(HIS_System* sys) {
 		int ordersProcessed = 0;
 		while (order != NULL) {
 			if (strcmp(order->date, today) == 0
-				&& strcmp(order->status, "待执行") == 0
+				&& strcmp(order->status, "已申请") == 0
 				&& hasPendingItems(order)) {
 				int n = autoGenerateExamResults(sys, order->orderId);
 				if (n > 0) {
@@ -674,7 +654,7 @@ static void tryAutoGenerateDoctorOrders(HIS_System* sys, const char* doctorId, c
 	while (order != NULL) {
 		if (strcmp(order->doctorId, doctorId) == 0
 			&& strcmp(order->date, today) == 0
-			&& strcmp(order->status, "待执行") == 0
+			&& strcmp(order->status, "已申请") == 0
 			&& hasPendingItems(order)) {
 			hasPendingToday = true;
 			break;
@@ -695,7 +675,7 @@ static void tryAutoGenerateDoctorOrders(HIS_System* sys, const char* doctorId, c
 	while (order != NULL) {
 		if (strcmp(order->doctorId, doctorId) == 0
 			&& strcmp(order->date, today) == 0
-			&& strcmp(order->status, "待执行") == 0
+			&& strcmp(order->status, "已申请") == 0
 			&& hasPendingItems(order)) {
 			int n = autoGenerateExamResults(sys, order->orderId);
 			totalGenerated += n;
@@ -722,7 +702,7 @@ void doPatientExamCheck(HIS_System* sys, const char* patientId) {
 	while (order != NULL) {
 		if (strcmp(order->patientId, patientId) == 0
 			&& isBeforeToday(order->date)
-			&& strcmp(order->status, "待执行") == 0
+			&& strcmp(order->status, "已申请") == 0
 			&& hasPendingItems(order)) {
 			strcpy(order->status, "超时封停");
 			dataChanged = true;
@@ -744,7 +724,7 @@ void doPatientExamCheck(HIS_System* sys, const char* patientId) {
 	// 先统计待执行检查单数量
 	while (order != NULL) {
 		if (strcmp(order->patientId, patientId) == 0
-			&& strcmp(order->status, "待执行") == 0
+			&& strcmp(order->status, "已申请") == 0
 			&& hasPendingItems(order)) {
 			pendingCount++;
 		}
@@ -758,22 +738,47 @@ void doPatientExamCheck(HIS_System* sys, const char* patientId) {
 		return;
 	}
 
-	// 展示待执行的检查单并请求确认
+	// 展示待执行的检查单并计算费用
 	printf("\n>>> 您共有 %d 份待执行的检查单：\n", pendingCount);
 	order = sys->examOrderHead;
+	double totalPendingCost = 0.0;
 	while (order != NULL) {
 		if (strcmp(order->patientId, patientId) == 0
-			&& strcmp(order->status, "待执行") == 0
+			&& strcmp(order->status, "已申请") == 0
 			&& hasPendingItems(order)) {
 			printExamOrderDetail(order);
+			// 计算该检查单中未完成项目的费用
+			ExamOrderItem* item = order->itemHead;
+			while (item != NULL) {
+				if (!item->finished) totalPendingCost += item->price;
+				item = item->next;
+			}
 		}
 		order = order->next;
 	}
 
-	if (!confirmFunc("检查执行", "以上待执行检查单的全部项目")) {
+	// 显示费用信息
+	Patient* examPatient = findPatientById(sys, patientId);
+	if (examPatient != NULL && totalPendingCost > 0) {
+		printf("\n--- 检查收费 ---\n");
+		printf("检查费用总计: %.2f 元，当前余额: %.2f 元\n", totalPendingCost, examPatient->balance);
+		printf("扣费后余额: %.2f 元\n", examPatient->balance - totalPendingCost);
+		if (examPatient->balance < totalPendingCost) {
+			printf(">>> 提示: 余额不足，请及时充值！\n");
+		}
+	}
+
+	if (!confirmFunc("检查执行", "以上待执行检查单的全部项目（将自动扣费）")) {
 		printf(">>> 已取消检查执行。\n");
 		pressEnterToContinue();
 		return;
+	}
+
+	// 扣费：从患者余额扣除检查费用
+	if (examPatient != NULL && totalPendingCost > 0) {
+		examPatient->balance -= totalPendingCost;
+		addHospitalRevenue(sys, totalPendingCost);
+		printf(">>> 已扣费 %.2f 元，当前余额: %.2f 元。\n", totalPendingCost, examPatient->balance);
 	}
 
 	// 执行检查（自动生成结果）
@@ -783,7 +788,7 @@ void doPatientExamCheck(HIS_System* sys, const char* patientId) {
 
 	while (order != NULL) {
 		if (strcmp(order->patientId, patientId) == 0
-			&& strcmp(order->status, "待执行") == 0
+			&& strcmp(order->status, "已申请") == 0
 			&& hasPendingItems(order)) {
 			int n = autoGenerateExamResults(sys, order->orderId);
 			if (n > 0) {
@@ -814,7 +819,7 @@ void queryExamOrdersByDoctor(HIS_System* sys, const char* doctorId) {
 	while (order != NULL) {
 		if (strcmp(order->doctorId, doctorId) == 0) {
 			if (isBeforeToday(order->date)
-				&& strcmp(order->status, "待执行") == 0
+				&& strcmp(order->status, "已申请") == 0
 				&& hasPendingItems(order)) {
 				strcpy(order->status, "超时封停");
 				dataChanged = true;

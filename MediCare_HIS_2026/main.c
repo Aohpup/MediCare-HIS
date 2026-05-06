@@ -25,10 +25,6 @@ int main() {
 	// 进入主菜单系统
 	showMainMenu(&sys);
 
-	if (!TEST_SYSTEM_DEBUG) {	// 非调试模式下，退出前自动保存数据；调试模式下，允许单独测试某个模块的数据保存
-		saveSystemData(&sys);
-	}
-
 	// 标记安全关闭
 	markSafeShutdown();
 

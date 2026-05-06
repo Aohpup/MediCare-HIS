@@ -162,6 +162,7 @@
     <Text Include="data_backup\HIS_drugs.txt" />
     <Text Include="data_backup\HIS_exam_items.txt" />
     <Text Include="data_backup\HIS_exam_orders.txt" />
+    <Text Include="data_backup\HIS_finance.txt" />
     <Text Include="data_backup\HIS_patients.txt" />
     <Text Include="data_backup\HIS_queue_tickets.txt" />
     <Text Include="data_backup\HIS_wards.txt" />
@@ -170,8 +171,10 @@
     <Text Include="HIS_drugs.txt" />
     <Text Include="HIS_exam_items.txt" />
     <Text Include="HIS_exam_orders.txt" />
+    <Text Include="HIS_finance.txt" />
     <Text Include="HIS_patients.txt" />
     <Text Include="HIS_queue_tickets.txt" />
+    <Text Include="HIS_status.txt" />
     <Text Include="HIS_wards.txt" />
     <Text Include="TODOLIST.txt" />
   </ItemGroup>

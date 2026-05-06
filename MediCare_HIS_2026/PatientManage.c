@@ -16,6 +16,7 @@
 #include"PauseUtil.h"
 #include"InputUtils.h"
 #include"ConfirmFunc.h"
+#include"DayTimeUtils.h"
 #include"string.h"
 
 bool is_Patient_Logged_In = false;	//标记患者是否已登录
@@ -48,21 +49,6 @@ Patient* findPatientById(HIS_System* sys, const char* patientId) {
 	Patient* curr = sys->patientHead;
 	while (curr != NULL) {
 		if (strcmp(curr->patientId, patientId) == 0) {
-			return curr;
-		}
-		curr = curr->next;
-	}
-	return NULL;
-}
-
-// 根据药品编号查找药品信息
-static Drug* findDrugById(HIS_System* sys, const char* drugId) {
-	if (sys == NULL || drugId == NULL) {
-		return NULL;
-	}
-	Drug* curr = sys->drugHead;
-	while (curr != NULL) {
-		if (strcmp(curr->drugId, drugId) == 0) {
 			return curr;
 		}
 		curr = curr->next;
@@ -288,7 +274,7 @@ void registerPatient(HIS_System* sys, const char* remainIdCard) {
 			break;
 		}
 
-		newPatient->type = safeGetInt("请输入患者类别 (0-普通, 1-VIP, 2-急诊): ");
+		newPatient->type = safeGetInt("请输入患者类别 (1-普通, 2-VIP, 3-急诊): ");
 		if (newPatient->type == -1) {
 			cancelFlag = true;
 			free(newPatient);
@@ -307,6 +293,7 @@ void registerPatient(HIS_System* sys, const char* remainIdCard) {
 			newPatient->currStayTail = NULL;
 			newPatient->currMedTail = NULL;
 			newPatient->balance = 0.0;
+			newPatient->loginCount = 0;
 			newPatient->next = NULL;
 
 			// 将新患者添加到链表末尾
@@ -366,8 +353,16 @@ void logInPatient(HIS_System* sys) {
 		}
 		while (curr) {
 			if (strcmp(curr->idCard, idCard) == 0) {
+				curr->loginCount++;
+				if (curr->balance <= -2000.0 && curr->loginCount > 1) {
+					printf(">>> 警告: 您的账户已欠费超过2000元，账户已锁定！请立即充值。\n");
+					patientRechargeMenuForPatient(sys, curr);
+					if (curr->balance <= -2000.0) {
+						printf(">>> 余额仍不足，账户继续锁定。请充值后再试。\n");
+						return;
+					}
+				}
 				printf(">>> 登录成功！欢迎您，%s！正在返回患者服务台...\n", curr->name);
-				//bool firstLogin = !is_Patient_Logged_In;	//如果之前没有登录过，说明这是第一次登录
 				setCurrentPatient(curr); // 设置当前登录的患者
 				return;
 			}
@@ -661,6 +656,58 @@ bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char*
 	return true;
 }
 
+// 打印处方明细表格（通用函数），解析details字符串并格式化输出，返回处方总计金额
+// details格式: drugId:genericName:qty;drugId:genericName:qty;...
+static double printPrescriptionDetail(HIS_System* sys, const char* details) {
+	if (sys == NULL || details == NULL || details[0] == '\0') {
+		return 0.0;
+	}
+	char buffer[256];
+	double prescTotal = 0.0;
+
+	printFormattedStr("序号", 6);
+	printFormattedStr("药品编号", 12);
+	printFormattedStr("通用名", 20);
+	printFormattedStr("数量", 6);
+	printFormattedStr("单价", 8);
+	printFormattedStr("小计", 10);
+	printf("\n");
+	printf("-------------------------------------------------------------\n");
+
+	char detailsCopy[512];
+	strncpy(detailsCopy, details, sizeof(detailsCopy) - 1);
+	detailsCopy[sizeof(detailsCopy) - 1] = '\0';
+
+	char* token = strtok(detailsCopy, ";");
+	int idx = 1;
+	while (token != NULL) {
+		char dId[ID_LEN] = "";
+		char dName[STR_LEN] = "";
+		int qty = 0;
+		if (sscanf(token, "%24[^:]:%49[^:]:%d", dId, dName, &qty) == 3) {
+			Drug* d = findDrugById(sys, dId);
+			double unitPrice = (d != NULL) ? d->price : 0.0;
+			double sub = unitPrice * qty;
+			prescTotal += sub;
+			sprintf(buffer, "%d", idx);
+			printFormattedStr(buffer, 6);
+			printFormattedStr(dId, 12);
+			printFormattedStr(dName, 20);
+			sprintf(buffer, "%d", qty);
+			printFormattedStr(buffer, 6);
+			sprintf(buffer, "%.2f", unitPrice);
+			printFormattedStr(buffer, 8);
+			sprintf(buffer, "%.2f", sub);
+			printFormattedStr(buffer, 10);
+			printf("\n");
+		}
+		token = strtok(NULL, ";");
+		idx++;
+	}
+	printf("-------------------------------------------------------------\n");
+	return prescTotal;
+}
+
 // 患者查看自己的病例信息
 void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 	if (sys == NULL) {
@@ -674,10 +721,7 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 		}
 		patientId = getCurrentPatientNode()->patientId;
 	}
-	if (patientId == NULL) {
-		printf(">>> 未提供患者编号，无法查看病例信息。\n");
-		return;
-	}
+
 	Patient* target = findPatientById(sys, patientId);
 	if (target == NULL) {
 		printf(">>> 未找到患者 %s 的信息。\n", patientId);
@@ -721,54 +765,11 @@ void viewMedicalRecordPat(HIS_System* sys, const char* patientId) {
 	} else {
 		ConsultationRecord* med = target->medHead;
 		while (med != NULL) {
-			char buffer[256];
 			printf("记录编号: %s\n", med->recordId);
 			printf("记录日期: %s\n", med->date);
 			printf("医生编号: %s\n", med->doctorId);
 			printf("明细:\n");
-
-			// 解析药品清单: drugId:genericName:qty;drugId:genericName:qty;...
-			char detailsCopy[512];
-			strncpy(detailsCopy, med->details, sizeof(detailsCopy) - 1);
-			detailsCopy[sizeof(detailsCopy) - 1] = '\0';
-
-			double prescTotal = 0.0;
-			printFormattedStr("序号", 6);
-			printFormattedStr("药品编号", 12);
-			printFormattedStr("通用名", 20);
-			printFormattedStr("数量", 6);
-			printFormattedStr("单价", 8);
-			printFormattedStr("小计", 10);
-			printf("\n");
-			printf("-------------------------------------------------------------\n");
-
-			char* token = strtok(detailsCopy, ";");
-			int idx = 1;
-			while (token != NULL) {
-				char dId[ID_LEN] = "";
-				char dName[STR_LEN] = "";
-				int qty = 0;
-				if (sscanf(token, "%24[^:]:%49[^:]:%d", dId, dName, &qty) == 3) {
-					Drug* d = findDrugById(sys, dId);
-					double unitPrice = (d != NULL) ? d->price : 0.0;
-					double sub = unitPrice * qty;
-					prescTotal += sub;
-					sprintf(buffer, "%d", idx);
-					printFormattedStr(buffer, 6);
-					printFormattedStr(dId, 12);
-					printFormattedStr(dName, 20);
-					sprintf(buffer, "%d", qty);
-					printFormattedStr(buffer, 6);
-					sprintf(buffer, "%.2f", unitPrice);
-					printFormattedStr(buffer, 8);
-					sprintf(buffer, "%.2f", sub);
-					printFormattedStr(buffer, 10);
-					printf("\n");
-				}
-				token = strtok(NULL, ";");
-				idx++;
-			}
-			printf("-------------------------------------------------------------\n");
+			double prescTotal = printPrescriptionDetail(sys, med->details);
 			printf("处方总计: %.2f 元\n", prescTotal);
 
 			med = med->next;
@@ -870,7 +871,7 @@ void viewMedicalRecordDoc(HIS_System* sys, const char* doctorId) {
 	while (1) {
 		printf("\n====== 查看患者病历 ======\n");
 		printf("1. 查看当前叫号患者最新病历\n");
-		printf("2. 按日期搜索病历\n");
+		printf("2. 按日期搜索看诊记录\n");
 		printf("3. 查看指定患者全部病历\n");
 		printf("0. 返回上一级\n");
 		printf("============================\n");
@@ -1054,40 +1055,7 @@ static char* prescribeDrugsForPatient(HIS_System* sys, const char* doctorId, con
 		return NULL;
 	}
 
-	// 处方汇总
-	double totalCost = 0.0;
-	printf("\n========== 处方汇总 ===========\n");
-	printf("%-4s %-8s %-20s %-6s %-8s %-8s\n", "序号", "药品编号", "通用名", "数量", "单价", "小计");
-	printf("-------------------------------------------------------------\n");
-	for (int i = 0; i < itemCount; i++) {
-		double sub = selDrug[i]->price * selQty[i];
-		totalCost += sub;
-		printf("%-4d %-8s %-20s %-6d %-8.2f %-8.2f\n",
-			i + 1, selDrug[i]->drugId, selDrug[i]->genericName,
-			selQty[i], selDrug[i]->price, sub);
-	}
-	printf("-------------------------------------------------------------\n");
-	printf("处方总计: %.2f 元\n", totalCost);
-	printf("患者余额: %.2f 元\n", patient->balance);
-
-	if (patient->balance < totalCost) {
-		printf(">>> 警告: 余额不足，开具后余额将为 %.2f 元。\n", patient->balance - totalCost);
-	}
-
-	if (!confirmFunc("确认", "开具以上处方")) {
-		printf(">>> 已取消处方。\n");
-		return NULL;
-	}
-
-	// 扣库存、扣余额
-	for (int i = 0; i < itemCount; i++) {
-		selDrug[i]->stock -= selQty[i];
-	}
-	patient->balance -= totalCost;
-	saveDrugSystemData(sys);
-	printf(">>> 处方开具成功！已扣费 %.2f 元，当前余额: %.2f 元。\n", totalCost, patient->balance);
-
-	// 生成处方文本（不含价格，存入文件）
+	// 生成处方文本
 	char* result = (char*)malloc(512);
 	if (result == NULL) return NULL;
 	result[0] = '\0';
@@ -1098,6 +1066,32 @@ static char* prescribeDrugsForPatient(HIS_System* sys, const char* doctorId, con
 			(i < itemCount - 1) ? ";" : "");
 		strncat(result, item, 512 - strlen(result) - 1);
 	}
+
+	// 处方汇总（使用统一格式化函数）
+	printf("\n========== 处方汇总 ===========\n");
+	double totalCost = printPrescriptionDetail(sys, result);
+	printf("处方总计: %.2f 元\n", totalCost);
+	printf("患者余额: %.2f 元\n", patient->balance);
+
+	if (patient->balance < totalCost) {
+		printf(">>> 警告: 余额不足，开具后余额将为 %.2f 元。\n", patient->balance - totalCost);
+	}
+
+	if (!confirmFunc("确认", "开具以上处方")) {
+		free(result);
+		printf(">>> 已取消处方。\n");
+		return NULL;
+	}
+
+	// 扣库存、扣余额
+	for (int i = 0; i < itemCount; i++) {
+		selDrug[i]->stock -= selQty[i];
+	}
+	patient->balance -= totalCost;
+	addHospitalRevenue(sys, totalCost);
+	saveDrugSystemData(sys);
+	printf(">>> 处方开具成功！已扣费 %.2f 元，当前余额: %.2f 元。\n", totalCost, patient->balance);
+
 	return result;
 }
 
@@ -1433,17 +1427,33 @@ void executeDischargePatient(HIS_System* sys, const char* patientId, const char*
 	loadWardSystemData(sys);
 	loadPatientsSystemData(sys);
 
-	// 获取入院日期用于计算住院天数
+	// 查找活动住院记录（可能已被医生设置 endDate，也可能仍为"未出院"/"待出院"）
 	Patient* p = findPatientById(sys, patientId);
 	const char* startDate = NULL;
+	StayRecord* activeStay = NULL;
 	if (p != NULL) {
 		StayRecord* s = p->stayHead;
 		while (s != NULL) {
 			if (strcmp(s->wardId, wardId) == 0 && (strcmp(s->endDate, "未出院") == 0 || strcmp(s->endDate, "待出院") == 0)) {
+				activeStay = s;
 				startDate = s->startDate;
 				break;
 			}
 			s = s->next;
+		}
+		// 若未找到"未出院"/"待出院"记录，查找已设置endDate但尚未释放床位的活跃记录
+		if (activeStay == NULL) {
+			s = p->stayHead;
+			while (s != NULL) {
+				if (strcmp(s->wardId, wardId) == 0 && s->dischargeApproved == 1
+					&& strcmp(s->endDate, "未出院") != 0 && strcmp(s->endDate, "待出院") != 0) {
+					activeStay = s;
+					startDate = s->startDate;
+					// endDate和duration已由医生设置，无需再调用updateStayRecordEnd
+					break;
+				}
+				s = s->next;
+			}
 		}
 	}
 
@@ -1459,8 +1469,10 @@ void executeDischargePatient(HIS_System* sys, const char* patientId, const char*
 	// 1. 释放床位
 	freeBed(sys, wardId, bedId);
 
-	// 2. 更新住院记录
-	updateStayRecordEnd(sys, patientId, wardId, today, duration);
+	// 2. 更新住院记录（仅当endDate尚未由医生设置时才更新）
+	if (activeStay != NULL && (strcmp(activeStay->endDate, "未出院") == 0 || strcmp(activeStay->endDate, "待出院") == 0)) {
+		updateStayRecordEnd(sys, patientId, wardId, today, duration);
+	}
 
 	// 3. 保存所有受影响的数据
 	saveWardSystemData(sys);
@@ -1516,16 +1528,28 @@ void patientDischargeCheckout(HIS_System* sys, const char* patientId) {
 		return;
 	}
 
-	const char* startDate = NULL;
+	// 查找活跃住院记录：优先"未出院"/"待出院"，其次已由医生批准且endDate已被设置
 	StayRecord* activeStay = NULL;
 	StayRecord* s = p->stayHead;
 	while (s != NULL) {
-		if (strcmp(s->wardId, currentWard->wardId) == 0 && (strcmp(s->endDate, "未出院") == 0 || strcmp(s->endDate, "待出院") == 0)) {
+		if (strcmp(s->wardId, currentWard->wardId) == 0
+			&& (strcmp(s->endDate, "未出院") == 0 || strcmp(s->endDate, "待出院") == 0)) {
 			activeStay = s;
-			startDate = s->startDate;
 			break;
 		}
 		s = s->next;
+	}
+	if (activeStay == NULL) {
+		// 查找医生已设置endDate且已批准出院的记录
+		s = p->stayHead;
+		while (s != NULL) {
+			if (strcmp(s->wardId, currentWard->wardId) == 0 && s->dischargeApproved == 1
+				&& strcmp(s->endDate, "未出院") != 0 && strcmp(s->endDate, "待出院") != 0) {
+				activeStay = s;
+				break;
+			}
+			s = s->next;
+		}
 	}
 	if (activeStay == NULL) {
 		printf(">>> 未找到住院记录，请联系管理员。\n");
@@ -1538,10 +1562,59 @@ void patientDischargeCheckout(HIS_System* sys, const char* patientId) {
 		return;
 	}
 
-	const char* today = getCurrentDateStr();
-	int days = (startDate != NULL) ? daysBetweenDates(startDate, today) : 0;
 	double dailyPrice = currentWard->price;
-	double totalCost = days * dailyPrice;
+	double deposit = 7.0 * dailyPrice;	// 入院时已预扣7天押金（预收医疗款）
+
+	// 12:00规则：若当前时间在12:00之前，出院当天不计费
+	int adjust12 = 0;
+	{
+		char* timeStr = getCurrentTimeStr();
+		int hour = 0;
+		if (timeStr != NULL && sscanf(timeStr, "%d:", &hour) == 1) {
+			if (hour < 12) adjust12 = 1;
+		}
+	}
+
+	// 计算有效计费截止日（endDate 扣除12:00调整）
+	char effectiveEnd[DATE_STR_LEN];
+	if (adjust12) {
+		addDaysToDate(activeStay->endDate, -1, effectiveEnd, DATE_STR_LEN);
+	} else {
+		strncpy(effectiveEnd, activeStay->endDate, DATE_STR_LEN - 1);
+		effectiveEnd[DATE_STR_LEN - 1] = '\0';
+	}
+
+	int days = daysBetweenDates(activeStay->startDate, effectiveEnd);
+	if (days < 1) days = 1;
+
+	// 第一步：结算从上次计费日到有效截止日的每日费用（第8天起，避免与chargeAllInpatientsDaily重复）
+	{
+		const char* chargeFrom;
+		if (activeStay->isChargeDate[0] != '\0') {
+			chargeFrom = activeStay->isChargeDate;
+		} else {
+			char depositEnd[DATE_STR_LEN];
+			addDaysToDate(activeStay->startDate, 7, depositEnd, DATE_STR_LEN);
+			strncpy(activeStay->isChargeDate, depositEnd, DATE_STR_LEN - 1);
+			activeStay->isChargeDate[DATE_STR_LEN - 1] = '\0';
+			chargeFrom = activeStay->isChargeDate;
+		}
+		int chargeDays = daysBetweenDates(chargeFrom, effectiveEnd);
+		if (chargeDays > 0) {
+			double dailyChargeTotal = chargeDays * dailyPrice;
+			p->balance -= dailyChargeTotal;
+			addHospitalRevenue(sys, dailyChargeTotal);
+			strncpy(activeStay->isChargeDate, effectiveEnd, DATE_STR_LEN - 1);
+			activeStay->isChargeDate[DATE_STR_LEN - 1] = '\0';
+			if (TEST_SYSTEM_DEBUG)
+				printf(">>> 每日计费结算: %s → %s, %d天 × %.2f元 = %.2f 元\n",
+					chargeFrom, effectiveEnd, chargeDays, dailyPrice, dailyChargeTotal);
+		}
+	}
+
+	// 第二步：押金结算（预收医疗款，覆盖头7天）
+	double actualCost = days * dailyPrice;
+	double depositCost = (days < 7) ? actualCost : deposit;
 
 	// 显示出院结算信息
 	printf("\n========== 出院结算 ==========\n");
@@ -1549,26 +1622,34 @@ void patientDischargeCheckout(HIS_System* sys, const char* patientId) {
 	printf("病房类型: %s\n", wardTypeToStr(currentWard->type));
 	printf("所属科室: %s\n", currentWard->department);
 	printf("床位编号: %s\n", currentBed->bedId);
-	if (startDate != NULL) {
-		printf("入院日期: %s\n", startDate);
-	}
-	printf("已住天数: %d 天\n", days);
+	printf("入院日期: %s\n", activeStay->startDate);
+	printf("出院日期: %s\n", activeStay->endDate);
+	printf("计费截止: %s\n", effectiveEnd);
+	printf("实际住院: %d 天\n", days);
 	printf("每日价格: %.2f 元\n", dailyPrice);
-	printf("费用合计: %.2f 元\n", totalCost);
+	printf("实际费用: %.2f 元\n", actualCost);
+	printf("已付押金: %.2f 元 (7天预收医疗款)\n", deposit);
 	printf("==============================\n");
 
-	if (totalCost > 0.0) {
-		printf("\n>>> 费用合计 %.2f 元，请前往住院处窗口缴费结算。\n", totalCost);
-		// 预留收费扩展点：此处可接入实际支付/收费系统
-		if (!confirmFunc("缴费确认", "模拟缴费结算")) {
-			printf(">>> 已取消出院结算。\n");
-			pressEnterToContinue();
-			return;
-		}
-		printf(">>> 缴费成功！\n");
-	} else {
-		printf("\n>>> 当前费用为零，自动确认出院。\n");
+	if (!confirmFunc("缴费确认", "确认出院结算")) {
+		printf(">>> 已取消出院结算。\n");
+		pressEnterToContinue();
+		return;
 	}
+
+	// 押金清算（预收医疗款多退少补）
+	if (days < 7) {
+		// 实际天数少于7天，退还剩余预收医疗款
+		double refund = deposit - depositCost;
+		p->balance += refund;
+		addHospitalExpenditure(sys, refund);  // 预收医疗款退回
+		printf(">>> 住院费 %.2f 元已由押金抵扣，剩余预收医疗款 %.2f 元已退回。\n", depositCost, refund);
+	} else {
+		// 押金全额抵扣头7天，第8天起已在每日计费中结算
+		printf(">>> 住院费（头7天）已由押金全额抵扣 %.2f 元。\n", deposit);
+	}
+
+	printf(">>> 缴费成功！当前余额: %.2f 元。\n", p->balance);
 
 	// 确认出院
 	if (!confirmFunc("出院确认", "完成出院手续")) {
@@ -1577,17 +1658,59 @@ void patientDischargeCheckout(HIS_System* sys, const char* patientId) {
 		return;
 	}
 
-	// 执行出院
-	executeDischargePatient(sys, patientId, currentWard->wardId, currentBed->bedId);
+	// 写入 isChargeDate（患者最终缴费办结日期）
+	{
+		char chargeDate[DATE_STR_LEN];
+		if (TEST_SYSTEM_DEBUG) {
+			if (confirmFunc("使用", "自定义缴费办结日期")) {
+				safeGetString(">>> 请输入缴费办结日期(YYYY-MM-DD，输入 -1 取消): ", chargeDate, DATE_STR_LEN);
+			} else {
+				strcpy(chargeDate, getCurrentDateStr());
+			}
+			if (strcmp(chargeDate, "-1") == 0) {
+				printf(">>> 已取消。\n");
+				pressEnterToContinue();
+				return;
+			}
 
-	// 更新叫号状态（住院结束视为就诊结束）
-	const char* doctorId = NULL;
-	if (activeStay != NULL) {
-		doctorId = activeStay->doctorId;
+		} 
+		else {
+			strcpy(chargeDate, getCurrentDateStr());
+		}
+
+		if (!isValidDate(chargeDate)) {
+			printf(">>> 日期格式无效，操作取消。\n");
+			pressEnterToContinue();
+			return;
+		}
+		if (!confirmFunc("确认", "缴费办结日期")) {
+			printf(">>> 已取消。\n");
+			pressEnterToContinue();
+			return;
+		}
+
+		// 校验缴费日期不得早于出院日期
+		if (strcmp(chargeDate, activeStay->endDate) < 0) {
+			printf(">>> 缴费日期不得早于出院日期 (%s)，操作失败。\n", activeStay->endDate);
+			pressEnterToContinue();
+			return;
+		}
+		strncpy(activeStay->isChargeDate, chargeDate, DATE_STR_LEN - 1);
+		activeStay->isChargeDate[DATE_STR_LEN - 1] = '\0';
 	}
+
+	// 执行出院核心流程
+	char wardId[ID_LEN], bedId[BED_ID_LEN];
+	strcpy(wardId, currentWard->wardId);
+	strcpy(bedId, currentBed->bedId);
+
+	savePatientsSystemData(sys);
+	executeDischargePatient(sys, patientId, wardId, bedId);
+
+	// 更新叫号状态
+	const char* doctorId = activeStay->doctorId;
 	if (doctorId != NULL && doctorId[0] != '\0') {
-		// 尝试将患者叫号状态推进为已结束
-		markTicketAsInRoom(patientId, doctorId);  // 先确认为就诊中状态
+		markTicketAsInRoom(patientId, doctorId);
 	}
 	printf(">>> 出院手续办理完毕，祝您健康！\n");
 	pressEnterToContinue();
@@ -1624,12 +1747,12 @@ void patientInfoMenu(HIS_System* sys, const char* patientId) {
 		printf("账户余额: %.2f 元\n", patient->balance);
 		printf("联系电话: %s\n", patient->phone);
 		printf("身份证号: %s\n", patient->idCard);
-		printf("==================================\n");
+		printf("==================================\n\n");
 		printf("1. 修改联系电话\n");
 		printf("2. 修改年龄\n");
 		printf("3. 修改患者类型(普通/VIP)\n");
 		printf("0. 返回上级菜单\n");
-		choice = safeGetInt("请选择操作: ");
+		choice = safeGetInt(">>> 请选择操作: ");
 
 		switch (choice) {
 		case 1: {
@@ -1679,6 +1802,7 @@ void patientInfoMenu(HIS_System* sys, const char* patientId) {
 					break;
 				}
 				patient->balance -= 500.0;
+				addHospitalRevenue(sys, 500.0);
 				patient->type = PATIENT_VIP;
 				savePatientsSystemData(sys);
 				printf(">>> 已升级为 VIP，已扣费 500 元，当前余额: %.2f 元。\n", patient->balance);
@@ -1688,7 +1812,8 @@ void patientInfoMenu(HIS_System* sys, const char* patientId) {
 					printf(">>> 已取消修改。\n");
 					break;
 				}
-				if (!confirmFunc("二次确认", "继续将 VIP 转为普通")) {
+				printf(">>> 二次确认：继续将 VIP 转为普通将无法恢复 VIP 权益。\n");
+				if (!confirmFunc("确认", "继续将 VIP 转为普通")) {
 					printf(">>> 已取消修改。\n");
 					break;
 				}
@@ -1704,4 +1829,157 @@ void patientInfoMenu(HIS_System* sys, const char* patientId) {
 			printf(">>> 无效选择，请重试。\n");
 		}
 	}
+}
+
+// 对所有在住患者每日自动扣费
+void chargeAllInpatientsDaily(HIS_System* sys) {
+	if (sys == NULL) return;
+
+	const char* today = getCurrentDateStr();
+	int totalCharged = 0;
+	double totalAmount = 0.0;
+
+	Patient* p = sys->patientHead;
+	while (p != NULL) {
+		StayRecord* s = p->stayHead;
+		while (s != NULL) {
+			if (strcmp(s->endDate, "未出院") == 0) {
+				// 确定计费起始日：isChargeDate有值则从上次计费日起，否则从入院7天后起（押金覆盖前7天）
+				const char* chargeFrom;
+				if (s->isChargeDate[0] != '\0') {
+					chargeFrom = s->isChargeDate;
+				} else {
+					char depositEnd[DATE_STR_LEN];
+					addDaysToDate(s->startDate, 7, depositEnd, DATE_STR_LEN);
+					strncpy(s->isChargeDate, depositEnd, DATE_STR_LEN - 1);
+					s->isChargeDate[DATE_STR_LEN - 1] = '\0';
+					chargeFrom = s->isChargeDate;
+				}
+				int daysSince = daysBetweenDates(chargeFrom, today);
+				if (daysSince <= 0) { s = s->next; continue; }
+
+				Ward* w = sys->wardHead;
+				while (w != NULL) {
+					if (strcmp(w->wardId, s->wardId) == 0) break;
+					w = w->next;
+				}
+				if (w != NULL) {
+					double charge = daysSince * w->price;
+					p->balance -= charge;
+					addHospitalRevenue(sys, charge);
+					totalCharged++;
+					totalAmount += charge;
+					strncpy(s->isChargeDate, today, DATE_STR_LEN - 1);
+					s->isChargeDate[DATE_STR_LEN - 1] = '\0';
+				}
+			}
+			s = s->next;
+		}
+		p = p->next;
+	}
+
+	if (TEST_SYSTEM_DEBUG)
+		printf(">>> 住院每日计费完成: %d 条记录，合计 %.2f 元。\n", totalCharged, totalAmount);
+}
+
+// 通用余额充值
+bool addBalance(Patient* patient, double amount) {
+	if (patient == NULL || amount <= 0) return false;
+	patient->balance += amount;
+	return true;
+}
+
+// 指定患者的充值菜单
+void patientRechargeMenuForPatient(HIS_System* sys, Patient* patient) {
+	if (sys == NULL || patient == NULL) return;
+
+	while (1) {
+		printf("\n============== 余额充值 ==============\n");
+		printf("当前患者: %s  余额: %.2f 元\n", patient->name, patient->balance);
+		printf("--------------------------------------\n");
+
+		const int w = 24;
+		printFormattedStr("[1] 100元", w);
+		printFormattedStr("[2] 200元", w);
+		printf("\n");
+
+		printFormattedStr("[3] 500元", w);
+		printFormattedStr("[4] 1000元(赠80元)", w);
+		printf("\n");
+
+		printFormattedStr("[5] 2000元(赠200元)", w);
+		printFormattedStr("[6] 5000元(赠600元)", w);
+		printf("\n");
+
+		printFormattedStr("[7] 小额任意(<1000)", w);
+		printFormattedStr("[8] 大额任意(>=1000)(可享受8%-12%赠额)", w);
+		printf("\n");
+
+		printFormattedStr("0. 返回", w);
+		printf("\n");
+		printf("--------------------------------------\n");
+
+		int choice = safeGetInt("请选择充值选项: ");
+		double amount = 0.0;
+		double bonus = 0.0;
+		bool valid = true;
+
+		switch (choice) {
+		case 0: return;
+		case 1: amount = 100.0; break;
+		case 2: amount = 200.0; break;
+		case 3: amount = 500.0;	break;
+		case 4: amount = 1000.0; bonus = 80.0; break;
+		case 5: amount = 2000.0; bonus = 200.0; break;
+		case 6: amount = 5000.0; bonus = 600.0; break;
+		case 7:
+			amount = safeGetDouble("请输入充值金额(1-999元，-1取消): ");
+			if (amount <= -1.0 + 1e-6 && amount >= -1.0 - 1e-6) { valid = false; break; }
+			if (amount < 1.0 || amount >= 1000.0) {
+				printf(">>> 小额充值范围为 1-999 元，请重试。\n");
+				valid = false;
+			}
+			break;
+		case 8:
+			amount = safeGetDouble("请输入充值金额(>=1000元，-1取消): ");
+			if (amount <= -1.0 + 1e-6 && amount >= -1.0 - 1e-6) { valid = false; break; }
+			if (amount < 1000.0) {
+				printf(">>> 大额充值最低 1000 元，请重试。\n");
+				valid = false;
+			} else if (amount < 1500.0)       { bonus = amount * 0.08; }
+			else if (amount < 2000.0)  { bonus = amount * 0.09; }
+			else if (amount < 3500.0)  { bonus = amount * 0.10; }
+			else if (amount < 5000.0)  { bonus = amount * 0.11; }
+			else                       { bonus = amount * 0.12; }
+			break;
+		default:
+			printf(">>> 无效选择，请重试。\n");
+			valid = false;
+		}
+
+		if (!valid) continue;
+
+		double totalAdd = amount + bonus;
+		printf("\n>>> 充值金额: %.2f 元", amount);
+		if (bonus > 0) printf("，赠送: %.2f 元", bonus);
+		printf("，合计到账: %.2f 元\n", totalAdd);
+
+		if (!confirmFunc("确认", "以上充值信息")) {
+			printf(">>> 已取消充值。\n");
+			continue;
+		}
+
+		addBalance(patient, totalAdd);
+		savePatientsSystemData(sys);
+		printf(">>> 充值成功！当前余额: %.2f 元。\n", patient->balance);
+	}
+}
+
+// 余额充值入口（需先登录）
+void patientRechargeMenu(HIS_System* sys) {
+	if (!isPatientLoggedIn()) {
+		printf(">>> 请先登录后再进行余额充值！\n");
+		return;
+	}
+	patientRechargeMenuForPatient(sys, getCurrentPatientNode());
 }

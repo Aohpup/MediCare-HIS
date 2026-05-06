@@ -10,6 +10,21 @@
 #include"ConfirmFunc.h"
 
 //---------------------------------------------------
+// 根据药品编号查找药品信息
+Drug* findDrugById(HIS_System* sys, const char* drugId) {
+	if (sys == NULL || drugId == NULL) {
+		return NULL;
+	}
+	Drug* curr = sys->drugHead;
+	while (curr != NULL) {
+		if (strcmp(curr->drugId, drugId) == 0) {
+			return curr;
+		}
+		curr = curr->next;
+	}
+	return NULL;
+}
+
 //药品编号防重复
 static bool isDrugIdExist(Drug* head, const char* id) {
 	Drug* curr = head;
@@ -345,8 +360,15 @@ void addDrug(HIS_System* sys) {
 		sys->drugHead = newDrug;
 		refreshDrugDisplayList(sys);
 
+		// 进货成本 = 单价 × 0.85 × 库存，计入医院支出
+		double cost = newDrug->price * 0.85 * newDrug->stock;
+		addHospitalExpenditure(sys, cost);
+		saveFinanceData(sys);
+		if (TEST_SYSTEM_DEBUG)
+			printf(">>> 药品进货成本: %.2f 元，已计入支出。\n", cost);
+
 		printf(">>> 药品 <%s>(%s) 录入成功！\n", newDrug->genericName, newDrug->tradeName);
-		
+
 		// 提示是否继续添加
 		printf(">>> 提示：已自动继续添加药品；可直接输入 '-1' 可以在下一个编号输入时退出。\n");
 	}
@@ -742,7 +764,14 @@ void modifyDrug(HIS_System* sys) {
 				printf(">>> 错误：库存量不能为负数！\n");
 				continue;
 			}
+			int increase = newStock - target->stock;
 			target->stock = newStock;
+			if (increase > 0) {
+				double cost = target->price * 0.85 * increase;
+				addHospitalExpenditure(sys, cost);
+				saveFinanceData(sys);
+				printf(">>> 库存增加 %d，进货成本: %.2f 元，已计入支出。\n", increase, cost);
+			}
 			printf(">>> 库存修改成功！\n");
 			break;
 		}
@@ -825,6 +854,8 @@ void displayAllDrugsDoc(HIS_System* sys) {
 		printf(">>> 系统内没有药品数据！\n");
 		return;
 	}
+	// 按药品编号升序排列
+	sortDrugList(sys->drugDisplayHead, NULL, SORT_BY_ID, ORDER_ASC);
 
 	char buffer[256];
 	int number = 1;

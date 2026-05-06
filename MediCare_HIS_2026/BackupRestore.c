@@ -10,9 +10,10 @@
 // 所有需备份的数据文件清单
 static const char* dataFiles[] = {
 	DRUG_FILE, DOCTOR_FILE, DEPARTMENT_FILE, WARD_FILE,
-	PATIENT_FILE, QUEUE_TICKET_FILE, EXAM_ITEM_FILE, EXAM_ORDER_FILE
+	PATIENT_FILE, QUEUE_TICKET_FILE, EXAM_ITEM_FILE, EXAM_ORDER_FILE,
+	FINANCE_FILE
 };
-#define DATA_FILE_COUNT 8
+#define DATA_FILE_COUNT 9
 
 // 逐字节复制文件，返回0成功，-1失败
 static int copyFile(const char* src, const char* dst) {
@@ -112,7 +113,7 @@ void backupAllDataFiles(void) {
 		}
 	}
 	if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
-		printf(">>> 数据备份完成! (备份%d/%d个文件)\n", backed, DATA_FILE_COUNT);
+		printf(">>> 数据备份完成! (备份%d/%d个文件)\n\n\n", backed, DATA_FILE_COUNT);
 }
 
 // 正常退出前标记安全关闭

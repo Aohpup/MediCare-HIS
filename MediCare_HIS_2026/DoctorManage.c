@@ -16,6 +16,7 @@
 #include"WardManage.h"
 #include"WardFileManage.h"
 #include"StringCheck.h"
+#include"DayTimeUtils.h"
 #include<string.h>
 
 bool is_Doctor_Logged_In = false;	//标记医生是否已登录
@@ -748,7 +749,7 @@ static void setDoctorSchedule(HIS_System* sys, char* doctorId, const char* date)
 	doctor* Doctor = NULL;
 	if (doctorId[0] == '\0') {
 		safeGetString(">>> 请输入需要排班的医生编号: ", doctorId, ID_LEN);
-		Doctor = findDoctorByIdInQueue(sys->docHead, doctorId);
+		Doctor = findDoctorByIdInQueue(sys, doctorId);
 		if(Doctor == NULL) {
 			printf(">>> 未找到该医生，无法设置排班。\n");
 			return;
@@ -756,7 +757,7 @@ static void setDoctorSchedule(HIS_System* sys, char* doctorId, const char* date)
 
 	}
 	else {	// 已登录医生只能设置自己的排班
-		Doctor = findDoctorByIdInQueue(sys->docHead, doctorId);
+		Doctor = findDoctorByIdInQueue(sys, doctorId);
 		if(Doctor == NULL) {
 			printf(">>> 未找到该医生，无法设置排班。\n");
 			return;
@@ -1464,6 +1465,14 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 		return;
 	}
 
+	// 预扣 7 天押金
+	double deposit = 7.0 * targetWard->price;
+	printf(">>> 住院押金: 7天 × %.2f元/天 = %.2f 元\n", targetWard->price, deposit);
+	printf(">>> 当前余额: %.2f 元，扣费后余额: %.2f 元\n",
+		patient->balance, patient->balance - deposit);
+	patient->balance -= deposit;
+	addHospitalRevenue(sys, deposit);
+
 	// 执行分配
 	strcpy(targetBed->patient, patientId);
 	targetBed->isOccupied = true;
@@ -1471,11 +1480,12 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 	printf(">>> 住院分配成功！患者 [%s] 已入住病房 [%s] 床位 [%s]。\n",
 		patient->name, targetWard->wardId, targetBed->bedId);
 
-	// 同步住院记录到患者数据，字段信息已拆分到独立字段
+	// 同步住院记录到患者数据
 	char deptInfo[STR_LEN];
 	sprintf(deptInfo, "科室[%s]", targetWard->department);
 	appendStayMedicalRecord(sys, patientId, doctorId, deptInfo, targetBed->bedId,
 		getCurrentDateStr(), "待定", "未出院", targetWard->wardId);
+
 	savePatientsSystemData(sys);
 
 	// 推进叫号状态为就诊中
@@ -1483,10 +1493,10 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 	pressEnterToContinue();
 }
 
-// 医生端：批准患者出院
+// 医生端：批准办理患者出院（合并原"批准出院"与"办理出院"）
 void doctorApproveDischarge(HIS_System* sys, const char* doctorId) {
 	if (sys == NULL || doctorId == NULL) {
-		printf(">>> 医生未登录，无法批准出院。\n");
+		printf(">>> 医生未登录，无法办理。\n");
 		return;
 	}
 
@@ -1500,7 +1510,7 @@ void doctorApproveDischarge(HIS_System* sys, const char* doctorId) {
 		Patient* p = findPatientById(sys, calledId);
 		if (p != NULL) {
 			printf("\n>>> 当前叫号患者: %s (%s)\n", p->name, calledId);
-			if (confirmFunc("批准出院", "叫号患者")) {
+			if (confirmFunc("选择", "为叫号患者办理出院")) {
 				strcpy(patientId, calledId);
 				useCalledPatient = true;
 			}
@@ -1510,10 +1520,11 @@ void doctorApproveDischarge(HIS_System* sys, const char* doctorId) {
 	if (!useCalledPatient) {
 		safeGetString(">>> 请输入要批准出院的患者编号 (输入 -1 取消): ", patientId, ID_LEN);
 		if (strcmp(patientId, "-1") == 0) {
-			printf(">>> 已取消批准出院。\n");
+			printf(">>> 已取消。\n");
 			return;
 		}
-		if (!isPatientCalledByDoctor(patientId, doctorId)) {
+		if (!isPatientCalledByDoctor(patientId, doctorId)
+			&& !hasPatientCalledByDoctor(patientId, doctorId)) {
 			printf(">>> 该患者不是您的患者或者未在候诊队列中，您无法批准出院。\n");
 			return;
 		}
@@ -1554,15 +1565,52 @@ void doctorApproveDischarge(HIS_System* sys, const char* doctorId) {
 		return;
 	}
 
+	// 设置出院日期
+	char endDate[DATE_STR_LEN];
+	if (TEST_SYSTEM_DEBUG) {
+		safeGetString(">>> 请输入出院日期(YYYY-MM-DD，输入 -1 取消): ", endDate, DATE_STR_LEN);
+		if (strcmp(endDate, "-1") == 0) {
+			printf(">>> 已取消。\n");
+			return;
+		}
+		if (!isValidDate(endDate)) {
+			printf(">>> 日期格式无效，操作取消。\n");
+			return;
+		}
+		if (!confirmFunc("确认", "出院日期")) {
+			printf(">>> 已取消。\n");
+			return;
+		}
+	} else {
+		strcpy(endDate, getCurrentDateStr());
+	}
+
+	// 校验出院日期不得早于入院日期
+	if (strcmp(endDate, activeStay->startDate) < 0) {
+		printf(">>> 日期无效，不得早于入院日期 (%s)。\n", activeStay->startDate);
+		pressEnterToContinue();
+		return;
+	}
+
 	if (!confirmFunc("批准", "患者出院")) {
 		printf(">>> 已取消批准出院。\n");
 		pressEnterToContinue();
 		return;
 	}
 
+	// 设置出院许可并写入出院日期
 	activeStay->dischargeApproved = 1;
+	strncpy(activeStay->endDate, endDate, ID_LEN - 1);
+	activeStay->endDate[ID_LEN - 1] = '\0';
+	// 更新住院时长
+	int days = daysBetweenDates(activeStay->startDate, endDate);
+	char duration[ID_LEN];
+	sprintf(duration, "%d天", days);
+	strncpy(activeStay->duration, duration, ID_LEN - 1);
+	activeStay->duration[ID_LEN - 1] = '\0';
+
 	savePatientsSystemData(sys);
-	printf(">>> 患者 %s 出院许可已批准。\n", patient->name);
+	printf(">>> 患者 %s 出院许可已批准，出院日期: %s。\n", patient->name, endDate);
 	pressEnterToContinue();
 }
 
@@ -1573,193 +1621,16 @@ void doctorWardMenu(HIS_System* sys, const char* doctorId) {
 		printf("\n======== 住院管理 ========\n");
 		printf("1. 分配住院\n");
 		printf("2. 查看住院信息\n");
-		printf("3. 办理出院\n");
-		printf("4. 批准出院\n");
+		printf("3. 批准办理患者出院\n");
 		printf("0. 返回上级菜单\n");
 		printf("==========================\n");
 		choice = safeGetInt("请选择操作: ");
 		switch (choice) {
 		case 1: doctorArrangeWard(sys, doctorId); break;
 		case 2: doctorViewStayInfo(sys, doctorId); break;
-		case 3: doctorDischargePatient(sys, doctorId); break;
-		case 4: doctorApproveDischarge(sys, doctorId); break;
+		case 3: doctorApproveDischarge(sys, doctorId); break;
 		case 0: return;
 		default: printf(">>> 无效选择，请重试。\n");
 		}
 	}
-}
-
-// 医生端：办理患者出院
-void doctorDischargePatient(HIS_System* sys, const char* doctorId) {
-	if (sys == NULL || doctorId == NULL) {
-		printf(">>> 医生未登录，无法办理出院。\n");
-		return;
-	}
-
-	loadWardSystemData(sys);
-	loadPatientsSystemData(sys);
-
-	// 优先获取当前叫号患者信息，确保医生可以直接办理当前就诊患者的出院手续，无需重复输入患者编号
-	char patientId[ID_LEN];
-	bool useCalledPatient = false;
-	const char* calledId = findCalledPatientIdByDoctor(doctorId);
-	if (calledId != NULL) {
-		Patient* p = findPatientById(sys, calledId);
-		if (p != NULL) {
-			// 使用当前叫号患者信息
-			printf("\n>>> 当前叫号患者: %s (%s)\n", p->name, calledId);
-			if (confirmFunc("办理出院", "叫号患者")) {
-				strcpy(patientId, calledId);
-				useCalledPatient = true;
-			}
-		}
-	}
-	
-	if(!useCalledPatient) {
-		safeGetString(">>> 请输入要办理出院的患者编号 (输入 -1 取消): ", patientId, ID_LEN);
-		if (strcmp(patientId, "-1") == 0) {
-			printf(">>> 已取消出院操作。\n");
-			return;
-		}
-		if (!isPatientCalledByDoctor(patientId, doctorId)) {
-			printf(">>> 该患者不是您的患者或者未在候诊队列中，您无法办理出院手续。\n");
-			return;
-		}
-	}
-
-	Patient* patient = findPatientById(sys, patientId);
-	if (patient == NULL) {
-		printf(">>> 未找到当前就诊患者信息。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	// 查找患者当前入住的病房和床位
-	Ward* currentWard = findPatientWard(sys, patientId);
-	if (currentWard == NULL) {
-		printf(">>> 患者 %s (%s) 当前未住院，无法办理出院。\n", patient->name, patientId);
-		pressEnterToContinue();
-		return;
-	}
-
-	// 找到对应的床位
-	Bed* currentBed = NULL;
-	Bed* b = currentWard->bedListHead;
-	while (b != NULL) {
-		if (b->isOccupied && strcmp(b->patient, patientId) == 0) {
-			currentBed = b;
-			break;
-		}
-		b = b->next;
-	}
-	if (currentBed == NULL) {
-		printf(">>> 未找到当前床位信息，请联系管理员。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	// 查找该患者对应的"住院中"或"待出院"住院记录
-	StayRecord* activeStay = NULL;
-	bool alreadyPending = false;
-	StayRecord* s = patient->stayHead;
-	while (s != NULL) {
-		// 住院记录必须匹配病房编号，且状态为"未出院"或"待出院"
-		if (strcmp(s->wardId, currentWard->wardId) == 0) {
-			// 住院记录状态为"未出院"，说明尚未开具出院医嘱，医生需要先开具出院医嘱
-			if (strcmp(s->endDate, "未出院") == 0) {
-				activeStay = s;
-				alreadyPending = false;
-				break;
-			}
-			// 住院记录状态为"待出院"，说明已开具出院医嘱但尚未完成出院手续，医生可以直接办理出院，无需再次开具医嘱
-			if (strcmp(s->endDate, "待出院") == 0) {
-				activeStay = s;
-				alreadyPending = true;
-				break;
-			}
-		}
-		s = s->next;
-	}
-	if (activeStay == NULL) {
-		printf(">>> 未找到患者 %s 的住院记录，请联系管理员。\n", patientId);
-		pressEnterToContinue();
-		return;
-	}
-
-	// 计算住院天数与费用
-	const char* today = getCurrentDateStr();
-	int days = daysBetweenDates(activeStay->startDate, today);
-	double totalCost = days * currentWard->price;
-
-	// 显示住院信息摘要
-	printf("\n======== 出院评估 ========\n");
-	printf("患者姓名: %s\n", patient->name);
-	printf("患者编号: %s\n", patientId);
-	printf("病房编号: %s\n", currentWard->wardId);
-	printf("病房类型: %s\n", wardTypeToStr(currentWard->type));
-	printf("床位编号: %s\n", currentBed->bedId);
-	printf("入院日期: %s\n", activeStay->startDate);
-	printf("已住天数: %d 天\n", days);
-	printf("每日价格: %.2f 元\n", currentWard->price);
-	printf("费用合计: %.2f 元\n", totalCost);
-	if (alreadyPending) {
-		printf("当前状态: 待出院（已开具出院医嘱）\n");
-	}
-	printf("==========================\n");
-
-	// 如果已开具出院医嘱（待出院），询问是否直接完成出院
-	if (alreadyPending) {
-		if (confirmFunc("完成出院", "")) {
-			if (totalCost > 0.0) {
-				printf(">>> 费用合计 %.2f 元，需患者前往住院处结算后方可出院。\n", totalCost);
-				pressEnterToContinue();
-				return;
-			}
-			executeDischargePatient(sys, patientId, currentWard->wardId, currentBed->bedId);
-			printf(">>> 出院手续已完成！\n");
-			if (confirmFunc("结束看诊", "为该患者结束本次看诊")) {
-				if (markTicketAsFinished(patientId, doctorId)) {
-					printf(">>> 患者 %s 看诊已结束。\n", patientId);
-				}
-			}
-		}
-		pressEnterToContinue();
-		return;
-	}
-
-	// 尚未开具出院医嘱
-	if (!confirmFunc("开具", "出院医嘱")) {
-		printf(">>> 已取消出院操作。\n");
-		pressEnterToContinue();
-		return;
-	}
-
-	if (totalCost > 0.0) {
-		// 费用>0，开具出院医嘱，患者需前往住院处结算
-		char duration[ID_LEN];
-		sprintf(duration, "%d天", days);
-		updateStayRecordEnd(sys, patientId, currentWard->wardId, "待出院", duration);
-		savePatientsSystemData(sys);
-		printf(">>> 出院医嘱已开具，状态已更新为「待出院」。\n");
-		printf(">>> 请患者前往住院处结算（费用合计 %.2f 元）。\n", totalCost);
-	} else {
-		// 费用为0，询问是否直接完成出院
-		printf(">>> 当前费用为零。\n");
-		if (confirmFunc("直接出院", "")) {
-			executeDischargePatient(sys, patientId, currentWard->wardId, currentBed->bedId);
-			printf(">>> 出院手续已完成！\n");
-			if (confirmFunc("结束看诊", "为该患者结束本次看诊")) {
-				if (markTicketAsFinished(patientId, doctorId)) {
-					printf(">>> 患者 %s 看诊已结束。\n", patientId);
-				}
-			}
-		} else {
-			char duration[ID_LEN];
-			sprintf(duration, "%d天", days);
-			updateStayRecordEnd(sys, patientId, currentWard->wardId, "待出院", duration);
-			savePatientsSystemData(sys);
-			printf(">>> 出院医嘱已开具，状态已更新为「待出院」，等待患者办理。\n");
-		}
-	}
-	pressEnterToContinue();
 }

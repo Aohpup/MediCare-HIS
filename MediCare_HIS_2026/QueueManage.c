@@ -710,6 +710,18 @@ bool isPatientCalledByDoctor(const char* patientId, const char* doctorId) {
 	return (ticket->status == STATUS_CALLED || ticket->status == STATUS_IN_ROOM);
 }
 
+// 检查医生是否曾经叫号过某患者（含已结束看诊、过号），用于出院管理等历史关联操作
+bool hasPatientCalledByDoctor(const char* patientId, const char* doctorId) {
+	QueueTicket* ticket = findTicketByDoctorPatient(doctorId, patientId);
+	if (ticket == NULL) {
+		return false;
+	}
+	return (ticket->status == STATUS_CALLED
+		|| ticket->status == STATUS_IN_ROOM
+		|| ticket->status == STATUS_FINISHED
+		|| ticket->status == STATUS_MISSED);
+}
+
 // 将患者挂号单状态从STATUS_CALLED推进为STATUS_IN_ROOM（表示已进入诊室就诊）
 bool markTicketAsInRoom(const char* patientId, const char* doctorId) {
 	QueueTicket* ticket = findTicketByDoctorPatient(doctorId, patientId);
@@ -742,11 +754,22 @@ const char* findCalledPatientIdByDoctor(const char* doctorId) {
 	if (doctorId == NULL) {
 		return NULL;
 	}
+	// 第一优先：STATUS_IN_ROOM（就诊中），取最新挂号（靠近链表头部）
 	QueueTicket* curr = g_ticketHead;
 	while (curr != NULL) {
 		if (curr->doctor != NULL && curr->patient != NULL &&
 			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
-			(curr->status == STATUS_CALLED || curr->status == STATUS_IN_ROOM)) {
+			curr->status == STATUS_IN_ROOM) {
+			return curr->patient->patientId;
+		}
+		curr = curr->next;
+	}
+	// 第二优先：STATUS_CALLED（已叫号未入室），取最新挂号
+	curr = g_ticketHead;
+	while (curr != NULL) {
+		if (curr->doctor != NULL && curr->patient != NULL &&
+			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
+			curr->status == STATUS_CALLED) {
 			return curr->patient->patientId;
 		}
 		curr = curr->next;

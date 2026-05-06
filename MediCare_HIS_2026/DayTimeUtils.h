@@ -32,5 +32,7 @@ void getCurrentTime(int* hour, int* minute, int* second);
 //验证时间字符串格式和有效性（格式：HH:MM:SS）
 bool isValidTime(const char* timeStr);
 
+//日期加天数（简化算法，与 daysBetweenDates 一致），结果写入 out
+void addDaysToDate(const char* dateStr, int addDays, char* out, int outSize);
 
 #endif // !DAYTIMEUTILS_H

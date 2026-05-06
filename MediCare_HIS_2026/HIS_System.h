@@ -10,10 +10,15 @@
 #include"ProjectLimits.h"
 #include"StringCheck.h"
 
+
+
 //测试信息
 extern bool TEST_SYSTEM_DEBUG;		//是否启用测试（true启用，false禁用）
 
 extern bool AUTO_BACKUP_DATA;		//自动备份数据到backup目录（true启用，false禁用）
+
+
+extern long long fixedAsset;	//医院固定资产（初始值为1000万，单位：元）
 
 //S链表存储数据
 //S.1药品
@@ -170,6 +175,7 @@ typedef struct StayRecord {
 	char wardId[ID_LEN];			// 关联病房编号
 	char bedId[BED_ID_LEN];			// 床位编号（如 "P10401"）
 	int dischargeApproved;			// 出院许可(0=不可出院,1=准许出院)
+	char isChargeDate[DATE_STR_LEN];	// 患者最终缴费办结日期（住院费用结清后记录）
 	char details[512];				// 住院事件描述（入院 | 出院）
 	struct StayRecord* next;
 } StayRecord;
@@ -184,6 +190,7 @@ typedef struct Patient {
 	int age;					//患者年龄
 	PatientType type;				//患者类别 (普通/VIP/急诊)
 	double balance;				//患者账户余额
+	int loginCount;				//登录次数
 
 	RegistrationRecord* regHead;		// 挂号记录链表头
 	ConsultationRecord* viewHead;		// 看诊记录链表头
@@ -232,6 +239,8 @@ typedef struct HIS_System {
 	ExamOrder* examOrderHead;
 	Patient* patientHead;
 	Patient* patientTail;
+	double hospitalRevenue;		// 全院总收入
+	double hospitalExpenditure;	// 全院总支出
 } HIS_System;
 
 
@@ -248,5 +257,18 @@ void saveSystemData(HIS_System* sys);
 //释放系统内存（当前至少释放药品原始链表和显示链表）
 //TODO：新的原始和显示链表
 void cleanupSystemMemory(HIS_System* sys);
+
+//累加医院收入/支出
+void addHospitalRevenue(HIS_System* sys, double amount);
+void addHospitalExpenditure(HIS_System* sys, double amount);
+
+//保存财务数据到文件
+void saveFinanceData(HIS_System* sys);
+
+//对所有在住患者执行每日住院计费
+void chargeAllInpatientsDaily(HIS_System* sys);
+
+//管理员：财务与库存报表统计
+void showFinanceStatistics(HIS_System* sys);
 
 #endif // HIS_SYSTEM_H

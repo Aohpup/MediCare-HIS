@@ -79,9 +79,16 @@ void loadPatientsSystemData(HIS_System* sys) {
 			int t = 0;
 			patient->age = 0;
 			patient->balance = 0.0;
+			patient->loginCount = 0;
 			bool parseOk = false;
-			if (spaceCnt >= 7) {
-				// 新格式: patientId name phone idCard gender age type balance (8字段)
+			if (spaceCnt >= 8) {
+				// 新新格式: patientId name phone idCard gender age type balance loginCount (9字段)
+				parseOk = (sscanf(pl, "%s %s %s %s %s %d %d %lf %d",
+					patient->patientId, patient->name, patient->phone,
+					patient->idCard, patient->gender, &patient->age, &t,
+					&patient->balance, &patient->loginCount) >= 8);
+			} else if (spaceCnt >= 7) {
+				// 新格式: patientId name phone idCard gender age type balance (8字段，无loginCount)
 				parseOk = (sscanf(pl, "%s %s %s %s %s %d %d %lf",
 					patient->patientId, patient->name, patient->phone,
 					patient->idCard, patient->gender, &patient->age, &t,
@@ -302,9 +309,13 @@ void loadPatientsSystemData(HIS_System* sys) {
 				if (*p == '|') pipes++;
 			}
 			bool parseOk = false;
-			if (pipes >= 9) {
+			if (pipes >= 10) {
+				// 新新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|dischargeApproved|isChargeDate|details
+				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%d|%19[^|]|%511[^\n]",
+					stay->recordId, stay->startDate, stay->duration, stay->endDate,
+					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, &stay->dischargeApproved, stay->isChargeDate, stay->details) == 11);
+			} else if (pipes >= 9) {
 				// 新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|dischargeApproved|details
-				// 使用 >=9 而非 ==9，以兼容 details 中包含 '|' 的情况
 				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%d|%511[^\n]",
 					stay->recordId, stay->startDate, stay->duration, stay->endDate,
 					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, &stay->dischargeApproved, stay->details) == 10);
@@ -377,8 +388,8 @@ void savePatientsSystemData(HIS_System* sys) {
 
 	Patient* patient = sys->patientHead;
 	while (patient) {
-		fprintf(fp, "P %s %s %s %s %s %d %d %.2f\n", patient->patientId, patient->name, patient->phone,
-			patient->idCard, patient->gender, patient->age, patient->type, patient->balance);
+		fprintf(fp, "P %s %s %s %s %s %d %d %.2f %d\n", patient->patientId, patient->name, patient->phone,
+			patient->idCard, patient->gender, patient->age, patient->type, patient->balance, patient->loginCount);
 		RegistrationRecord* reg = patient->regHead;
 		while (reg) {
 			fprintf(fp, "R %s %s %s %s %s\n", reg->recordId, reg->department, reg->doctorId,
@@ -397,9 +408,9 @@ void savePatientsSystemData(HIS_System* sys) {
 		}
 		StayRecord* stay = patient->stayHead;
 		while (stay) {
-			fprintf(fp, "S %s|%s|%s|%s|%s|%s|%s|%s|%d|%s\n", stay->recordId, stay->startDate,
+			fprintf(fp, "S %s|%s|%s|%s|%s|%s|%s|%s|%d|%s|%s\n", stay->recordId, stay->startDate,
 				stay->duration, stay->endDate, stay->deptInfo,
-				stay->doctorId, stay->wardId, stay->bedId, stay->dischargeApproved, stay->details);
+				stay->doctorId, stay->wardId, stay->bedId, stay->dischargeApproved, stay->isChargeDate, stay->details);
 			stay = stay->next;
 		}
 		fprintf(fp, "END\n");

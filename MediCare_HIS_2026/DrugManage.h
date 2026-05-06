@@ -8,6 +8,9 @@
 // 检查药品编号是否存在
 bool isDrugIdExist(Drug* head, const char* id);
 
+// 根据药品编号查找药品信息（返回药品指针，未找到返回NULL）
+Drug* findDrugById(HIS_System* sys, const char* drugId);
+
 // 检查药品通用名是否存在
 bool isDrugGenNameExist(Drug* head, const char* genName);
 

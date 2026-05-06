@@ -116,6 +116,22 @@ bool isValidDate(const char* dateStr) {
 	return true;	//通过所有验证，日期有效
 }
 
+void addDaysToDate(const char* dateStr, int addDays, char* out, int outSize) {
+	if (dateStr == NULL || out == NULL || outSize <= 0) return;
+	int y = 0, m = 0, d = 0;
+	if (sscanf(dateStr, "%d-%d-%d", &y, &m, &d) != 3) {
+		snprintf(out, outSize, "%s", dateStr ? dateStr : "");
+		return;
+	}
+	int total = y * 365 + m * 30 + d + addDays;
+	y = total / 365;
+	total %= 365;
+	m = total / 30 + 1;
+	d = total % 30 + 1;
+	if (m > 12) { y++; m -= 12; }
+	snprintf(out, outSize, "%d-%02d-%02d", y, m, d);
+}
+
 bool isValidTime(const char* timeStr) {
 	if (strlen(timeStr) != 8) 
 		return false;	//长度必须为8

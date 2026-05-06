@@ -116,8 +116,8 @@ void saveDrugSystemData(HIS_System* sys) {
 	Drug* curr = sys->drugHead;
 	while (curr != NULL) {
 		fprintf(fp, "%s %s %s %s %s %d %.2f\n",
-			curr->drugId, curr->drugGbCode, 
-			curr->genericName, curr->tradeName, curr->alias, 
+			curr->drugId, curr->drugGbCode,
+			curr->genericName, curr->tradeName, curr->alias,
 			curr->stock, curr->price);
 		curr = curr->next;
 	}
