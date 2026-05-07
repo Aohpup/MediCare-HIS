@@ -41,16 +41,37 @@ const char* wardTypeToStr(WardType type) {
 
 //统计床位数
 int countBeds(Ward* ward) {
-	int c = 0; Bed* b = ward->bedListHead; while (b) { c++; b = b->next; } return c;
+	int c = 0; 
+	Bed* b = ward->bedListHead; 
+	while (b){
+		c++;
+		b = b->next;
+	}
+	return c;
 }
+
 //统计已占用床位数
 int countOccupiedBeds(Ward* ward) {
-	int c = 0; Bed* b = ward->bedListHead; while (b) { if (b->isOccupied) c++; b = b->next; } return c;
+	int c = 0;
+	Bed* b = ward->bedListHead;
+	while (b) {
+		if (b->isOccupied) {
+			c++;
+		}
+		b = b->next;
+	}
+	return c;
 }
 
 //按床位编号查找
 Bed* findBed(Ward* ward, const char* bedId) {
-	Bed* b = ward->bedListHead; while (b) { if (strcmp(b->bedId, bedId) == 0) return b; b = b->next; } return NULL;
+	Bed* b = ward->bedListHead;
+	while (b) {
+		if (strcmp(b->bedId, bedId) == 0)
+			return b;
+		b = b->next;
+	} 
+	return NULL;
 }
 
 //录入新病房
@@ -805,26 +826,33 @@ Ward* autoRecommendWard(HIS_System* sys, PatientType patientType, const char* do
 			bool aTypeMatch = (a->type == targetType);
 			bool bTypeMatch = (b->type == targetType);
 			if (aTypeMatch != bTypeMatch) {
-				if (bTypeMatch) swap = true;
-			} else {
+				if (bTypeMatch) 
+					swap = true;
+			} 
+			else {
 				// ② 价格策略（根据患者类型）
 				if (patientType == PATIENT_VIP) {
-					if (b->price > a->price) swap = true;
-				} else {
-					if (b->price < a->price) swap = true;
+					if (b->price > a->price) 
+						swap = true;
+				} 
+				else {
+					if (b->price < a->price) 
+						swap = true;
 				}
 
 				if (!swap && a->price == b->price) {
 					// ③ 入住率最低优先
 					double aOcc = (double)countOccupiedBeds(a) / countBeds(a);
 					double bOcc = (double)countOccupiedBeds(b) / countBeds(b);
-					if (bOcc < aOcc) swap = true;
+					if (bOcc < aOcc) 
+						swap = true;
 					else if (aOcc == bOcc) {
 						// ④ 总床位数少优先
-						if (countBeds(b) < countBeds(a)) swap = true;
-						// ⑤ 编号小优先
-						else if (countBeds(b) == countBeds(a) && strcmp(b->wardId, a->wardId) < 0)
+						if (countBeds(b) < countBeds(a)) 
 							swap = true;
+							// ⑤ 编号小优先
+							else if (countBeds(b) == countBeds(a) && strcmp(b->wardId, a->wardId) < 0)
+								swap = true;
 					}
 				}
 			}

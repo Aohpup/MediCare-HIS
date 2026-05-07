@@ -13,17 +13,6 @@ static void swapWards(Ward* a, Ward* b) {
 	b->next = tempNext;
 }
 
-static int countBeds(Ward* ward) {
-	int c = 0; Bed* b = ward->bedListHead;
-	while (b) { c++; b = b->next; }
-	return c;
-}
-static int countOccupiedBeds(Ward* ward) {
-	int c = 0; Bed* b = ward->bedListHead;
-	while (b) { if (b->isOccupied) c++; b = b->next; }
-	return c;
-}
-
 static int needSwap(Ward* a, Ward* b, int choice, int order) {
 	int cmp = 0;
 	switch (choice) {

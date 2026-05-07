@@ -86,8 +86,8 @@ void addHospitalExpenditure(HIS_System* sys, double amount) {
 
 void loadFileAllData(HIS_System* sys) {
 	loadDrugSystemData(sys);
+	loadDepartmentSystemData(sys);  // 科室先于医生加载，供医生校验科室引用
 	loadDoctorSystemData(sys);
-	loadDepartmentSystemData(sys);
 	loadWardSystemData(sys);
 	loadPatientsSystemData(sys);
 	loadQueueTicketData(sys);
@@ -170,14 +170,17 @@ void showFinanceStatistics(HIS_System* sys) {
 		d = d->next;
 	}
 
-	double totalPatientBalance = 0.0;
+	double totalRealBalance = 0.0;
+	double totalBonusBalance = 0.0;
 	int patientCount = 0;
 	Patient* p = sys->patientHead;
 	while (p != NULL) {
-		totalPatientBalance += p->balance;
+		totalRealBalance += p->realBalance;
+		totalBonusBalance += p->bonusBalance;
 		patientCount++;
 		p = p->next;
 	}
+	double totalPatientBalance = totalRealBalance + totalBonusBalance;
 
 	double revenue = sys->hospitalRevenue;
 	double expenditure = sys->hospitalExpenditure;
@@ -229,6 +232,16 @@ void showFinanceStatistics(HIS_System* sys) {
 
 	printFormattedStr("患者总数:", wLabel);
 	sprintf(buf, "%d 人", patientCount);
+	printFormattedStr(buf, wValue);
+	printf("\n");
+
+	printFormattedStr("患者实际余额合计:", wLabel);
+	sprintf(buf, "%.2f 元", totalRealBalance);
+	printFormattedStr(buf, wValue);
+	printf("\n");
+
+	printFormattedStr("患者赠送余额合计:", wLabel);
+	sprintf(buf, "%.2f 元", totalBonusBalance);
 	printFormattedStr(buf, wValue);
 	printf("\n");
 

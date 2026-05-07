@@ -854,9 +854,7 @@ void displayAllDrugsDoc(HIS_System* sys) {
 		printf(">>> 系统内没有药品数据！\n");
 		return;
 	}
-	// 按药品编号升序排列
-	sortDrugList(sys->drugDisplayHead, NULL, SORT_BY_ID, ORDER_ASC);
-
+	
 	char buffer[256];
 	int number = 1;
 

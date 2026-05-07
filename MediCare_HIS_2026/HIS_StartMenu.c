@@ -113,21 +113,18 @@ void doctorMenu(HIS_System* sys) {
 		case 12: drugSortMenuDoc(sys); break;
 		case 0:
 			// 检查当前是否有在诊患者
-			{
-				const char* inConsultId = findCalledPatientIdByDoctor(getCurrentDoctorId());
-				if (inConsultId != NULL) {
-					Patient* inConsultPat = findPatientById(sys, inConsultId);
-					if (inConsultPat != NULL) {
-						printf("\n>>> 当前有在诊患者: %s (%s)\n", inConsultPat->name, inConsultId);
-						if (confirmFunc("结束看诊", "在诊患者看诊")) {
-							endConsultation(sys, getCurrentDoctorId());
-						} else {
-							printf(">>> 已取消退出，返回工作站。\n");
-							break;
-						}
+		{
+			const char* inConsultId = findCalledPatientIdByDoctor(getCurrentDoctorId());
+			if (inConsultId != NULL) {
+				Patient* inConsultPat = findPatientById(sys, inConsultId);
+				if (inConsultPat != NULL) {
+					int result = autoEndCurrentConsultation(sys, getCurrentDoctorId());
+					if (result == 0) {
+						printf(">>> 仍保留患者: %s (%s)在诊状态，准备退出。\n", inConsultPat->name, inConsultId);
 					}
 				}
 			}
+		}
 			if (confirmFunc("退出", "医生工作站")) {
 				printf(">>> 退出成功！正在返回主菜单...\n");
 				return;
@@ -200,14 +197,6 @@ void showMainMenu(HIS_System* sys) {
 		printf("\n");
 	}
 	firstRun = 0;
-/*	messageBox("目前仅支持管理员登录功能，医生和患者登录功能待开发。");
-	messageBox("请使用管理员登录进入系统，管理员系统只支持药品管理功能、医生管理功能和科室管理功能。");
-	messageBox("药品信息格式：ID 国标码 通用名 商品名 别名 库存 价格");
-	messageBox("例如：DRG001 86900001000012 阿莫西林胶囊 阿莫仙 阿莫 100 25.50");
-	messageBox("医生信息格式：ID 姓名 所在科室 诊号数量");
-	messageBox("例如：DOC001 张明伟 内科 50");
-	messageBox("科室信息格式：一级科室名称 一级科室代码 二级科室名称 科室编号");
-	messageBox("例如：内科 V100201 心内科 A234");*/
 	int choice;
 	while (1) {
 		printf("*********** 医疗管理系统 (HIS) ***********\n");

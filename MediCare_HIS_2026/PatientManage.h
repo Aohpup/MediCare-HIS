@@ -41,6 +41,9 @@ void writeMedicalRecord(HIS_System* sys, const char* doctorId);
 //医生开具检查单
 void issueExaminationOrder(HIS_System* sys, const char* doctorId);
 
+//医生结束看诊，将患者挂号单状态从IN_ROOM推进为FINISHED（自动结诊，供医生登录出时调用）
+int autoEndCurrentConsultation(HIS_System* sys, const char* doctorId);
+
 //医生结束看诊，将患者挂号单状态从IN_ROOM推进为FINISHED
 void endConsultation(HIS_System* sys, const char* doctorId);
 
@@ -69,7 +72,11 @@ int daysBetweenDates(const char* start, const char* end);
 void patientInfoMenu(HIS_System* sys, const char* patientId);
 
 //通用余额充值函数
-bool addBalance(Patient* patient, double amount);
+//余额操作辅助函数
+double getTotalBalance(const Patient* patient);
+void addRealBalance(Patient* patient, double amount);
+void addBonusBalance(Patient* patient, double amount);
+double deductBalance(Patient* patient, double amount);
 
 //患者余额充值菜单（需先登录，内部获取当前患者）
 void patientRechargeMenu(HIS_System* sys);

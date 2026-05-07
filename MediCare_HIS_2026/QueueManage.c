@@ -4,6 +4,7 @@
 #include"ConfirmFunc.h"
 #include"InputUtils.h"
 #include"PauseUtil.h"
+#include"DayTimeUtils.h"
 #include<string.h>
 
 // 全局链表：医生排班、挂号单、候诊队列
@@ -390,9 +391,8 @@ bool checkInQueueTicket(const char* patientId, const char* doctorId, const char*
 		printf(">>> 未找到对应挂号记录，签到失败。\n");
 		return false;
 	}
-	// 已签到的记录不允许重复签到
 	if (ticket->checkedIn) {
-		printf(">>> 该挂号记录已完成签到，请勿重复签到，注意查看叫号情况。\n");
+		printf(">>> 该挂号记录已完成签到，请勿重复签到。\n");
 		return true;
 	}
 
@@ -404,29 +404,81 @@ bool checkInQueueTicket(const char* patientId, const char* doctorId, const char*
 	}
 
 	int delta = signMinute - slotMinute;
+
+	// 不可提前超过5分钟签到
+	if (delta < -5) {
+		printf(">>> 不可签到，未到签到时间（最早可提前5分钟签到）。\n");
+		return false;
+	}
+
+	// 获取当前系统时间所在时段
+	int sH = 0, sM = 0;
+	char slotTime[TIME_STR_LEN];
+	if (sscanf(signInTime, "%d:%d", &sH, &sM) >= 2)
+		snprintf(slotTime, sizeof(slotTime), "%02d:%02d:00", sH, sM);
+	else
+		snprintf(slotTime, sizeof(slotTime), "%s", signInTime);
+	TimeSlot currentSlot = (TimeSlot)changeTimeToSlot(slotTime);
+	if (currentSlot == SLOT_INVALID) {
+		printf(">>> 当前不是门诊时段，无法签到。\n");
+		return false;
+	}
+
+	// 时段最后3分钟禁止签到（已预约但未签到的视为迟到，不可再签到）
+	int currentSlotStart = slotStartMinute(currentSlot);
+	if (currentSlotStart >= 0) {
+		int offsetInSlot = signMinute - currentSlotStart;
+		if (offsetInSlot >= 27) {
+			printf(">>> 当前时段已过签到截止时间（最后3分钟），无法签到。\n");
+			return false;
+		}
+	}
+
+	TimeSlot originalSlot = ticket->slot;
+
 	ticket->checkedIn = true;
 	ticket->signSeq = g_signSeq++;
 	ticket->status = STATUS_WAITING;
 
-	if (delta <= 15) {
+	// 提前签到（delta < 0）或准时签到（同一时段内），均按准时处理
+	if (delta < 0 || currentSlot == originalSlot) {
 		ticket->lateMinutes = 0;
-	}
-	else if (delta <= 30) {
-		ticket->lateMinutes = 30;
-	}
-	else if (delta <= 60) {
-		ticket->lateMinutes = 60;
-	}
-	else {
-		if (ticket->slot < SLOT_COUNT) {
-			ticket->slot = (TimeSlot)(ticket->slot + 1);
-			printf(">>> 迟到超过60分钟，已顺延至下一班次末尾。\n");
+		refreshSlotQueue(doctorId, date, ticket->slot);
+		if (delta < 0) {
+			printf(">>> 提前签到成功（距离开诊还有 %d 分钟）。\n", -delta);
 		}
-		else {
-			printf(">>> 迟到超过60分钟，当前已是末班次，将排在本班次末尾。\n");
-		}
-		ticket->lateMinutes = 120;
+		return true;
 	}
+
+	// 迟到签到：检查是否在允许范围内（预约时段后最多2个时段=1小时）
+	if (currentSlot > originalSlot + 2) {
+		printf(">>> 已超过最晚签到时间（预约时段后1小时内），无法签到。\n");
+		// 回滚签到状态，该记录仍可后续使用
+		ticket->checkedIn = false;
+		ticket->status = STATUS_CANCELLED;
+		return false;
+	}
+
+	// 迟到签到：寻找可用时段
+	TimeSlot targetSlot = currentSlot;
+	int slotsLate = 0;
+	while (targetSlot <= SLOT_COUNT) {
+		if (isDoctorSlotOpen(doctorId, date, targetSlot) && getDoctorSlotRemain(doctorId, date, targetSlot) > 0) {
+			break;
+		}
+		targetSlot = (TimeSlot)(targetSlot + 1);
+		slotsLate++;
+	}
+	if (targetSlot > SLOT_COUNT) {
+		printf(">>> 所有后续时段已满，该挂号记录已取消。\n");
+		ticket->status = STATUS_CANCELLED;
+		ticket->checkedIn = false;
+		return false;
+	}
+
+	ticket->slot = targetSlot;
+	ticket->lateMinutes = (targetSlot - originalSlot) * 30;
+	printf(">>> 迟到签到，已排至 %s 时段末尾。\n", slot_names[targetSlot - 1]);
 
 	refreshSlotQueue(doctorId, date, ticket->slot);
 	return true;
@@ -710,6 +762,15 @@ bool isPatientCalledByDoctor(const char* patientId, const char* doctorId) {
 	return (ticket->status == STATUS_CALLED || ticket->status == STATUS_IN_ROOM);
 }
 
+// 检查患者是否处于就诊中状态（STATUS_IN_ROOM），用于结束看诊等操作
+bool isPatientInRoomByDoctor(const char* patientId, const char* doctorId) {
+	QueueTicket* ticket = findTicketByDoctorPatient(doctorId, patientId);
+	if (ticket == NULL) {
+		return false;
+	}
+	return (ticket->status == STATUS_IN_ROOM);
+}
+
 // 检查医生是否曾经叫号过某患者（含已结束看诊、过号），用于出院管理等历史关联操作
 bool hasPatientCalledByDoctor(const char* patientId, const char* doctorId) {
 	QueueTicket* ticket = findTicketByDoctorPatient(doctorId, patientId);
@@ -750,30 +811,47 @@ bool markTicketAsFinished(const char* patientId, const char* doctorId) {
 }
 
 // 根据医生编号查找当前已叫号（STATUS_CALLED或STATUS_IN_ROOM）的患者编号
+// 优先级：先查 IN_ROOM（就诊中），再查 CALLED（已叫号），各自取 signSeq 最大的
 const char* findCalledPatientIdByDoctor(const char* doctorId) {
 	if (doctorId == NULL) {
 		return NULL;
 	}
-	// 第一优先：STATUS_IN_ROOM（就诊中），取最新挂号（靠近链表头部）
-	QueueTicket* curr = g_ticketHead;
-	while (curr != NULL) {
-		if (curr->doctor != NULL && curr->patient != NULL &&
-			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
-			curr->status == STATUS_IN_ROOM) {
-			return curr->patient->patientId;
-		}
-		curr = curr->next;
-	}
-	// 第二优先：STATUS_CALLED（已叫号未入室），取最新挂号
+	QueueTicket* curr;
+	QueueTicket* best;
+	int bestSeq;
+
+	// 第一优先：STATUS_IN_ROOM（就诊中），取 signSeq 最大
 	curr = g_ticketHead;
+	best = NULL;
+	bestSeq = -1;
 	while (curr != NULL) {
 		if (curr->doctor != NULL && curr->patient != NULL &&
 			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
-			curr->status == STATUS_CALLED) {
-			return curr->patient->patientId;
+			curr->status == STATUS_IN_ROOM &&
+			curr->signSeq > bestSeq) {
+			best = curr;
+			bestSeq = curr->signSeq;
 		}
 		curr = curr->next;
 	}
-	return NULL;
+	if (best != NULL) {
+		return best->patient->patientId;
+	}
+
+	// 第二优先：STATUS_CALLED（已叫号未入室），取 signSeq 最大
+	curr = g_ticketHead;
+	best = NULL;
+	bestSeq = -1;
+	while (curr != NULL) {
+		if (curr->doctor != NULL && curr->patient != NULL &&
+			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
+			curr->status == STATUS_CALLED &&
+			curr->signSeq > bestSeq) {
+			best = curr;
+			bestSeq = curr->signSeq;
+		}
+		curr = curr->next;
+	}
+	return (best != NULL) ? best->patient->patientId : NULL;
 }
 

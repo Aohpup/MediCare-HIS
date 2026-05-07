@@ -134,6 +134,9 @@ QueueTicket* findTicketByDoctorPatient(const char* doctorId, const char* patient
 // 检查某患者是否已被某医生叫号（状态为STATUS_CALLED或STATUS_IN_ROOM），用于权限判定
 bool isPatientCalledByDoctor(const char* patientId, const char* doctorId);
 
+// 检查某患者是否处于就诊中状态（STATUS_IN_ROOM），用于结束看诊校验
+bool isPatientInRoomByDoctor(const char* patientId, const char* doctorId);
+
 // 检查医生是否曾经叫号过某患者（含已结束看诊、过号），用于出院管理等历史关联操作
 bool hasPatientCalledByDoctor(const char* patientId, const char* doctorId);
 

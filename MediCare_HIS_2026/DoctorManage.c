@@ -231,8 +231,8 @@ void printDoctorInfo(doctor* doctor) {
 	printf("所属二级科室: %s\n", (doctor->subDepartment[0] != '\0') ? doctor->subDepartment : "未绑定");
 	printf("所属诊室编号: %s\n", (roomId[0] != '\0') ? roomId : "未绑定");
 	//printf("诊号数量: %d\n", doctor->consultationCount);
-	printf("=============================\n");
-	pressEnterToContinue();
+	printf("==============================\n");
+	pressEnterToNext();
 }
 
 // 按姓名查询医生，统一处理重名：唯一显示，重名则带序号展示并让用户选择
@@ -249,8 +249,16 @@ static bool queryDoctorByNameWithDupHandling(HIS_System* sys, const char* name) 
 	}
 	if (matchCount == 0) return false;
 
+	const char* todayDate = getCurrentDateStr();
 	if (matchCount == 1) {
 		printDoctorInfo(matches[0]);
+		// 显示当天排班
+		bool hasAny = false;
+		for (int s = 1; s <= SLOT_COUNT; s++) {
+			if (isDoctorSlotOpen(matches[0]->doctorId, todayDate, (TimeSlot)s)) { hasAny = true; break; }
+		}
+		if (hasAny) printDoctorScheduleTable(sys, matches[0]->doctorId, todayDate);
+		else printf("该医生暂无可用时段。\n");
 		return true;
 	}
 
@@ -259,6 +267,13 @@ static bool queryDoctorByNameWithDupHandling(HIS_System* sys, const char* name) 
 	for (int i = 0; i < matchCount; i++) {
 		printf("#%d:", i + 1);
 		printDoctorInfo(matches[i]);
+		// 显示当天排班
+		bool hasAny = false;
+		for (int s = 1; s <= SLOT_COUNT; s++) {
+			if (isDoctorSlotOpen(matches[i]->doctorId, todayDate, (TimeSlot)s)) { hasAny = true; break; }
+		}
+		if (hasAny) printDoctorScheduleTable(sys, matches[i]->doctorId, todayDate);
+		else printf("该医生暂无可用时段。\n");
 	}
 	int sel = safeGetInt("请选择您要进一步查看的医生序号(输入 -1 取消): ");
 	if (sel == -1) {
@@ -268,6 +283,13 @@ static bool queryDoctorByNameWithDupHandling(HIS_System* sys, const char* name) 
 	if (sel >= 1 && sel <= matchCount) {
 		printf("\n--- 您选择的医生详细信息 ---\n");
 		printDoctorInfo(matches[sel - 1]);
+		// 显示当天排班
+		bool hasAny = false;
+		for (int s = 1; s <= SLOT_COUNT; s++) {
+			if (isDoctorSlotOpen(matches[sel - 1]->doctorId, todayDate, (TimeSlot)s)) { hasAny = true; break; }
+		}
+		if (hasAny) printDoctorScheduleTable(sys, matches[sel - 1]->doctorId, todayDate);
+		else printf("该医生暂无可用时段。\n");
 	}
 	return true;
 }
@@ -417,10 +439,18 @@ void queryDoctorPat(HIS_System* sys, const char* patientId) {
 			// 筛选该科室医生
 			doctor* cur = sys->docHead;
 			int foundCount = 0;
+			const char* todayDate = getCurrentDateStr();
 			while (cur != NULL) {
 				if (strcmp(cur->department, targetDept->categoryName) == 0) {
 					foundCount++;
 					printDoctorInfo(cur);
+					// 显示当天排班
+					bool hasAny = false;
+					for (int s = 1; s <= SLOT_COUNT; s++) {
+						if (isDoctorSlotOpen(cur->doctorId, todayDate, (TimeSlot)s)) { hasAny = true; break; }
+					}
+					if (hasAny) printDoctorScheduleTable(sys, cur->doctorId, todayDate);
+					else printf("该医生暂无可用时段。\n");
 				}
 				cur = cur->next;
 			}
@@ -441,6 +471,14 @@ void queryDoctorPat(HIS_System* sys, const char* patientId) {
 			while (cur != NULL) {
 				if (strcmp(cur->doctorId, doctorId) == 0) {
 					printDoctorInfo(cur);
+					// 显示当天排班
+					const char* todayDate = getCurrentDateStr();
+					bool hasAny = false;
+					for (int s = 1; s <= SLOT_COUNT; s++) {
+						if (isDoctorSlotOpen(cur->doctorId, todayDate, (TimeSlot)s)) { hasAny = true; break; }
+					}
+					if (hasAny) printDoctorScheduleTable(sys, cur->doctorId, todayDate);
+					else printf("该医生暂无可用时段。\n");
 					found = true;
 					break;
 				}
@@ -1147,17 +1185,77 @@ void doctorManageMenuPat(HIS_System* sys, const char* currentPatientId) {
 		switch (choice) {
 		case 1:
 			{
+				// 收集患者所有关联医生（挂号+就诊+处方记录），去重并按就诊时间正序
+				const char* docIds[256];
+				int docCount = 0;
 				Patient* pat = findPatientById(sys, currentPatientId);
-				if (pat == NULL || pat->viewHead == NULL) {
-					printf(">>> 您当前没有就诊医生记录，请先挂号或就诊。\n");
+				if (pat == NULL) {
+					printf(">>> 未找到患者信息。\n");
 					break;
 				}
-				strcpy(queryStr, pat->viewHead->doctorId);
-				queryDoctor(sys, queryStr);
+				// 从挂号队列收集
+				QueueTicket* qt = queueGetTicketHead();
+				while (qt != NULL && docCount < 256) {
+					if (qt->patient != NULL && strcmp(qt->patient->patientId, currentPatientId) == 0
+						&& qt->doctor != NULL) {
+						bool dup = false;
+						for (int i = 0; i < docCount; i++) {
+							if (strcmp(docIds[i], qt->doctor->doctorId) == 0) { dup = true; break; }
+						}
+						if (!dup) docIds[docCount++] = qt->doctor->doctorId;
+					}
+					qt = qt->next;
+				}
+				// 从看诊记录收集
+				ConsultationRecord* vr = pat->viewHead;
+				while (vr != NULL && docCount < 256) {
+					bool dup = false;
+					for (int i = 0; i < docCount; i++) {
+						if (strcmp(docIds[i], vr->doctorId) == 0) { dup = true; break; }
+					}
+					if (!dup) docIds[docCount++] = vr->doctorId;
+					vr = vr->next;
+				}
+				// 从处方记录收集
+				ConsultationRecord* mr = pat->medHead;
+				while (mr != NULL && docCount < 256) {
+					bool dup = false;
+					for (int i = 0; i < docCount; i++) {
+						if (strcmp(docIds[i], mr->doctorId) == 0) { dup = true; break; }
+					}
+					if (!dup) docIds[docCount++] = mr->doctorId;
+					mr = mr->next;
+				}
+
+				if (docCount == 0) {
+					printf(">>> 您当前没有关联的医生记录，请先挂号或就诊。\n");
+					break;
+				}
+				printf("\n>>> 您共有 %d 位关联医生：\n", docCount);
+				// 倒序显示（旧记录先，新记录后）
+				const char* todayDate = getCurrentDateStr();
+				for (int i = docCount - 1; i >= 0; i--) {
+					doctor* doc = findDoctorByIdInQueue(sys, docIds[i]);
+					if (doc != NULL) {
+						printDoctorInfo(doc);
+						// 检查今天是否有排班
+						bool hasAnySlot = false;
+						for (int s = 1; s <= SLOT_COUNT; s++) {
+							if (isDoctorSlotOpen(docIds[i], todayDate, (TimeSlot)s)) {
+								hasAnySlot = true; break;
+							}
+						}
+						if (hasAnySlot) {
+							printDoctorScheduleTable(sys, docIds[i], todayDate);
+						} else {
+							printf("该医生暂无可用时段。\n");
+						}
+					}
+				}
 			}
 			break;
 		case 2:
-			queryDoctor(sys, NULL);
+			queryDoctorPat(sys, NULL);
 			break;
 		case 3:
 			displayAllDoctors(sys);
@@ -1256,6 +1354,9 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 				useCalledPatient = true;
 			}
 		}
+		else {
+			printf(">>> 当前没有叫号患者！请手动输入患者编号。\n\n");
+		}
 	}
 
 	if(!useCalledPatient) {
@@ -1266,7 +1367,7 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 			return;
 		}
 
-		if(!isPatientCalledByDoctor(patientId, doctorId)) {
+		if(!isPatientCalledByDoctor(patientId, doctorId) || !hasPatientCalledByDoctor(patientId, doctorId)) {
 			printf(">>> 该患者不是您的患者或者未在候诊队列中，您无法分配病房。\n");
 			pressEnterToContinue();
 			return;
@@ -1305,7 +1406,7 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 	// 自动推荐
 	bool useRecommend = false;
 	Ward* recommended = NULL;
-	if (confirmFunc("自动推荐", "使用系统自动推荐最优病房")) {
+	if (confirmFunc("使用", "自动推荐最优病房")) {
 		recommended = autoRecommendWard(sys, patient->type, docDept);
 		if (recommended != NULL) {
 			printf("\n>>> 系统推荐病房:\n");
@@ -1468,9 +1569,9 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 	// 预扣 7 天押金
 	double deposit = 7.0 * targetWard->price;
 	printf(">>> 住院押金: 7天 × %.2f元/天 = %.2f 元\n", targetWard->price, deposit);
-	printf(">>> 当前余额: %.2f 元，扣费后余额: %.2f 元\n",
-		patient->balance, patient->balance - deposit);
-	patient->balance -= deposit;
+	printf(">>> 当前总余额: %.2f 元 (实际: %.2f, 赠送: %.2f)，扣费后余额: %.2f 元\n",
+		getTotalBalance(patient), patient->realBalance, patient->bonusBalance, getTotalBalance(patient) - deposit);
+	deductBalance(patient, deposit);
 	addHospitalRevenue(sys, deposit);
 
 	// 执行分配
@@ -1514,6 +1615,9 @@ void doctorApproveDischarge(HIS_System* sys, const char* doctorId) {
 				strcpy(patientId, calledId);
 				useCalledPatient = true;
 			}
+		}
+		else {
+			printf(">>> 当前没有叫号患者！请手动输入患者编号。\n\n");
 		}
 	}
 

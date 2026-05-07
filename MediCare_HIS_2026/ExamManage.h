@@ -21,6 +21,8 @@ void queryExamOrdersByPatient(HIS_System* sys, const char* patientId);
 
 // 打印检查单详情
 void printExamOrderDetail(const ExamOrder* order);
+// 打印检查项目明细表格（序号|编号|名称|金额），返回总金额
+double printExamItemTable(const ExamOrderItem* head);
 
 // 自动生成检查单中所有待完成项目的结果
 // orderId: 目标检查单编号；返回成功生成的项目数量

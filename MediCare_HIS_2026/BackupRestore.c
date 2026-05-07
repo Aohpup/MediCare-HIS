@@ -38,7 +38,7 @@ static int copyFile(const char* src, const char* dst) {
 void checkAndRestoreOnStartup(void) {
 	FILE* fp = fopen(STATUS_FILE, "r");
 	if (!fp) {
-		if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+		if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 			printf(">>> 状态文件不存在，判定为首次运行。\n");
 	} else {
 		char status[32] = {0};
@@ -57,10 +57,10 @@ void checkAndRestoreOnStartup(void) {
 					sprintf(backupPath, "%s/%s", BACKUP_DIR, dataFiles[i]);
 					if (copyFile(backupPath, dataFiles[i]) == 0) {
 						restored++;
-						if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+						if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 							printf(">>> 已恢复: %s\n", dataFiles[i]);
 					} else {
-						if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+						if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 							printf(">>> 备份文件不存在，跳过: %s\n", dataFiles[i]);
 					}
 				}
@@ -72,7 +72,7 @@ void checkAndRestoreOnStartup(void) {
 				printf(">>> 已跳过恢复，当前数据可能不完整。\n");
 			}
 		} else if (strcmp(status, "closed_safely") == 0) {
-			if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+			if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 				printf(">>> 上次运行正常关闭，无需恢复。\n");
 		}
 	}
@@ -89,14 +89,14 @@ void checkAndRestoreOnStartup(void) {
 void backupAllDataFiles(void) {
 	int ret = _mkdir(BACKUP_DIR);// 尝试创建备份目录，已存在或权限不足会返回非0
 	if (ret != 0) {
-		if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+		if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 			printf(">>> 警告: 备份目录创建失败，可能已存在或权限不足。\n");
 	} else {
-		if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+		if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 			printf(">>> 备份目录已创建。\n");
 	}
 
-	if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+	if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 		printf(">>> 正在创建数据备份...\n");
 
 	int backed = 0;
@@ -105,14 +105,14 @@ void backupAllDataFiles(void) {
 		sprintf(dstPath, "%s/%s", BACKUP_DIR, dataFiles[i]);
 		if (copyFile(dataFiles[i], dstPath) == 0) {
 			backed++;
-			if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+			if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 				printf(">>> 已备份: %s\n", dataFiles[i]);
 		} else {
-			if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+			if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 				printf(">>> 跳过(文件不存在): %s\n", dataFiles[i]);
 		}
 	}
-	if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+	if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 		printf(">>> 数据备份完成! (备份%d/%d个文件)\n\n\n", backed, DATA_FILE_COUNT);
 }
 
@@ -122,7 +122,7 @@ void markSafeShutdown(void) {
 	if (fp) {
 		fprintf(fp, "closed_safely\n");
 		fclose(fp);
-		if (TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
+		if (TEST_SYSTEM_DEBUG && AUTO_BACKUP_DATA)
 			printf(">>> 正常关闭标记已写入。\n");
 	}
 }

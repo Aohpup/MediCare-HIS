@@ -189,7 +189,8 @@ typedef struct Patient {
 	char gender[STR_LEN];			//患者性别
 	int age;					//患者年龄
 	PatientType type;				//患者类别 (普通/VIP/急诊)
-	double balance;				//患者账户余额
+	double realBalance;			//实际充值余额
+	double bonusBalance;			//赠送余额
 	int loginCount;				//登录次数
 
 	RegistrationRecord* regHead;		// 挂号记录链表头

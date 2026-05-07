@@ -10,9 +10,11 @@ int main() {
 	signal(SIGINT, SIG_IGN);	// 忽略 Ctrl+C 中断信号，防止用户在操作过程中意外关闭程序导致数据丢失
 
 	// 启动时检测上次退出状态（崩溃恢复）并标记本次运行
+	if(TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
 	checkAndRestoreOnStartup();
 
 	// 创建数据文件备份
+	if(TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
 	backupAllDataFiles();
 
 	HIS_System sys;
@@ -26,6 +28,7 @@ int main() {
 	showMainMenu(&sys);
 
 	// 标记安全关闭
+	if(TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
 	markSafeShutdown();
 
 	return 0;

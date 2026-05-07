@@ -7,7 +7,24 @@ void pressEnterToContinue(void) {
 	printf(">>> 按回车键返回上一级菜单...");
 	fflush(stdout);
 	char ch;
+	while ((ch = getchar()) != '\n' && ch != EOF) {
+		// 继续读取直到遇到换行符或文件结束，清除输入缓冲区
+	}
+}
+
+void pressEnterToNext(void){
+	printf(">>> 按回车键继续...");
+	fflush(stdout);
+	char ch;
 	while((ch = getchar()) != '\n' && ch != EOF) {
 		// 继续读取直到遇到换行符或文件结束，清除输入缓冲区
 	}
+}
+
+void pressEnterToContinueWithMessage(const char* message) {
+	if (message != NULL && message[0] != '\0') {
+		printf("\n>>> %s\n", message);
+	}
+	pressEnterToContinue();
+
 }

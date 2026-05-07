@@ -415,7 +415,7 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 		}
 
 		// 全选：添加所有项目
-		if (strcmp(itemId, "全选") == 0) {
+		if (strcmp(itemId, "全选") == 0 || strcmp(itemId, "全部") == 0 || strcmp(itemId, "所有") == 0 || strcmp(itemId, "都选") == 0 || strcmp(itemId, "全都") == 0) {
 			int added = 0;
 			for (int i = 0; i < totalItems; i++) {
 				// 跳过已添加的项目
@@ -448,7 +448,8 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 				added++;
 			}
 			printf(">>> 已全选添加 %d 个项目。\n", added);
-			continue;
+			pressEnterToContinue();
+			return true;
 		}
 
 		// 纯数字 → 按序号选择
@@ -738,32 +739,59 @@ void doPatientExamCheck(HIS_System* sys, const char* patientId) {
 		return;
 	}
 
-	// 展示待执行的检查单并计算费用
+	// 展示待执行的检查单，收集待做项目到临时链表
 	printf("\n>>> 您共有 %d 份待执行的检查单：\n", pendingCount);
 	order = sys->examOrderHead;
-	double totalPendingCost = 0.0;
+	ExamOrderItem tempHead;
+	tempHead.next = NULL;
+	ExamOrderItem* tempTail = &tempHead;
+	int tempNodeCount = 0;
+
 	while (order != NULL) {
 		if (strcmp(order->patientId, patientId) == 0
 			&& strcmp(order->status, "已申请") == 0
 			&& hasPendingItems(order)) {
 			printExamOrderDetail(order);
-			// 计算该检查单中未完成项目的费用
+			// 收集未完成项目到临时链表
 			ExamOrderItem* item = order->itemHead;
 			while (item != NULL) {
-				if (!item->finished) totalPendingCost += item->price;
+				if (!item->finished) {
+					ExamOrderItem* tmp = (ExamOrderItem*)malloc(sizeof(ExamOrderItem));
+					if (tmp != NULL && tempNodeCount < 512) {
+						memcpy(tmp, item, sizeof(ExamOrderItem));
+						tmp->next = NULL;
+						tempTail->next = tmp;
+						tempTail = tmp;
+						tempNodeCount++;
+					}
+				}
 				item = item->next;
 			}
 		}
 		order = order->next;
 	}
 
+	// 打印待做项目明细表
+	printf("\n--- 本次待做检查项目 ---\n");
+	double totalPendingCost = printExamItemTable(tempHead.next);
+
+	// 释放临时链表
+	{
+		ExamOrderItem* tmp = tempHead.next;
+		while (tmp != NULL) {
+			ExamOrderItem* n = tmp->next;
+			free(tmp);
+			tmp = n;
+		}
+	}
+
 	// 显示费用信息
 	Patient* examPatient = findPatientById(sys, patientId);
 	if (examPatient != NULL && totalPendingCost > 0) {
-		printf("\n--- 检查收费 ---\n");
-		printf("检查费用总计: %.2f 元，当前余额: %.2f 元\n", totalPendingCost, examPatient->balance);
-		printf("扣费后余额: %.2f 元\n", examPatient->balance - totalPendingCost);
-		if (examPatient->balance < totalPendingCost) {
+		printf("检查费用总计: %.2f 元，当前总余额: %.2f 元 (实际: %.2f, 赠送: %.2f)\n",
+			totalPendingCost, getTotalBalance(examPatient), examPatient->realBalance, examPatient->bonusBalance);
+		printf("扣费后余额: %.2f 元\n", getTotalBalance(examPatient) - totalPendingCost);
+		if (getTotalBalance(examPatient) < totalPendingCost) {
 			printf(">>> 提示: 余额不足，请及时充值！\n");
 		}
 	}
@@ -776,9 +804,10 @@ void doPatientExamCheck(HIS_System* sys, const char* patientId) {
 
 	// 扣费：从患者余额扣除检查费用
 	if (examPatient != NULL && totalPendingCost > 0) {
-		examPatient->balance -= totalPendingCost;
+		deductBalance(examPatient, totalPendingCost);
 		addHospitalRevenue(sys, totalPendingCost);
-		printf(">>> 已扣费 %.2f 元，当前余额: %.2f 元。\n", totalPendingCost, examPatient->balance);
+		printf(">>> 已扣费 %.2f 元，当前余额: 实际 %.2f 元 | 赠送 %.2f 元 | 总计 %.2f 元。\n",
+			totalPendingCost, examPatient->realBalance, examPatient->bonusBalance, getTotalBalance(examPatient));
 	}
 
 	// 执行检查（自动生成结果）
@@ -942,6 +971,49 @@ void queryExamOrdersByPatient(HIS_System* sys, const char* patientId) {
 		printf(">>> 暂无该患者的检查单。\n");
 	}
 	pressEnterToContinue();
+}
+
+// 打印检查项目明细表格（序号|编号|名称|金额），返回总金额
+double printExamItemTable(const ExamOrderItem* head) {
+	if (head == NULL) {
+		printf(">>> 无检查项目。\n");
+		return 0.0;
+	}
+	const int wIdx   = 8;   // 序号
+	const int wId    = 14;  // 项目编号
+	const int wName  = 22;  // 项目名称
+	const int wPrice = 10;  // 金额
+	const int totalW = wIdx + wId + wName + wPrice;
+
+	char buf[32];
+	double total = 0.0;
+
+	for (int i = 0; i < totalW; i++) printf("-");
+	printf("\n");
+	printFormattedStr("序号",     wIdx);
+	printFormattedStr("项目编号", wId);
+	printFormattedStr("项目名称", wName);
+	printFormattedStr("金额(元)", wPrice);
+	printf("\n");
+	for (int i = 0; i < totalW; i++) printf("-");
+	printf("\n");
+
+	const ExamOrderItem* item = head;
+	int idx = 1;
+	while (item != NULL) {
+		sprintf(buf, "%d", idx++);
+		printFormattedStr(buf, wIdx);
+		printFormattedStr(item->itemId, wId);
+		printFormattedStr(item->itemName, wName);
+		sprintf(buf, "%.2f", item->price);
+		printFormattedStr(buf, wPrice);
+		printf("\n");
+		total += item->price;
+		item = item->next;
+	}
+	for (int i = 0; i < totalW; i++) printf("-");
+	printf("\n");
+	return total;
 }
 
 void printExamOrderDetail(const ExamOrder* order) {

@@ -61,7 +61,7 @@ void doctorCallQueueMenu(HIS_System* sys, const char* currentDoctorId);
 void doctorViewScheduleBoardMenu(HIS_System* sys);
 
 //查看患者病历信息（医生视角）
-void writeMedicalRecord(HIS_System* sys, const char* doctorId);
+//void writeMedicalRecord(HIS_System* sys, const char* doctorId);
 
 // 医生端：查看患者住院信息（当前叫号患者 / 手动指定）
 void doctorViewStayInfo(HIS_System* sys, const char* doctorId);

@@ -78,21 +78,28 @@ void loadPatientsSystemData(HIS_System* sys) {
 			}
 			int t = 0;
 			patient->age = 0;
-			patient->balance = 0.0;
+			patient->realBalance = 0.0;
+			patient->bonusBalance = 0.0;
 			patient->loginCount = 0;
 			bool parseOk = false;
-			if (spaceCnt >= 8) {
-				// 新新格式: patientId name phone idCard gender age type balance loginCount (9字段)
+			if (spaceCnt >= 9) {
+				// 新新新格式: patientId name phone idCard gender age type realBalance bonusBalance loginCount (10字段)
+				parseOk = (sscanf(pl, "%s %s %s %s %s %d %d %lf %lf %d",
+					patient->patientId, patient->name, patient->phone,
+					patient->idCard, patient->gender, &patient->age, &t,
+					&patient->realBalance, &patient->bonusBalance, &patient->loginCount) >= 8);
+			} else if (spaceCnt >= 8) {
+				// 新新格式: patientId name phone idCard gender age type balance loginCount (9字段，旧版无分项)
 				parseOk = (sscanf(pl, "%s %s %s %s %s %d %d %lf %d",
 					patient->patientId, patient->name, patient->phone,
 					patient->idCard, patient->gender, &patient->age, &t,
-					&patient->balance, &patient->loginCount) >= 8);
+					&patient->realBalance, &patient->loginCount) >= 8);
 			} else if (spaceCnt >= 7) {
 				// 新格式: patientId name phone idCard gender age type balance (8字段，无loginCount)
 				parseOk = (sscanf(pl, "%s %s %s %s %s %d %d %lf",
 					patient->patientId, patient->name, patient->phone,
 					patient->idCard, patient->gender, &patient->age, &t,
-					&patient->balance) >= 7);
+					&patient->realBalance) >= 7);
 			} else {
 				// 旧格式兼容: patientId name phone idCard gender type (6字段)
 				parseOk = (sscanf(pl, "%s %s %s %s %s %d",
@@ -314,7 +321,8 @@ void loadPatientsSystemData(HIS_System* sys) {
 				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%d|%19[^|]|%511[^\n]",
 					stay->recordId, stay->startDate, stay->duration, stay->endDate,
 					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, &stay->dischargeApproved, stay->isChargeDate, stay->details) == 11);
-			} else if (pipes >= 9) {
+			} 
+			/*/else if (pipes >= 9) {
 				// 新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|dischargeApproved|details
 				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%d|%511[^\n]",
 					stay->recordId, stay->startDate, stay->duration, stay->endDate,
@@ -332,7 +340,7 @@ void loadPatientsSystemData(HIS_System* sys) {
 					stay->doctorId, stay->wardId, stay->details) == 7);
 				// deptInfo 与 bedId 保持 memset 置零的结果（空字符串）
 				stay->dischargeApproved = 0;
-			} else {
+			}*/ else {
 				// 其他字段数均不支持
 			}
 			if (!parseOk) {
@@ -388,8 +396,8 @@ void savePatientsSystemData(HIS_System* sys) {
 
 	Patient* patient = sys->patientHead;
 	while (patient) {
-		fprintf(fp, "P %s %s %s %s %s %d %d %.2f %d\n", patient->patientId, patient->name, patient->phone,
-			patient->idCard, patient->gender, patient->age, patient->type, patient->balance, patient->loginCount);
+		fprintf(fp, "P %s %s %s %s %s %d %d %.2f %.2f %d\n", patient->patientId, patient->name, patient->phone,
+			patient->idCard, patient->gender, patient->age, patient->type, patient->realBalance, patient->bonusBalance, patient->loginCount);
 		RegistrationRecord* reg = patient->regHead;
 		while (reg) {
 			fprintf(fp, "R %s %s %s %s %s\n", reg->recordId, reg->department, reg->doctorId,
