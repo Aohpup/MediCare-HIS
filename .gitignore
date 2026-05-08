@@ -386,3 +386,6 @@ FodyWeavers.xsd
 /MediCare_HIS_2026/data_backup/HIS_patients.txt
 /MediCare_HIS_2026/data_backup/HIS_queue_tickets.txt
 /MediCare_HIS_2026/data_backup/HIS_wards.txt
+/MediCare_HIS_2026/HIS_finance.txt
+/MediCare_HIS_2026/data_backup/HIS_finance.txt
+/MediCare_HIS_2026/HIS_status.txt
