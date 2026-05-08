@@ -1,0 +1,166 @@
+```mermaid
+flowchart TD
+    %% ==================== 样式定义 ====================
+    classDef patient fill:#E1F5FE,stroke:#01579B,stroke-width:2px,color:#000
+    classDef system fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#000
+    classDef doctor fill:#E8F5E9,stroke:#1B5E20,stroke-width:2px,color:#000
+    classDef error fill:#FFEBEE,stroke:#B71C1C,stroke-width:2px,color:#000
+    classDef decision fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#000,shape:diamond
+    classDef endpoint fill:#F3E5F5,stroke:#4A148C,stroke-width:2px,color:#000
+
+    %% ==================== 患者端：入口 ====================
+    subgraph PATIENT["🧑‍⚕️ 患者端入口"]
+        direction TB
+        P_START([患者打开系统]):::patient --> P_LOGIN{已注册?}
+        P_LOGIN -->|否| P_REG[填写姓名/身份证/手机号<br/>自动生成患者编号]:::patient
+        P_LOGIN -->|是| P_LOGIN_ACT[身份证+手机号登录]:::patient
+        P_REG --> P_RECHARGE_CHECK
+        P_LOGIN_ACT --> P_RECHARGE_CHECK{欠费≤-2000?}
+        P_RECHARGE_CHECK -->|是| P_FORCE_RECHARGE[强制进入充值界面]:::error
+        P_FORCE_RECHARGE --> P_RECHARGE_CHECK
+        P_RECHARGE_CHECK -->|否| P_MENU[进入患者服务台]:::patient
+        P_MENU --> P_CHOICE{选择操作}
+        P_CHOICE -->|挂号和签到| P_REG_FLOW[开始挂号流程]:::patient
+        P_CHOICE -->|仅签到| P_CHECKIN_ONLY[跳转至签到流程]:::patient
+    end
+
+    %% ==================== 患者端：挂号选择 ====================
+    subgraph REG_SELECT["📋 挂号信息选择"]
+        direction TB
+        P_REG_FLOW --> LOAD_DOC[系统加载医生/科室/排班数据]:::system
+        LOAD_DOC --> SEL_DEPT[选择一级科室]:::patient
+        SEL_DEPT --> SEL_SUB[选择二级科室/诊室]:::patient
+        SEL_SUB --> SEL_DOC[选择目标医生]:::patient
+        SEL_DOC --> SEL_DATE[选择就诊日期<br/>校验: 2026~当前年+2, isValidDate]:::patient
+        SEL_DATE --> SEL_DATE_OK{日期有效?}
+        SEL_DATE_OK -->|否| SEL_DATE
+        SEL_DATE_OK -->|是| SEL_SLOT[显示该医生当日排班<br/>时段+剩余号源]:::system
+        SEL_SLOT --> SEL_TYPE{挂号类型}
+        SEL_TYPE -->|当场挂号| ON_SITE[当场挂号模式]:::patient
+        SEL_TYPE -->|预约挂号| APPOINT[预约挂号模式]:::patient
+    end
+
+    %% ==================== 系统校验核心 ====================
+    subgraph SYS_CHECK["⚙️ 系统核心校验层"]
+        direction TB
+        
+        subgraph CHECK_ONSITE["当场挂号校验"]
+            O_CHECK1{该时段已开诊?<br/>quota[slot] > 0}:::decision
+            O_CHECK1 -->|否| O_REJECT1[提示: 该时段医生未开诊]:::error
+            O_CHECK2{号源未满?<br/>booked < quota ≤ 5}:::decision
+            O_CHECK2 -->|否| O_REJECT2[提示: 号源已满]:::error
+            O_CHECK3{时段末3分钟内?}:::decision
+            O_CHECK3 -->|是| O_REJECT3[提示: 当场挂号已截止<br/>请预约下一时段]:::error
+            O_CHECK4{重复挂号?<br/>同患者+同医生+同日期+同时段}:::decision
+            O_CHECK4 -->|是| O_REJECT4[提示: 不可重复挂号]:::error
+            O_CHECK4 -->|否| O_AUTO_CHECKIN[✅ 自动签到<br/>生成QueueTicket<br/>状态: WAITING]:::system
+        end
+
+        subgraph CHECK_APPOINT["预约挂号校验"]
+            A_CHECK1{该时段已开诊?}:::decision
+            A_CHECK1 -->|否| A_REJECT1[提示: 该时段医生未开诊]:::error
+            A_CHECK2{号源未满?}:::decision
+            A_CHECK2 -->|否| A_REJECT2[提示: 号源已满]:::error
+            A_CHECK3{重复挂号?}:::decision
+            A_CHECK3 -->|是| A_REJECT3[提示: 不可重复挂号]:::error
+            A_CHECK3 -->|否| A_GEN_TICKET[✅ 生成QueueTicket<br/>状态: 未签到<br/>等待就诊日签到]:::system
+        end
+
+        ON_SITE --> O_CHECK1
+        APPOINT --> A_CHECK1
+    end
+
+    %% ==================== 患者端：签到流程 ====================
+    subgraph CHECKIN["✅ 签到与队列排序"]
+        direction TB
+        P_CHECKIN_ONLY --> CHK_DATE[选择要签到的预约记录]:::patient
+        A_GEN_TICKET --> CHK_WAIT[就诊日到达医院]:::patient
+        O_AUTO_CHECKIN --> QUEUE_READY[进入候诊队列]:::system
+        CHK_WAIT --> CHK_ACTION[执行签到]:::patient
+        CHK_DATE --> CHK_ACTION
+
+        CHK_ACTION --> CHK_R1{提前超过5分钟?}:::decision
+        CHK_R1 -->|是| CHK_REJECT1[提示: 最早提前5分钟签到]:::error
+        CHK_R2{时段最后3分钟内?}:::decision
+        CHK_R2 -->|是| CHK_REJECT2[提示: 该时段签到已截止]:::error
+        CHK_R3{迟到超过1小时?}:::decision
+        CHK_R3 -->|是| CHK_REJECT3[提示: 预约已过期<br/>请重新挂号]:::error
+        
+        CHK_R1 -->|否| CHK_R2
+        CHK_R2 -->|否| CHK_R3
+        CHK_R3 -->|否| CHK_CLASSIFY[计算迟到时长并分级]:::system
+        
+        CHK_CLASSIFY --> LATE_TYPE{迟到分级}
+        LATE_TYPE -->|准时| C_ONTIME[标签: 准时]:::system
+        LATE_TYPE -->|迟到≤30min| C_LATE30[标签: 迟到30分钟]:::system
+        LATE_TYPE -->|迟到≤60min| C_LATE60[标签: 迟到60分钟]:::system
+        LATE_TYPE -->|迟到>60min| C_LATE120[标签: 迟到超60分钟]:::system
+        
+        C_ONTIME & C_LATE30 & C_LATE60 & C_LATE120 --> REFRESH[refreshSlotQueue<br/>队列刷新与重排]:::system
+        REFRESH --> SORT_RULE[排序规则:<br/>1. 准时组按签到顺序<br/>2. 迟到30分插第3位后<br/>3. 迟到60分插第6位后<br/>4. 超60分排末尾]:::system
+        SORT_RULE --> QUEUE_READY
+    end
+
+    %% ==================== 医生端：叫号与就诊 ====================
+    subgraph DOCTOR["👨‍⚕️ 医生端联动"]
+        direction TB
+        D_START([医生登录工作站]):::doctor --> D_LOAD[加载当日患者/队列/排班]:::system
+        D_LOAD --> D_VIEW[查看候诊队列<br/>显示: 患者名/预约时段/签到时间/状态]:::doctor
+        D_VIEW --> D_CALL{呼叫下一位?}:::decision
+        D_CALL -->|否| D_VIEW
+        D_CALL -->|是| D_POP[callNextPatient<br/>从队列头部取出患者]:::system
+        D_POP --> D_STATUS1[患者状态更新为<br/>STATUS_CALLED<br/>已叫号]:::system
+        D_STATUS1 --> D_WAIT_ARRIVE{患者是否应号?}:::decision
+        D_WAIT_ARRIVE -->|5分钟内未应号| D_MISS[状态: STATUS_MISSED<br/>过号未应]:::error
+        D_WAIT_ARRIVE -->|患者到达诊室| D_STATUS2[状态: STATUS_IN_ROOM<br/>就诊中]:::system
+        
+        D_STATUS2 --> D_CONSULT[医生执行看诊操作]:::doctor
+        D_CONSULT --> D_BRANCH{医生操作}
+        D_BRANCH -->|查看病历| D_VIEW_REC[查看患者历史病历]:::doctor
+        D_BRANCH -->|写入看诊记录| D_WRITE_VIEW[写入ConsultationRecord]:::doctor
+        D_BRANCH -->|开处方| D_PRESC[选择药品→扣库存→扣余额→累收入]:::doctor
+        D_BRANCH -->|开检查单| D_EXAM[选择ExamItem→生成ExamOrder]:::doctor
+        D_BRANCH -->|安排住院| D_STAY[智能推荐病房→分配床位→预扣押金]:::doctor
+        D_BRANCH -->|结束看诊| D_END[autoEndCurrentConsultation]:::doctor
+        
+        D_VIEW_REC & D_WRITE_VIEW & D_PRESC & D_EXAM & D_STAY --> D_END
+        D_END --> D_STATUS3[患者状态: STATUS_FINISHED<br/>就诊结束]:::system
+        D_STATUS3 --> D_NEXT{继续叫号?}:::decision
+        D_NEXT -->|是| D_VIEW
+        D_NEXT -->|否| D_EXIT([医生退出工作站]):::endpoint
+        D_MISS --> D_VIEW
+    end
+
+    %% ==================== 患者端：就诊中联动 ====================
+    subgraph PATIENT_BACK["🔄 患者端就诊反馈"]
+        direction TB
+        D_STATUS1 --> P_HEAR[患者收到叫号通知<br/>前往诊室]:::patient
+        P_HEAR --> P_ARRIVE[患者到达并应号]:::patient
+        P_ARRIVE --> D_STATUS2
+        D_CONSULT --> P_WAIT[患者在诊室内配合检查]:::patient
+        D_END --> P_LEAVE[患者离开诊室]:::patient
+        P_LEAVE --> P_PAY{有待缴费?}:::decision
+        P_PAY -->|是| P_PAY_ACT[前往缴费/执行检查/取药]:::patient
+        P_PAY -->|否| P_DONE([就诊完成]):::endpoint
+        P_PAY_ACT --> P_DONE
+    end
+
+    %% ==================== 取消与爽约分支 ====================
+    subgraph CANCEL["❌ 取消/爽约异常分支"]
+        direction TB
+        A_GEN_TICKET --> CANCEL_ACT[患者主动取消预约]:::patient
+        CANCEL_ACT --> CANCEL_OK{就诊前取消?}:::decision
+        CANCEL_OK -->|是| CANCEL_DONE[状态: STATUS_CANCELLED<br/>释放号源]:::system
+        CANCEL_OK -->|否| CANCEL_LATE[已过就诊时段<br/>标记爽约]:::error
+        CHK_WAIT --> NO_SHOW[就诊日未签到]:::error
+        NO_SHOW --> CANCEL_LATE
+    end
+
+    %% ==================== 连接 ====================
+    P_START --> P_LOGIN
+    O_REJECT1 & O_REJECT2 & O_REJECT3 & O_REJECT4 --> P_REG_FLOW
+    A_REJECT1 & A_REJECT2 & A_REJECT3 --> P_REG_FLOW
+    CHK_REJECT1 & CHK_REJECT2 & CHK_REJECT3 --> CHK_ACTION
+    CANCEL_LATE --> P_REG_FLOW
+    QUEUE_READY --> D_VIEW
+```

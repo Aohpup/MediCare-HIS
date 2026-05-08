@@ -810,8 +810,8 @@ bool markTicketAsFinished(const char* patientId, const char* doctorId) {
 	return true;
 }
 
-// 根据医生编号查找当前已叫号（STATUS_CALLED或STATUS_IN_ROOM）的患者编号
-// 单次遍历：同时查找 CALLED 和 IN_ROOM，纯 signSeq 降序取最近叫号的患者
+// 根据医生编号查找当前在诊（STATUS_IN_ROOM）的患者编号
+// 仅扫描 IN_ROOM 状态，取 signSeq 最大的记录；无 CALLED 回退
 const char* findCalledPatientIdByDoctor(const char* doctorId) {
 	if (doctorId == NULL) {
 		return NULL;
@@ -823,7 +823,7 @@ const char* findCalledPatientIdByDoctor(const char* doctorId) {
 			continue;
 		if (strcmp(curr->doctor->doctorId, doctorId) != 0)
 			continue;
-		if (curr->status != STATUS_CALLED && curr->status != STATUS_IN_ROOM)
+		if (curr->status != STATUS_IN_ROOM)
 			continue;
 		if (curr->signSeq > bestSeq) {
 			best = curr;
