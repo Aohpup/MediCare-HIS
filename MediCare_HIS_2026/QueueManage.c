@@ -811,46 +811,24 @@ bool markTicketAsFinished(const char* patientId, const char* doctorId) {
 }
 
 // 根据医生编号查找当前已叫号（STATUS_CALLED或STATUS_IN_ROOM）的患者编号
-// 优先级：先查 IN_ROOM（就诊中），再查 CALLED（已叫号），各自取 signSeq 最大的
+// 单次遍历：同时查找 CALLED 和 IN_ROOM，纯 signSeq 降序取最近叫号的患者
 const char* findCalledPatientIdByDoctor(const char* doctorId) {
 	if (doctorId == NULL) {
 		return NULL;
 	}
-	QueueTicket* curr;
-	QueueTicket* best;
-	int bestSeq;
-
-	// 第一优先：STATUS_IN_ROOM（就诊中），取 signSeq 最大
-	curr = g_ticketHead;
-	best = NULL;
-	bestSeq = -1;
-	while (curr != NULL) {
-		if (curr->doctor != NULL && curr->patient != NULL &&
-			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
-			curr->status == STATUS_IN_ROOM &&
-			curr->signSeq > bestSeq) {
+	QueueTicket* best = NULL;
+	int bestSeq = -1;
+	for (QueueTicket* curr = g_ticketHead; curr != NULL; curr = curr->next) {
+		if (curr->doctor == NULL || curr->patient == NULL)
+			continue;
+		if (strcmp(curr->doctor->doctorId, doctorId) != 0)
+			continue;
+		if (curr->status != STATUS_CALLED && curr->status != STATUS_IN_ROOM)
+			continue;
+		if (curr->signSeq > bestSeq) {
 			best = curr;
 			bestSeq = curr->signSeq;
 		}
-		curr = curr->next;
-	}
-	if (best != NULL) {
-		return best->patient->patientId;
-	}
-
-	// 第二优先：STATUS_CALLED（已叫号未入室），取 signSeq 最大
-	curr = g_ticketHead;
-	best = NULL;
-	bestSeq = -1;
-	while (curr != NULL) {
-		if (curr->doctor != NULL && curr->patient != NULL &&
-			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
-			curr->status == STATUS_CALLED &&
-			curr->signSeq > bestSeq) {
-			best = curr;
-			bestSeq = curr->signSeq;
-		}
-		curr = curr->next;
 	}
 	return (best != NULL) ? best->patient->patientId : NULL;
 }

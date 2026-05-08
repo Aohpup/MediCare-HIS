@@ -413,6 +413,22 @@ void registerAppointment(HIS_System* sys) {
 			return;
 		}
 
+		if (!TEST_SYSTEM_DEBUG) {
+			TimeSlot currSlot = changeTimeToSlot(getCurrentTimeStr());
+			// 当场挂号：时段最后3分钟禁止
+			if (choice == 2) {
+				int h, m, s;
+				getCurrentTime(&h, &m, &s);
+				int nowMin = h * 60 + m;
+				int slotStart = 480 + (currSlot - 1) * 30;
+				if (nowMin - slotStart >= 27) {
+					printf("\n>>> 为确保看诊秩序，每个时段内最后3分钟不可当场挂号! \n");
+					continue;
+				}
+			}
+		}
+
+
 		if (choice == 3) {
 			// 收集当前患者所有待签到挂号记录（未签到且未被取消）
 			Patient* curPat = getCurrentPatientNode();
@@ -1151,8 +1167,7 @@ static char* prescribeDrugsForPatient(HIS_System* sys, const char* doctorId, con
 	printf("\n========== 处方汇总 ===========\n");
 	double totalCost = printPrescriptionDetail(sys, result);
 	printf("处方总计: %.2f 元\n", totalCost);
-	printf("患者余额: 实际 %.2f 元 | 赠送 %.2f 元 | 总计 %.2f 元\n",
-		patient->realBalance, patient->bonusBalance, getTotalBalance(patient));
+	printf("患者余额: %.2f 元\n", getTotalBalance(patient));
 
 	if (getTotalBalance(patient) < totalCost) {
 		printf(">>> 警告: 余额不足，开具后余额将为 %.2f 元。\n", getTotalBalance(patient) - totalCost);
@@ -1171,8 +1186,8 @@ static char* prescribeDrugsForPatient(HIS_System* sys, const char* doctorId, con
 	deductBalance(patient, totalCost);
 	addHospitalRevenue(sys, totalCost);
 	saveDrugSystemData(sys);
-	printf(">>> 处方开具成功！已扣费 %.2f 元，当前余额: 实际 %.2f 元 | 赠送 %.2f 元 | 总计 %.2f 元。\n",
-		totalCost, patient->realBalance, patient->bonusBalance, getTotalBalance(patient));
+	printf(">>> 处方开具成功！已扣费 %.2f 元，当前余额: %.2f 元。\n",
+		totalCost, getTotalBalance(patient));
 
 	return result;
 }
@@ -1341,7 +1356,7 @@ void issueExaminationOrder(HIS_System* sys, const char* doctorId) {
 	if (calledId != NULL) {
 		Patient* p = findPatientById(sys, calledId);
 		printf("\n>>> 当前叫号患者: %s (%s)\n", p ? p->name : "未知", calledId);
-		if (confirmFunc("快捷开具", "为当前叫号患者开具检查单")) {
+		if (confirmFunc("开具", "当前看诊患者的检查单")) {
 			if (createExamOrder(sys, doctorId, calledId)) {
 				markTicketAsInRoom(calledId, doctorId); //开具检查单后将患者挂号单状态推进为IN_ROOM，表示患者已进入诊室就诊
 			}
@@ -1812,8 +1827,7 @@ void patientDischargeCheckout(HIS_System* sys, const char* patientId) {
 		printf(">>> 住院费（头7天）已由押金全额抵扣 %.2f 元。\n", deposit);
 	}
 
-	printf(">>> 缴费成功！当前余额: 实际 %.2f 元 | 赠送 %.2f 元 | 总计 %.2f 元。\n",
-		p->realBalance, p->bonusBalance, getTotalBalance(p));
+	printf(">>> 缴费成功！当前余额: %.2f 元。\n", getTotalBalance(p));
 
 	// 确认出院
 	if (!confirmFunc("出院确认", "完成出院手续")) {
@@ -1908,8 +1922,7 @@ void patientInfoMenu(HIS_System* sys, const char* patientId) {
 		printf("患者类型: %s\n",
 			patient->type == PATIENT_VIP ? "VIP" :
 			patient->type == PATIENT_EMERGENCY ? "急诊" : "普通");
-		printf("账户总余额: %.2f 元 (实际: %.2f 元, 赠送: %.2f 元)\n",
-			getTotalBalance(patient), patient->realBalance, patient->bonusBalance);
+		printf("账户总余额: %.2f 元\n", getTotalBalance(patient));
 		printf("联系电话: %s\n", patient->phone);
 		printf("身份证号: %s\n", patient->idCard);
 		printf("==================================\n\n");
@@ -1970,8 +1983,7 @@ void patientInfoMenu(HIS_System* sys, const char* patientId) {
 				addHospitalRevenue(sys, 500.0);
 				patient->type = PATIENT_VIP;
 				savePatientsSystemData(sys);
-				printf(">>> 已升级为 VIP，已扣费 500 元，当前余额: 实际 %.2f 元 | 赠送 %.2f 元 | 总计 %.2f 元。\n",
-					patient->realBalance, patient->bonusBalance, getTotalBalance(patient));
+				printf(">>> 已升级为 VIP，已扣费 500 元，当前余额: %.2f 元。\n", getTotalBalance(patient));
 			} else if (patient->type == PATIENT_VIP) {
 				printf(">>> 提示：VIP 转普通将失去相关权益。\n");
 				if (!confirmFunc("确认", "VIP 转普通")) {
@@ -2087,8 +2099,8 @@ void patientRechargeMenuForPatient(HIS_System* sys, Patient* patient) {
 
 	while (1) {
 		printf("\n============== 余额充值 ==============\n");
-		printf("当前患者: %s  总余额: %.2f 元 (实际: %.2f, 赠送: %.2f)\n",
-			patient->name, getTotalBalance(patient), patient->realBalance, patient->bonusBalance);
+		printf("当前患者: %s  总余额: %.2f 元\n",
+			patient->name, getTotalBalance(patient));
 		printf("--------------------------------------\n");
 
 		const int w = 24;
@@ -2153,9 +2165,7 @@ void patientRechargeMenuForPatient(HIS_System* sys, Patient* patient) {
 		if (!valid) continue;
 
 		double totalAdd = amount + bonus;
-		printf("\n>>> 充值金额: %.2f 元", amount);
-		if (bonus > 0) printf("，赠送: %.2f 元", bonus);
-		printf("，合计到账: %.2f 元\n", totalAdd);
+		printf("\n>>> 充值金额: %.2f 元, 合计到账: %.2f 元\n", amount, totalAdd);
 
 		if (!confirmFunc("确认", "以上充值信息")) {
 			printf(">>> 已取消充值。\n");
@@ -2165,8 +2175,7 @@ void patientRechargeMenuForPatient(HIS_System* sys, Patient* patient) {
 		addRealBalance(patient, amount);
 		if (bonus > 0) addBonusBalance(patient, bonus);
 		savePatientsSystemData(sys);
-		printf(">>> 充值成功！实际余额: %.2f 元, 赠送余额: %.2f 元, 总余额: %.2f 元。\n",
-			patient->realBalance, patient->bonusBalance, getTotalBalance(patient));
+		printf(">>> 充值成功！当前总余额: %.2f 元。\n", getTotalBalance(patient));
 	}
 }
 

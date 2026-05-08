@@ -596,7 +596,11 @@ void deleteWardFunc(Ward** head, const char* queryStr, int mode) {
 void displayAllWards(HIS_System* sys) {
 	if (sys->wardHead == NULL) { printf("\n>>> 系统内没有病房数据！\n"); return; }
 	Ward* curr = sys->wardHead; int count = 0;
-	while (curr) { printf("\n--- 病房 #%d ---\n", ++count); printWardInfo(curr); curr = curr->next; }
+	while (curr) {
+		printf("\n--- 病房 #%d ---\n", ++count);
+		printWardInfo(curr);
+		curr = curr->next;
+	}
 	printf(">>> 共计 %d 个病房。\n", count);
 	pressEnterToContinue();
 }

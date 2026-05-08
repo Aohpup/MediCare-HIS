@@ -1305,7 +1305,7 @@ void doctorViewStayInfo(HIS_System* sys, const char* doctorId) {
 		printf(">>> 已取消查看。\n");
 		return;
 	}
-	if(!isPatientCalledByDoctor(pid, doctorId)) {
+	if(!isPatientCalledByDoctor(pid, doctorId) || !hasPatientCalledByDoctor(pid, doctorId)) {
 		printf(">>> 该患者不是您的患者或者未在候诊队列中，您无法查看住院信息。\n");
 		return;
 	}
@@ -1569,8 +1569,8 @@ void doctorArrangeWard(HIS_System* sys, const char* doctorId) {
 	// 预扣 7 天押金
 	double deposit = 7.0 * targetWard->price;
 	printf(">>> 住院押金: 7天 × %.2f元/天 = %.2f 元\n", targetWard->price, deposit);
-	printf(">>> 当前总余额: %.2f 元 (实际: %.2f, 赠送: %.2f)，扣费后余额: %.2f 元\n",
-		getTotalBalance(patient), patient->realBalance, patient->bonusBalance, getTotalBalance(patient) - deposit);
+	printf(">>> 当前总余额: %.2f 元，扣费后余额: %.2f 元\n",
+		getTotalBalance(patient), getTotalBalance(patient) - deposit);
 	deductBalance(patient, deposit);
 	addHospitalRevenue(sys, deposit);
 

@@ -5,6 +5,9 @@
 #include"stdbool.h"
 #include"string.h"
 
+//标记患者是否已登录
+extern bool is_Patient_Logged_In;
+
 //获取当前登录患者的编号
 const char* getCurrentPatientId(void);
 

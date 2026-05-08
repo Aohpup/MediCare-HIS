@@ -13,7 +13,7 @@ void listPendingExamOrders(HIS_System* sys);
 // 技师填写检查结果
 bool fillExamResult(HIS_System* sys, const char* orderId, const char* itemId, const char* result);
 
-// 医生查询自己开具的检查单
+// 医生查询自己开具的检查单的结果
 void queryExamOrdersByDoctor(HIS_System* sys, const char* doctorId);
 
 // 患者查询自己的检查单

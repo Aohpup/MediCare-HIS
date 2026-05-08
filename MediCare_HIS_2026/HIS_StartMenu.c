@@ -177,6 +177,8 @@ void patientMenu(HIS_System* sys) {
 		case 13: patientRechargeMenu(sys); break;
 		case 0:
 			if (confirmFunc("退出", "患者服务台")) {
+				if (is_Patient_Logged_In) 
+				logOutPatient();
 				printf(">>> 退出成功！正在返回主菜单...\n");
 				return;
 			}

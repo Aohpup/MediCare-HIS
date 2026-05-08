@@ -449,7 +449,7 @@ bool createExamOrder(HIS_System* sys, const char* doctorId, const char* patientI
 			}
 			printf(">>> 已全选添加 %d 个项目。\n", added);
 			pressEnterToContinue();
-			return true;
+			break;
 		}
 
 		// 纯数字 → 按序号选择
@@ -788,8 +788,8 @@ void doPatientExamCheck(HIS_System* sys, const char* patientId) {
 	// 显示费用信息
 	Patient* examPatient = findPatientById(sys, patientId);
 	if (examPatient != NULL && totalPendingCost > 0) {
-		printf("检查费用总计: %.2f 元，当前总余额: %.2f 元 (实际: %.2f, 赠送: %.2f)\n",
-			totalPendingCost, getTotalBalance(examPatient), examPatient->realBalance, examPatient->bonusBalance);
+		printf("检查费用总计: %.2f 元，当前总余额: %.2f 元\n",
+			totalPendingCost, getTotalBalance(examPatient));
 		printf("扣费后余额: %.2f 元\n", getTotalBalance(examPatient) - totalPendingCost);
 		if (getTotalBalance(examPatient) < totalPendingCost) {
 			printf(">>> 提示: 余额不足，请及时充值！\n");
@@ -806,8 +806,8 @@ void doPatientExamCheck(HIS_System* sys, const char* patientId) {
 	if (examPatient != NULL && totalPendingCost > 0) {
 		deductBalance(examPatient, totalPendingCost);
 		addHospitalRevenue(sys, totalPendingCost);
-		printf(">>> 已扣费 %.2f 元，当前余额: 实际 %.2f 元 | 赠送 %.2f 元 | 总计 %.2f 元。\n",
-			totalPendingCost, examPatient->realBalance, examPatient->bonusBalance, getTotalBalance(examPatient));
+		printf(">>> 已扣费 %.2f 元，当前余额: %.2f 元。\n",
+			totalPendingCost, getTotalBalance(examPatient));
 	}
 
 	// 执行检查（自动生成结果）
@@ -868,7 +868,8 @@ void queryExamOrdersByDoctor(HIS_System* sys, const char* doctorId) {
 		printf("\n===== 检查结果查询 =====\n");
 		printf("1. 查看最新检查结果\n");
 		printf("2. 按日期搜索\n");
-		printf("3. 查看全部历史\n");
+		printf("3. 查看检查单（按患者）\n");
+		printf("4. 查看全部历史\n");
 		printf("0. 返回上一级\n");
 		printf("========================\n");
 		choice = safeGetInt("请选择操作: ");
@@ -924,6 +925,35 @@ void queryExamOrdersByDoctor(HIS_System* sys, const char* doctorId) {
 			break;
 		}
 		case 3: {
+			// 查看指定患者的检查单（需权限校验）
+			char patientId[ID_LEN];
+			safeGetString("请输入患者编号(输入 -1 取消): ", patientId, ID_LEN);
+			if (strcmp(patientId, "-1") == 0) {
+				printf(">>> 已取消。\n");
+				break;
+			}
+			if (!hasPatientCalledByDoctor(patientId, doctorId)) {
+				printf(">>> 该患者未被您叫号，无权查看检查单。\n");
+				break;
+			}
+			printf("\n--- %s 的检查单 ---\n", patientId);
+			bool found = false;
+			order = sys->examOrderHead;
+			while (order != NULL) {
+				if (strcmp(order->doctorId, doctorId) == 0
+					&& strcmp(order->patientId, patientId) == 0) {
+					printExamOrderDetail(order);
+					found = true;
+				}
+				order = order->next;
+			}
+			if (!found) {
+				printf(">>> 该患者暂无由您开具的检查单。\n");
+			}
+			pressEnterToContinue();
+			break;
+		}
+		case 4: {
 			// 显示全部历史，不限日期
 			printf("\n--- 全部检查单 ---\n");
 			bool found = false;
