@@ -43,7 +43,7 @@ void loadQueueTicketData(HIS_System* sys) {
 		}
 		Patient* patient = findPatientByIdInQueue(sys, patientId);
 		doctor* doc = findDoctorByIdInQueue(sys, doctorId);
-		if (patient == NULL || doc == NULL || slotNo <= SLOT_INVALID || (slotNo > SLOT_COUNT && slotNo != SLOT_NIGHT)) {
+		if (patient == NULL || doc == NULL || slotNo <= SLOT_INVALID || slotNo > SLOT_COUNT) {
 			continue;
 		}
 		QueueTicket* ticket = (QueueTicket*)malloc(sizeof(QueueTicket));

@@ -23,10 +23,6 @@ int main() {
 	if (!TEST_SYSTEM_DEBUG) {	//非调试模式下，直接加载所有数据；调试模式下，允许单独测试某个模块的数据加载
 		loadFileAllData(&sys);
 	}
-	else 
-		if(confirmFunc("加载", "所有系统数据文件")) {	//测试模式下，提示用户是否加载所有系统数据文件，允许管理者选择不加载以单独测试某个模块的数据加载功能
-			loadFileAllData(&sys);
-		}
 
 	// 进入主菜单系统
 	showMainMenu(&sys);

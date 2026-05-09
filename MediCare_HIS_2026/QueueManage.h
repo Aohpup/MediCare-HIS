@@ -47,8 +47,8 @@ typedef struct QueueTicket {
 typedef struct DoctorDaySchedule {
 	char doctorId[ID_LEN];
 	char date[DATE_STR_LEN];
-	bool openSlots[SLOT_COUNT + 2];		//排班时间段标记，true表示该时段有排班，false表示无排班（+2以容纳SLOT_NIGHT=18）
-	int bookingCount[SLOT_COUNT + 2];
+	bool openSlots[SLOT_COUNT + 1];		//排班时间段标记，true表示该时段有排班，false表示无排班
+	int bookingCount[SLOT_COUNT + 1];
 	struct DoctorDaySchedule* next;
 } DoctorDaySchedule;
 
@@ -152,24 +152,5 @@ bool markTicketAsFinished(const char* patientId, const char* doctorId);
 // 检查全局排班数据是否已加载（用于判断是否可以进入排班管理界面）
 bool hasScheduleData(void);
 
-// ========== 晚间急诊模块（独立于白天门诊） ==========
-
-// 列出当天所有排了晚班的医生
-void printNightDoctors(const char* date);
-
-// 晚间急诊挂号（当场挂号 + 自动签到，不限额，仅按signSeq排队）
-bool bookNightEmergencyTicket(Patient* patient, doctor* doc, const char* date);
-
-// 刷新晚间急诊队列（仅按signSeq升序）
-void refreshNightQueue(const char* doctorId, const char* date);
-
-// 晚间叫号（当前患者）
-Patient* callNextNightPatient(const char* doctorId, const char* date);
-
-// 打印晚间急诊队列
-void printNightQueue(const char* doctorId, const char* date);
-
-// 获取当前系统时间对应的时段（晚间返回SLOT_NIGHT）
-TimeSlot getCurrentSlot(void);
 
 #endif // !QUEUEMANAGE_H

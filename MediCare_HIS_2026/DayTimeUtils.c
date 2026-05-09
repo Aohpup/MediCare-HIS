@@ -90,39 +90,6 @@ int changeTimeToSlot(char* timeStr) {
 	return SLOT_INVALID;
 }
 
-//可返回中午休时段（8-11）或晚间急诊时段（18），调用前请根据实际需求确认是否需要排除这些特殊时段
-int changeTimeToSlotInAll(char* timeStr) {
-	int hour = 0, min = 0, sec = 0;
-
-	if (sscanf(timeStr, "%d:%d:%d", &hour, &min, &sec) != 3) {
-		return SLOT_INVALID;
-	}
-
-	if (!isValidTime(timeStr)) {
-		return SLOT_INVALID;
-	}
-
-	int totalMin = hour * 60 + min;
-	if (totalMin < 8 * 60 + 30)  return SLOT_0800_0830;
-	if (totalMin < 9 * 60)       return SLOT_0830_0900;
-	if (totalMin < 9 * 60 + 30)  return SLOT_0900_0930;
-	if (totalMin < 10 * 60)      return SLOT_0930_1000;
-	if (totalMin < 10 * 60 + 30) return SLOT_1000_1030;
-	if (totalMin < 11 * 60)      return SLOT_1030_1100;
-	if (totalMin < 11 * 60 + 30) return SLOT_1100_1130;
-	if (totalMin < 12 * 60)      return SLOT_1130_1200;
-	if (totalMin < 12 * 60 + 30) return SLOT_1200_1230;
-	if (totalMin < 13 * 60)      return SLOT_1230_1300;
-	if (totalMin < 13 * 60 + 30) return SLOT_1300_1330;
-	if (totalMin < 14 * 60)      return SLOT_1330_1400;
-	if (totalMin < 14 * 60 + 30) return SLOT_1400_1430;
-	if (totalMin < 15 * 60)      return SLOT_1430_1500;
-	if (totalMin < 15 * 60 + 30) return SLOT_1500_1530;
-	if (totalMin < 16 * 60)      return SLOT_1530_1600;
-	if (totalMin < 16 * 60 + 30) return SLOT_1600_1630;
-	return SLOT_NIGHT;	// 晚间急诊时段
-}
-
 bool isValidDate(const char* dateStr) {
 	if (strlen(dateStr) != 10) 
 		return false;	//长度必须为10
@@ -149,57 +116,6 @@ bool isValidDate(const char* dateStr) {
 	return true;	//通过所有验证，日期有效
 }
 
-// 闰年判断
-static int leapYear(int y) {
-	return (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
-}
-
-// 某年某月的天数
-static int daysInMonth(int y, int m) {
-	static const int mdays[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
-	if (m < 1 || m > 12) return 30;
-	if (m == 2 && leapYear(y)) return 29;
-	return mdays[m - 1];
-}
-
-// 将日期转换为自公元元年1月1日起的天数（精确格里高利历）
-long dateToDays(int y, int m, int d) {
-	long days = 0;
-	for (int i = 1; i < y; ++i) {
-		days += leapYear(i) ? 366 : 365;
-	}
-	for (int i = 1; i < m; ++i) {
-		days += daysInMonth(y, i);
-	}
-	days += d;
-	return days;
-}
-
-// 将自公元元年1月1日起的天数转换为日期
-void daysToDate(long totalDays, int* y, int* m, int* d) {
-	*y = 1;
-	while (1) {
-		int dy = leapYear(*y) ? 366 : 365;
-		if (totalDays > dy) {
-			totalDays -= dy;
-			(*y)++;
-		} else {
-			break;
-		}
-	}
-	*m = 1;
-	while (1) {
-		int dm = daysInMonth(*y, *m);
-		if (totalDays > dm) {
-			totalDays -= dm;
-			(*m)++;
-		} else {
-			break;
-		}
-	}
-	*d = (int)totalDays;
-}
-
 void addDaysToDate(const char* dateStr, int addDays, char* out, int outSize) {
 	if (dateStr == NULL || out == NULL || outSize <= 0) return;
 	int y = 0, m = 0, d = 0;
@@ -207,38 +123,13 @@ void addDaysToDate(const char* dateStr, int addDays, char* out, int outSize) {
 		snprintf(out, outSize, "%s", dateStr ? dateStr : "");
 		return;
 	}
-	long total = dateToDays(y, m, d) + addDays;
-	daysToDate(total, &y, &m, &d);
+	int total = y * 365 + m * 30 + d + addDays;
+	y = total / 365;
+	total %= 365;
+	m = total / 30 + 1;
+	d = total % 30 + 1;
+	if (m > 12) { y++; m -= 12; }
 	snprintf(out, outSize, "%d-%02d-%02d", y, m, d);
-}
-
-int daysBetweenDates(const char* start, const char* end) {
-	if (start == NULL || end == NULL) return 0;
-	int y1 = 0, m1 = 0, d1 = 0, y2 = 0, m2 = 0, d2 = 0;
-	if (sscanf(start, "%d-%d-%d", &y1, &m1, &d1) != 3) return 0;
-	if (sscanf(end, "%d-%d-%d", &y2, &m2, &d2) != 3) return 0;
-	long total1 = dateToDays(y1, m1, d1);
-	long total2 = dateToDays(y2, m2, d2);
-	int diff = (int)(total2 - total1);
-	return diff > 0 ? diff : 1;	// 最少算作1天
-}
-
-bool isNightTime(void) {
-	int hour = 0, minute = 0, second = 0;
-	if(TEST_SYSTEM_DEBUG && TEST_NIGHT_TIME) {
-		char* testTime = setTestTime("19:00:00");	//测试时间设置为19:00:00，供单元测试调用
-		sscanf(testTime, "%d:%d:%d", &hour, &minute, &second);
-	}
-	else
-		getCurrentTime(&hour, &minute, &second);
-	int totalMin = hour * 60 + minute;
-	// 晚间急诊时段：16:30 之后到次日 08:00 之前（但排除午休 11:30 - 13:30，不过午休在白天区间内，不影响晚间判定）
-	// 晚间 = 16:30 (990分钟) 及之后，或 08:00 (480分钟) 之前
-	if (totalMin >= 16 * 60 + 30 || totalMin < 8 * 60) {
-		return true;
-	}
-	// 午休期间（11:30-13:30）映射为 SLOT_INVALID，不属于夜间
-	return false;
 }
 
 bool isValidTime(const char* timeStr) {
