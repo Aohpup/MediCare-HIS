@@ -406,11 +406,18 @@ void registerAppointment(HIS_System* sys) {
 		printf("\n--- 挂号与签到 ---\n");
 		printf("1. 预约挂号\n");
 		printf("2. 当场挂号\n");
-		printf("3. 预约签到排队\n");
+		printf("3. 签到排队\n");
+		printf("4. 晚间急诊挂号\n");
 		printf("0. 返回上一级菜单\n");
 		int choice = safeGetInt("请选择操作: ");
 		if (choice == 0) {
 			return;
+		}
+
+		// 晚间急诊挂号：完全独立入口
+		if (choice == 4) {
+			registerNightEmergency(sys);
+			continue;
 		}
 
 		if (!TEST_SYSTEM_DEBUG) {
@@ -502,7 +509,7 @@ void registerAppointment(HIS_System* sys) {
 		}
 
 		if (choice != 1 && choice != 2) {
-			printf(">>> 无效的选择，请输入 0/1/2/3。\n");
+			printf(">>> 无效的选择，请输入 0/1/2/3/4。\n");
 			continue;
 		}
 
@@ -629,6 +636,89 @@ void registerAppointment(HIS_System* sys) {
 				}
 			}
 		}
+	}
+}
+
+// 晚间急诊挂号（独立入口，与白天挂号完全隔离）
+void registerNightEmergency(HIS_System* sys) {
+	if (!is_Patient_Logged_In) {
+		printf(">>> 请先登录后再进行晚间急诊挂号！\n");
+		return;
+	}
+	if (sys->docHead == NULL) {
+		if (!TEST_SYSTEM_DEBUG) {
+			printf("严重错误: 医生数据不存在！\n");
+			exit(EXIT_FAILURE);
+		}
+		printf(">>> 警告: 医生数据为空。\n");
+		return;
+	}
+
+	char date[DATE_STR_LEN];
+	if (TEST_SYSTEM_DEBUG) {
+		char* testDate = setTestDate("2026-05-09");
+		strcpy(date, testDate);
+	}
+	else {
+		strcpy(date, getCurrentDateStr());
+	}
+
+	printf("\n========== 晚间急诊挂号 ==========\n");
+	printf("日期: %s\n", date);
+	printf("----------------------------------\n");
+
+	// 收集当天有晚间急诊排班的医生
+	typedef struct {
+		char doctorId[ID_LEN];
+		char doctorName[STR_LEN];
+	} NightDoc;
+	NightDoc nightDocs[64];
+	int nightDocCount = 0;
+
+	doctor* d = sys->docHead;
+	while (d != NULL) {
+		if (isDoctorSlotOpen(d->doctorId, date, SLOT_NIGHT)) {
+			strcpy(nightDocs[nightDocCount].doctorId, d->doctorId);
+			strcpy(nightDocs[nightDocCount].doctorName, d->doctorName);
+			nightDocCount++;
+		}
+		d = d->next;
+	}
+
+	if (nightDocCount == 0) {
+		printf(">>> 今晚暂无晚间急诊值班医生。\n");
+		printf("==================================\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	// 显示可选医生列表
+	printf("可选晚间急诊医生:\n");
+	for (int i = 0; i < nightDocCount; ++i) {
+		printf("%d) %s (%s)\n", i + 1, nightDocs[i].doctorName, nightDocs[i].doctorId);
+	}
+	printf("0) 返回\n");
+	printf("----------------------------------\n");
+
+	int choice = safeGetInt("请选择医生: ");
+	if (choice == 0) {
+		return;
+	}
+	if (choice < 1 || choice > nightDocCount) {
+		printf(">>> 无效选择。\n");
+		return;
+	}
+
+	doctor* chosen = findDoctorById(sys, nightDocs[choice - 1].doctorId);
+	if (chosen == NULL) {
+		printf(">>> 医生数据错误。\n");
+		return;
+	}
+
+	// 执行晚间急诊挂号
+	if (bookNightEmergencyTicket(getCurrentPatientNode(), chosen, date)) {
+		printf(">>> 晚间急诊挂号成功！当前为急诊通道，请耐心等候叫号。\n");
+		printNightQueue(chosen->doctorId, date);
 	}
 }
 
@@ -1567,17 +1657,6 @@ void viewConsultationHistory(HIS_System* sys, const char* doctorId) {
 	pressEnterToContinue();
 }
 
-// 计算两日期之间的天数（简易近似算法，日期格式 YYYY-MM-DD）
-int daysBetweenDates(const char* start, const char* end) {
-	if (start == NULL || end == NULL) return 0;
-	int y1 = 0, m1 = 0, d1 = 0, y2 = 0, m2 = 0, d2 = 0;
-	if (sscanf(start, "%d-%d-%d", &y1, &m1, &d1) != 3) return 0;
-	if (sscanf(end, "%d-%d-%d", &y2, &m2, &d2) != 3) return 0;
-	int total1 = y1 * 365 + m1 * 30 + d1;
-	int total2 = y2 * 365 + m2 * 30 + d2;
-	int diff = total2 - total1;
-	return diff > 0 ? diff : 1;	// 最少算作1天
-}
 
 // 更新住院记录的出院日期与时长
 bool updateStayRecordEnd(HIS_System* sys, const char* patientId, const char* wardId, const char* endDate, const char* duration) {

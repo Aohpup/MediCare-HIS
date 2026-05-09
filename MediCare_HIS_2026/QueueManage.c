@@ -115,7 +115,7 @@ static void rebuildAllWaitingQueues(void) {
 
 // 获取时间段的开始分钟数（相对于当天0点），如8:00对应480，8:30对应510，以此类推
 static int slotStartMinute(TimeSlot slot) {
-	static const int starts[SLOT_COUNT + 1] = {
+	static const int starts[SLOT_COUNT + 2] = {
 		0,
 		8 * 60 + 0,    // SLOT_0800_0830 = 1
 		8 * 60 + 30,   // SLOT_0830_0900 = 2
@@ -133,9 +133,10 @@ static int slotStartMinute(TimeSlot slot) {
 		14 * 60 + 30,  // SLOT_1430_1500 = 14
 		15 * 60 + 0,   // SLOT_1500_1530 = 15
 		15 * 60 + 30,  // SLOT_1530_1600 = 16
-		16 * 60 + 0    // SLOT_1600_1630 = 17
+		16 * 60 + 0,   // SLOT_1600_1630 = 17
+		16 * 60 + 30   // SLOT_NIGHT = 18
 	};
-	if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+	if (slot <= SLOT_INVALID || slot > SLOT_NIGHT) {
 		return -1;
 	}
 	return starts[slot];
@@ -175,7 +176,7 @@ static DoctorDaySchedule* getSchedule(const char* doctorId, const char* date, bo
 	}
 	strcpy(created->doctorId, doctorId);
 	strcpy(created->date, date);
-	for (int i = 0; i <= SLOT_COUNT; ++i) {
+	for (int i = 0; i <= SLOT_COUNT + 1; ++i) {
 		created->openSlots[i] = false;
 		created->bookingCount[i] = 0;
 	}
@@ -282,19 +283,34 @@ void dequeue(Queue* q) {
 }
 
 bool openDoctorScheduleSlot(const char* doctorId, const char* date, TimeSlot slot) {
-	if (doctorId == NULL || date == NULL || slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+	if (doctorId == NULL || date == NULL || slot <= SLOT_INVALID || (slot > SLOT_COUNT && slot != SLOT_NIGHT)) {
 		return false;
 	}
 	DoctorDaySchedule* schedule = getSchedule(doctorId, date, true);
 	if (schedule == NULL) {
 		return false;
 	}
+	// 晚间排班与白天排班互斥：排晚班的医生不得有白天排班，反之亦然
+	if (slot == SLOT_NIGHT) {
+		for (int i = 1; i <= SLOT_COUNT; ++i) {
+			if (schedule->openSlots[i]) {
+				printf(">>> 该医生已有白天排班，不可同时排晚间急诊班次。\n");
+				return false;
+			}
+		}
+	}
+	else {
+		if (schedule->openSlots[SLOT_NIGHT]) {
+			printf(">>> 该医生已有晚间急诊班次，不可同时排白天班次。\n");
+			return false;
+		}
+	}
 	schedule->openSlots[slot] = true;
 	return true;
 }
 
 bool cancelDoctorScheduleSlot(const char* doctorId, const char* date, TimeSlot slot) {
-	if (doctorId == NULL || date == NULL || slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+	if (doctorId == NULL || date == NULL || slot <= SLOT_INVALID || (slot > SLOT_COUNT && slot != SLOT_NIGHT)) {
 		return false;
 	}
 	DoctorDaySchedule* schedule = getSchedule(doctorId, date, false);
@@ -315,6 +331,10 @@ int getDoctorSlotRemain(const char* doctorId, const char* date, TimeSlot slot) {
 	if (schedule == NULL || !schedule->openSlots[slot]) {
 		return 0;
 	}
+	// 晚间急诊不限额
+	if (slot == SLOT_NIGHT) {
+		return 999;
+	}
 	if (schedule->bookingCount[slot] >= MAX_APP) {
 		return 0;
 	}
@@ -322,7 +342,7 @@ int getDoctorSlotRemain(const char* doctorId, const char* date, TimeSlot slot) {
 }
 
 bool isDoctorSlotOpen(const char* doctorId, const char* date, TimeSlot slot) {
-	if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+	if (slot <= SLOT_INVALID || (slot > SLOT_COUNT && slot != SLOT_NIGHT)) {
 		return false;
 	}
 	DoctorDaySchedule* schedule = getSchedule(doctorId, date, false);
@@ -333,7 +353,7 @@ bool isDoctorSlotOpen(const char* doctorId, const char* date, TimeSlot slot) {
 }
 
 int getDoctorSlotBooked(const char* doctorId, const char* date, TimeSlot slot) {
-	if (slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+	if (slot <= SLOT_INVALID || (slot > SLOT_COUNT && slot != SLOT_NIGHT)) {
 		return 0;
 	}
 	DoctorDaySchedule* schedule = getSchedule(doctorId, date, false);
@@ -419,8 +439,17 @@ bool checkInQueueTicket(const char* patientId, const char* doctorId, const char*
 	else
 		snprintf(slotTime, sizeof(slotTime), "%s", signInTime);
 	TimeSlot currentSlot = (TimeSlot)changeTimeToSlot(slotTime);
-	if (currentSlot == SLOT_INVALID) {
-		printf(">>> 当前不是门诊时段，无法签到。\n");
+	TimeSlot DetailCurrentSlot = (TimeSlot)changeTimeToSlotInAll(slotTime);	// 获取更精细的时段（包含午休时段），用于判断是否在午休时段内提前签到
+	if (DetailCurrentSlot == SLOT_1300_1330 && delta < 0) {
+		// 在午休时段内提前签到，视为准时签到
+	}
+	else if (currentSlot == SLOT_INVALID) {
+		if(DetailCurrentSlot == SLOT_1130_1200 || DetailCurrentSlot == SLOT_1200_1230 || DetailCurrentSlot == SLOT_1230_1300 || DetailCurrentSlot == SLOT_1300_1330)
+			printf(">>> 当前不是门诊时段(午休)，无法签到。\n");
+		else if (DetailCurrentSlot == SLOT_NIGHT)
+			printf(">>> 当前不是门诊时段(晚间急诊)，无法签到。\n");
+		else
+			printf(">>> 当前不是门诊时段，无法签到。\n");
 		return false;
 	}
 
@@ -627,6 +656,14 @@ void printDoctorScheduleTable(HIS_System* sys, const char* doctorId, const char*
 			printf("[%s] 已挂号:%d 剩余:%d\n", slot_names[i - 1], booked, MAX_APP - booked);
 		}
 	}
+	// 晚间急诊单独显示
+	if (isDoctorSlotOpen(doctorId, date, SLOT_NIGHT)) {
+		int booked = getDoctorSlotBooked(doctorId, date, SLOT_NIGHT);
+		printf("[晚间急诊] 已挂号:%d 剩余:不限额\n", booked);
+	}
+	else {
+		printf("[晚间急诊] 未排班\n");
+	}
 	printf("================================\n");
 	pressEnterToContinue();
 }
@@ -643,13 +680,18 @@ void exportDoctorSchedules(FILE* fp, const char* doctorId) {
 					fprintf(fp, "S %s %d %d\n", curr->date, slot, curr->bookingCount[slot]);
 				}
 			}
+			// 导出晚间急诊排班
+			if (curr->openSlots[SLOT_NIGHT]) {
+				fprintf(fp, "S %s %d %d\n", curr->date, (int)SLOT_NIGHT, curr->bookingCount[SLOT_NIGHT]);
+			}
 		}
 		curr = curr->next;
 	}
 }
 
 void importDoctorSchedule(const char* doctorId, const char* date, TimeSlot slot, int bookingCount) {
-	if (doctorId == NULL || date == NULL || slot <= SLOT_INVALID || slot > SLOT_COUNT) {
+	// 晚间急诊时段需在枚举值范围内（SLOT_NIGHT = 18，通过 slot > SLOT_COUNT && slot != SLOT_NIGHT 排除非法值）
+	if (doctorId == NULL || date == NULL || slot <= SLOT_INVALID || (slot > SLOT_COUNT && slot != SLOT_NIGHT)) {
 		printf(">>> 导入数据格式错误，无法设置医生排班。\n");
 		return;
 	}
@@ -735,22 +777,27 @@ void queueRebuildAll(void) {
 
 // ========== 跨模块状态查询与流转函数（供PatientManage使用） ==========
 
-// 根据患者编号和医生编号查找对应的挂号记录（排除已取消的）
+// 根据患者编号和医生编号查找对应的挂号记录（排除已取消的，有多个时取signSeq最大的）
 QueueTicket* findTicketByDoctorPatient(const char* doctorId, const char* patientId) {
 	if (doctorId == NULL || patientId == NULL) {
 		return NULL;
 	}
+	QueueTicket* best = NULL;
+	int bestSeq = -1;
 	QueueTicket* curr = g_ticketHead;
 	while (curr != NULL) {
 		if (curr->patient != NULL && curr->doctor != NULL &&
 			strcmp(curr->patient->patientId, patientId) == 0 &&
 			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
 			curr->status != STATUS_CANCELLED) {
-			return curr;
+			if (curr->signSeq > bestSeq) {
+				best = curr;
+				bestSeq = curr->signSeq;
+			}
 		}
 		curr = curr->next;
 	}
-	return NULL;
+	return best;
 }
 
 // 检查某患者是否已被某医生叫号（状态为STATUS_CALLED或STATUS_IN_ROOM）
@@ -796,13 +843,13 @@ bool markTicketAsInRoom(const char* patientId, const char* doctorId) {
 	return true;
 }
 
-// 将患者挂号单状态推进为STATUS_FINISHED（表示看诊结束），仅当状态为STATUS_IN_ROOM时生效
+// 将患者挂号单状态推进为STATUS_FINISHED（表示看诊结束）
 bool markTicketAsFinished(const char* patientId, const char* doctorId) {
 	QueueTicket* ticket = findTicketByDoctorPatient(doctorId, patientId);
 	if (ticket == NULL) {
 		return false;
 	}
-	if (ticket->status != STATUS_IN_ROOM) {
+	if (ticket->status != STATUS_IN_ROOM && ticket->status != STATUS_CALLED) {
 		printf(">>> 该患者当前不在就诊中状态，无法结束看诊。\n");
 		return false;
 	}
@@ -810,26 +857,208 @@ bool markTicketAsFinished(const char* patientId, const char* doctorId) {
 	return true;
 }
 
-// 根据医生编号查找当前在诊（STATUS_IN_ROOM）的患者编号
-// 仅扫描 IN_ROOM 状态，取 signSeq 最大的记录；无 CALLED 回退
+// 根据医生编号查找当前已叫号（STATUS_CALLED 或 STATUS_IN_ROOM）的患者编号
+// 取 signSeq 最大的记录（IN_ROOM 优先于 CALLED）
 const char* findCalledPatientIdByDoctor(const char* doctorId) {
 	if (doctorId == NULL) {
 		return NULL;
 	}
-	QueueTicket* best = NULL;
-	int bestSeq = -1;
+	QueueTicket* bestCalled = NULL;
+	int bestCalledSeq = -1;
+	QueueTicket* bestInRoom = NULL;
+	int bestInRoomSeq = -1;
 	for (QueueTicket* curr = g_ticketHead; curr != NULL; curr = curr->next) {
 		if (curr->doctor == NULL || curr->patient == NULL)
 			continue;
 		if (strcmp(curr->doctor->doctorId, doctorId) != 0)
 			continue;
-		if (curr->status != STATUS_IN_ROOM)
-			continue;
-		if (curr->signSeq > bestSeq) {
-			best = curr;
-			bestSeq = curr->signSeq;
+		if (curr->status == STATUS_IN_ROOM && curr->signSeq > bestInRoomSeq) {
+			bestInRoom = curr;
+			bestInRoomSeq = curr->signSeq;
+		} else if (curr->status == STATUS_CALLED && curr->signSeq > bestCalledSeq) {
+			bestCalled = curr;
+			bestCalledSeq = curr->signSeq;
 		}
 	}
-	return (best != NULL) ? best->patient->patientId : NULL;
+	// IN_ROOM 优先，其次 CALLED
+	if (bestInRoom != NULL)
+		return bestInRoom->patient->patientId;
+	if (bestCalled != NULL)
+		return bestCalled->patient->patientId;
+	return NULL;
 }
 
+// ========== 晚间急诊模块 ==========
+
+// 获取当前系统时间对应的时段（晚间返回SLOT_NIGHT，其他委托给changeTimeToSlot）
+TimeSlot getCurrentSlot(void) {
+	char* timeStr = getCurrentTimeStr();
+	if (isNightTime()) {
+		return SLOT_NIGHT;
+	}
+	return (TimeSlot)changeTimeToSlot(timeStr);
+}
+
+// 列出当天所有排了晚间急诊的医生
+void printNightDoctors(const char* date) {
+	printf("\n========== 晚间急诊医生列表 ==========\n");
+	printf("日期: %s\n", date);
+	printf("--------------------------------------\n");
+
+	bool foundAny = false;
+	DoctorDaySchedule* curr = g_scheduleHead;
+	while (curr != NULL) {
+		if (strcmp(curr->date, date) == 0 && curr->openSlots[SLOT_NIGHT]) {
+			// 找到对应的医生信息
+			doctor* doc = NULL;
+			for (QueueTicket* t = g_ticketHead; t != NULL; t = t->next) {
+				if (t->doctor != NULL) {
+					doc = t->doctor;
+					if (strcmp(doc->doctorId, curr->doctorId) == 0) break;
+				}
+			}
+			// 如果ticket链表中没有，需要通过外部查找；这里使用标识
+			printf("医生编号: %s\n", curr->doctorId);
+			foundAny = true;
+		}
+		curr = curr->next;
+	}
+	if (!foundAny) {
+		printf(">>> 当天暂无晚间急诊值班医生。\n");
+	}
+	printf("======================================\n");
+}
+
+// 晚间急诊挂号
+bool bookNightEmergencyTicket(Patient* patient, doctor* doc, const char* date) {
+	if (patient == NULL || doc == NULL || date == NULL) {
+		return false;
+	}
+	// 检查医生是否有晚间排班
+	DoctorDaySchedule* schedule = getSchedule(doc->doctorId, date, false);
+	if (schedule == NULL || !schedule->openSlots[SLOT_NIGHT]) {
+		printf(">>> 该医生今日无晚间急诊排班，无法挂号。\n");
+		return false;
+	}
+
+	// 检查是否已挂过该医生的晚间急诊
+	QueueTicket* t = g_ticketHead;
+	while (t != NULL) {
+		if (strcmp(t->patient->patientId, patient->patientId) == 0 &&
+			strcmp(t->doctor->doctorId, doc->doctorId) == 0 &&
+			strcmp(t->date, date) == 0 &&
+			t->slot == SLOT_NIGHT &&
+			t->status != STATUS_CANCELLED) {
+			printf(">>> 您已挂过该医生的晚间急诊，请勿重复挂号。\n");
+			return false;
+		}
+		t = t->next;
+	}
+
+	QueueTicket* ticket = (QueueTicket*)malloc(sizeof(QueueTicket));
+	if (ticket == NULL) {
+		return false;
+	}
+	ticket->patient = patient;
+	ticket->doctor = doc;
+	strcpy(ticket->date, date);
+	ticket->slot = SLOT_NIGHT;
+	ticket->isOnsite = true;       // 当场挂号
+	ticket->checkedIn = true;      // 自动签到
+	ticket->signSeq = g_signSeq++;
+	ticket->lateMinutes = 0;       // 不适用迟到规则
+	ticket->status = STATUS_WAITING;
+	ticket->next = g_ticketHead;
+	g_ticketHead = ticket;
+
+	schedule->bookingCount[SLOT_NIGHT]++;
+	printf(">>> 晚间急诊挂号成功！签到序号: %d\n", ticket->signSeq);
+	return true;
+}
+
+// 比较函数：仅按signSeq升序（用于晚间队列）
+static int compareNightSign(const void* lhs, const void* rhs) {
+	const QueueTicket* a = *(const QueueTicket**)lhs;
+	const QueueTicket* b = *(const QueueTicket**)rhs;
+	return a->signSeq - b->signSeq;
+}
+
+// 刷新晚间急诊队列（仅按signSeq升序，无分桶/无优先级）
+void refreshNightQueue(const char* doctorId, const char* date) {
+	WaitingQueue* waiting = getWaitingQueue(doctorId, date, SLOT_NIGHT, true);
+	if (waiting == NULL) {
+		return;
+	}
+	clearQueueNodes(&waiting->queue);
+
+	QueueTicket* nightTickets[256] = { 0 };
+	int nightCount = 0;
+
+	QueueTicket* curr = g_ticketHead;
+	while (curr != NULL) {
+		if (curr->checkedIn &&
+			curr->status == STATUS_WAITING &&
+			strcmp(curr->doctor->doctorId, doctorId) == 0 &&
+			strcmp(curr->date, date) == 0 &&
+			curr->slot == SLOT_NIGHT &&
+			nightCount < 256) {
+			nightTickets[nightCount++] = curr;
+		}
+		curr = curr->next;
+	}
+
+	qsort(nightTickets, nightCount, sizeof(QueueTicket*), compareNightSign);
+
+	for (int i = 0; i < nightCount; ++i) {
+		enqueue(&waiting->queue, nightTickets[i]->patient);
+	}
+}
+
+// 晚间叫号
+Patient* callNextNightPatient(const char* doctorId, const char* date) {
+	refreshNightQueue(doctorId, date);
+	WaitingQueue* waiting = getWaitingQueue(doctorId, date, SLOT_NIGHT, false);
+	if (waiting == NULL || waiting->queue.front == NULL) {
+		printf(">>> 晚间急诊暂无候诊患者。\n");
+		return NULL;
+	}
+
+	Patient* nextPatient = waiting->queue.front->patient;
+	QueueTicket* ticket = findTicket(nextPatient->patientId, doctorId, date, SLOT_NIGHT);
+	if (ticket != NULL) {
+		ticket->status = STATUS_IN_ROOM;
+	}
+	dequeue(&waiting->queue);
+	refreshNightQueue(doctorId, date);
+	printf(">>> 叫号成功: %s (%s) — 已进入诊室就诊\n", nextPatient->name, nextPatient->patientId);
+	return nextPatient;
+}
+
+// 打印晚间急诊队列
+void printNightQueue(const char* doctorId, const char* date) {
+	refreshNightQueue(doctorId, date);
+	WaitingQueue* waiting = getWaitingQueue(doctorId, date, SLOT_NIGHT, false);
+
+	printf("\n========== 晚间急诊候诊队列 ==========\n");
+	printf("日期: %s  时段: 晚间急诊\n", date);
+	printf("医生编号: %s\n", doctorId);
+	printf("--------------------------------------\n");
+
+	if (waiting == NULL || waiting->queue.front == NULL) {
+		printf(">>> 暂无候诊患者。\n");
+		printf("======================================\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	int idx = 1;
+	QueueNode* node = waiting->queue.front;
+	while (node != NULL) {
+		Patient* p = node->patient;
+		printf("%d) %s (%s)\n", idx, p->name, p->patientId);
+		node = node->next;
+		++idx;
+	}
+	printf("======================================\n");
+	pressEnterToContinue();
+}

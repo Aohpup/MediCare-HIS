@@ -12,22 +12,23 @@
 #include"PrintFormattedStr.h"
 #include"PauseUtil.h"
 
-//git push -u origin main
 //初始化医疗管理系统的所有子模块链表
 //sys 医疗管理系统底座指针
-bool TEST_SYSTEM_DEBUG = false;		//是否启用测试（true启用，false禁用）
+bool TEST_SYSTEM_DEBUG = true;		//是否启用测试（true启用，false禁用）
 bool AUTO_BACKUP_DATA = true;		//自动备份数据到backup目录（true启用，false禁用）
+bool TEST_NIGHT_TIME = false;		//测试夜间急诊时段（true启用，false禁用）
 
 long long fixedAsset = 10000000;	//医院固定资产（初始值为1000万，单位：元）
 
 int currentPatientId = STARTING_PATIENT_ID;	//当前患者编号计数器（全局变量，初始值为STARTING_PATIENT_ID）
 
-const char* slot_names[SLOT_COUNT] = {
+const char* slot_names[SLOT_COUNT + 1] = {
 	"08:00-08:30", "08:30-09:00", "09:00-09:30", "09:30-10:00",
 	"10:00-10:30", "10:30-11:00", "11:00-11:30",
 	"11:30-12:00", "12:00-12:30", "12:30-13:00", "13:00-13:30",
 	"13:30-14:00", "14:00-14:30", "14:30-15:00",
-	"15:00-15:30", "15:30-16:00", "16:00-16:30"
+	"15:00-15:30", "15:30-16:00", "16:00-16:30",
+	"晚间急诊"
 };
 
 void initSystem(HIS_System* sys) {

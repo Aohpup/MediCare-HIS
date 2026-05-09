@@ -99,8 +99,28 @@ void doctorMenu(HIS_System* sys) {
 
 
 		switch (choice) {
-		case 1: printSlotQueue(getCurrentDoctorId(), getCurrentDateStr(), changeTimeToSlot(getCurrentTimeStr())); break;
-		case 2: doctorCallQueueMenu(sys, getCurrentDoctorId()); break;
+		case 1:
+			if (isNightTime()) {
+				printNightQueue(getCurrentDoctorId(), getCurrentDateStr());
+			}
+			else {
+				TimeSlot curSlot = (TimeSlot)changeTimeToSlot(getCurrentTimeStr());
+				if (curSlot == SLOT_INVALID) {
+					printf(">>> 当前不是门诊时段，无法查看队列。\n");
+				}
+				else {
+					printSlotQueue(getCurrentDoctorId(), getCurrentDateStr(), curSlot);
+				}
+			}
+			break;
+		case 2:
+			if (isNightTime()) {
+				callNextNightPatient(getCurrentDoctorId(), getCurrentDateStr());
+			}
+			else {
+				doctorCallQueueMenu(sys, getCurrentDoctorId());
+			}
+			break;
 		case 3: viewMedicalRecordDoc(sys, getCurrentDoctorId()); break;	
 		case 4: writeMedicalRecord(sys, getCurrentDoctorId()); break;
 		case 5: issueExaminationOrder(sys, getCurrentDoctorId()); break;
@@ -193,15 +213,9 @@ void patientMenu(HIS_System* sys) {
 
 // 主菜单入口
 void showMainMenu(HIS_System* sys) {
-	static int firstRun = 1;
-	if (!firstRun)
-	{
-		printf("\n");
-	}
-	firstRun = 0;
 	int choice;
 	while (1) {
-		printf("*********** 医疗管理系统 (HIS) ***********\n");
+		printf("\n\n*********** 医疗管理系统 (HIS) ***********\n");
 		printf("1. 管理员登录 (系统维护与数据统计)\n");
 		printf("2. 医生办公 (门诊看病与病房管理)\n");
 		printf("3. 患者服务台 (挂号与信息查询)\n");

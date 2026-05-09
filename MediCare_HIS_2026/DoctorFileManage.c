@@ -106,6 +106,9 @@ void loadDoctorSystemData(HIS_System* sys) {
 				if (slotNo >= 1 && slotNo <= SLOT_COUNT) {
 					importDoctorSchedule(currentDoctor->doctorId, date, (TimeSlot)slotNo, bookingCount);
 				}
+				else if (slotNo == SLOT_NIGHT) {
+					importDoctorSchedule(currentDoctor->doctorId, date, SLOT_NIGHT, bookingCount);
+				}
 			}
 			continue;
 		}

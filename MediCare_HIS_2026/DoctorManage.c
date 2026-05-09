@@ -808,28 +808,34 @@ static void setDoctorSchedule(HIS_System* sys, char* doctorId, const char* date)
 		printf(">>> 日期格式无效。\n");
 		return;
 	}
-	printf("请选择要开放的时段(输入 0 或 -1 结束)：\n");
+	printf("请选择要开放的时段(输入 0 或 -1 结束，输入 18 设置晚间急诊班次)：\n");
 	while (1) {
 		printAllTimeSlots();
+		printf("18) 晚间急诊 (晚间班次)\n");
 		int slotNo = safeGetInt(">>> 时段编号: ");
 		if (slotNo == 0 || slotNo == -1) {
 			printf(">>> 已结束排班设置。\n");
 			break;
 		}
-		if (slotNo < 1 || slotNo > SLOT_COUNT) {
-			printf(">>> 时段无效，请重试。\n");
+		if (slotNo < 1 || (slotNo > SLOT_COUNT && slotNo != SLOT_NIGHT)) {
+			printf(">>> 时段无效，请重试（有效范围: 1-%d 或 %d=晚间急诊）。\n", SLOT_COUNT, SLOT_NIGHT);
+			pressEnterToContinue();
 			continue;
 		}
-		if (isNoonSlot((TimeSlot)slotNo)) {
+		if (slotNo != SLOT_NIGHT && isNoonSlot((TimeSlot)slotNo)) {
 			printf(">>> 午休时段（11:30-13:30）暂不开放看诊，请选择其他时段。\n");
+			pressEnterToContinue();
 			continue;
 		}
 		if (isDoctorSlotOpen(doctorId, date, (TimeSlot)slotNo)) {
-			printf(">>> 时段 [%s] 已经开放过了，无需重复开放。\n", slot_names[slotNo - 1]);
+			printf(">>> 时段 [%s] 已经开放过了，无需重复开放。\n",
+				(slotNo == SLOT_NIGHT) ? "晚间急诊" : slot_names[slotNo - 1]);
+			pressEnterToContinue();
 			continue;
 		}
 		if (openDoctorScheduleSlot(doctorId, date, (TimeSlot)slotNo)) {
-			printf(">>> 已开放 [%s] 的号源。\n", slot_names[slotNo - 1]);
+			printf(">>> 已开放 [%s] 的号源。\n",
+				(slotNo == SLOT_NIGHT) ? "晚间急诊" : slot_names[slotNo - 1]);
 		}
 	}
 }
@@ -854,20 +860,22 @@ static void cancelDoctorSchedule(HIS_System* sys, char* doctorId, const char* da
 		printf(">>> 日期格式无效。\n");
 		return;
 	}
-	printf("请选择要取消的时段(输入 0 或 -1 结束)：\n");
+	printf("请选择要取消的时段(输入 0 或 -1 结束，输入 18 取消晚间急诊班次)：\n");
 	while (1) {
 		printAllTimeSlots();
+		printf("18) 晚间急诊 (晚间班次)\n");
 		int slotNo = safeGetInt(">>> 时段编号: ");
 		if (slotNo == 0 || slotNo == -1) {
 			printf(">>> 已结束排班取消。\n");
 			break;
 		}
-		if (slotNo < 1 || slotNo > SLOT_COUNT) {
-			printf(">>> 时段无效，请重试。\n");
+		if (slotNo < 1 || (slotNo > SLOT_COUNT && slotNo != SLOT_NIGHT)) {
+			printf(">>> 时段无效，请重试（有效范围: 1-%d 或 %d=晚间急诊）。\n", SLOT_COUNT, SLOT_NIGHT);
 			continue;
 		}
 		if (!isDoctorSlotOpen(doctorId, date, (TimeSlot)slotNo)) {
-			printf(">>> 时段 [%s] 本来就没有开放，无需取消。\n", slot_names[slotNo - 1]);
+			printf(">>> 时段 [%s] 本来就没有开放，无需取消。\n",
+				(slotNo == SLOT_NIGHT) ? "晚间急诊" : slot_names[slotNo - 1]);
 			continue;
 		}
 		if (cancelDoctorScheduleSlot(doctorId, date, (TimeSlot)slotNo)) {
@@ -1147,6 +1155,7 @@ void doctorManageMenuDoc(HIS_System* sys, const char* doctorId) {
 			strcpy(currentDoctor->password, newPwd);
 			saveDoctorSystemData(sys);
 			printf(">>> 密码修改成功！\n");
+			pressEnterToContinue();
 			break;
 		}
 		case 0:
