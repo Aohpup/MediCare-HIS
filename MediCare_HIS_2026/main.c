@@ -13,6 +13,8 @@ int main() {
 	if(TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
 	checkAndRestoreOnStartup();
 
+	printf("\n\n");
+
 	// 创建数据文件备份
 	if(TEST_SYSTEM_DEBUG || AUTO_BACKUP_DATA)
 	backupAllDataFiles();

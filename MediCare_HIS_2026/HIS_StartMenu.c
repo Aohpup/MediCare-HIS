@@ -216,9 +216,9 @@ void showMainMenu(HIS_System* sys) {
 	int choice;
 	while (1) {
 		printf("\n\n*********** 医疗管理系统 (HIS) ***********\n");
-		printf("1. 管理员登录 (系统维护与数据统计)\n");
-		printf("2. 医生办公 (门诊看病与病房管理)\n");
-		printf("3. 患者服务台 (挂号与信息查询)\n");
+		printf("1. 管理员登录\n");
+		printf("2. 医生办公\n");
+		printf("3. 患者服务台\n");
 		printf("0. 退出系统\n");
 		printf("******************************************\n");
 
