@@ -5,6 +5,7 @@
 #include"InputUtils.h"
 #include"PauseUtil.h"
 #include"DayTimeUtils.h"
+#include"PrintFormattedStr.h"
 #include<string.h>
 
 // 全局链表：医生排班、挂号单、候诊队列
@@ -17,19 +18,17 @@ bool hasScheduleData(void) {
 }
 static WaitingQueue* g_waitingQueueHead = NULL;
 static int g_signSeq = 1;
+static int g_priorityCounter = 0;	// 医生优先标记自增序号
 
-// 根据患者类别返回优先级数值，急诊最高（3），VIP次之（2），普通最低（1）
+// 根据患者类别返回优先级数值，急诊最高，VIP与普通同级
 static int patientPriority(const Patient* patient) {
 	if (patient == NULL) {
 		return 0;
 	}
 	if (patient->type == PATIENT_EMERGENCY) {
-		return 3;
-	}
-	if (patient->type == PATIENT_VIP) {
 		return 2;
 	}
-	return 1;
+	return 1;	// VIP 与普通患者权重相同
 }
 
 Patient* findPatientByIdInQueue(HIS_System* sys, const char* patientId) {
@@ -70,6 +69,20 @@ static int comparePriorityThenSign(const void* lhs, const void* rhs) {
 static int compareSignOnly(const void* lhs, const void* rhs) {
 	const QueueTicket* a = *(const QueueTicket**)lhs;
 	const QueueTicket* b = *(const QueueTicket**)rhs;
+	return a->signSeq - b->signSeq;
+}
+
+// 三级比较函数（供就诊中患者列表使用）：
+// 第一级：患者类型（急诊 > VIP > 普通）降序
+// 第二级：priorityOrder 降序（越大越靠前，0=从未标记排末尾）
+// 第三级：signSeq 升序（先签到在前）
+static int compareConsultingPriority(const void* lhs, const void* rhs) {
+	const QueueTicket* a = *(const QueueTicket**)lhs;
+	const QueueTicket* b = *(const QueueTicket**)rhs;
+	int pa = patientPriority(a->patient);
+	int pb = patientPriority(b->patient);
+	if (pa != pb) return pb - pa;
+	if (a->priorityOrder != b->priorityOrder) return b->priorityOrder - a->priorityOrder;
 	return a->signSeq - b->signSeq;
 }
 
@@ -398,6 +411,7 @@ bool bookQueueTicket(Patient* patient, doctor* doctor, const char* date, TimeSlo
 	ticket->signSeq = 0;
 	ticket->lateMinutes = 0;
 	ticket->status = STATUS_WAITING;
+	ticket->priorityOrder = 0;
 	ticket->next = g_ticketHead;
 	g_ticketHead = ticket;
 
@@ -858,34 +872,195 @@ bool markTicketAsFinished(const char* patientId, const char* doctorId) {
 }
 
 // 根据医生编号查找当前已叫号（STATUS_CALLED 或 STATUS_IN_ROOM）的患者编号
-// 取 signSeq 最大的记录（IN_ROOM 优先于 CALLED）
+// 使用三级排序逻辑找最优患者（急诊 > priorityOrder > signSeq）
 const char* findCalledPatientIdByDoctor(const char* doctorId) {
 	if (doctorId == NULL) {
 		return NULL;
 	}
-	QueueTicket* bestCalled = NULL;
-	int bestCalledSeq = -1;
-	QueueTicket* bestInRoom = NULL;
-	int bestInRoomSeq = -1;
+	QueueTicket* best = NULL;
 	for (QueueTicket* curr = g_ticketHead; curr != NULL; curr = curr->next) {
 		if (curr->doctor == NULL || curr->patient == NULL)
 			continue;
 		if (strcmp(curr->doctor->doctorId, doctorId) != 0)
 			continue;
-		if (curr->status == STATUS_IN_ROOM && curr->signSeq > bestInRoomSeq) {
-			bestInRoom = curr;
-			bestInRoomSeq = curr->signSeq;
-		} else if (curr->status == STATUS_CALLED && curr->signSeq > bestCalledSeq) {
-			bestCalled = curr;
-			bestCalledSeq = curr->signSeq;
+		if (curr->status != STATUS_CALLED && curr->status != STATUS_IN_ROOM)
+			continue;
+		if (best == NULL) {
+			best = curr;
+			continue;
+		}
+		// 三级比较：患者类型 > priorityOrder > signSeq
+		int pa = patientPriority(curr->patient);
+		int pb = patientPriority(best->patient);
+		if (pa != pb) {
+			if (pa > pb) best = curr;
+			continue;
+		}
+		if (curr->priorityOrder != best->priorityOrder) {
+			if (curr->priorityOrder > best->priorityOrder) best = curr;
+			continue;
+		}
+		if (curr->signSeq < best->signSeq) {
+			best = curr;
 		}
 	}
-	// IN_ROOM 优先，其次 CALLED
-	if (bestInRoom != NULL)
-		return bestInRoom->patient->patientId;
-	if (bestCalled != NULL)
-		return bestCalled->patient->patientId;
-	return NULL;
+	return (best != NULL) ? best->patient->patientId : NULL;
+}
+
+// ========== 候诊与就诊管理（医生工作站子菜单） ==========
+
+// 列出某医生当前所有已叫号/就诊中的患者，三级排序：急诊 > 优先标记 > 签到顺序
+void printConsultingPatientsByDoctor(const char* doctorId) {
+	if (doctorId == NULL) return;
+
+	// 收集所有 CALLED/IN_ROOM 的患者
+	QueueTicket* collected[256];
+	int count = 0;
+	for (QueueTicket* curr = g_ticketHead; curr != NULL; curr = curr->next) {
+		if (curr->doctor == NULL || curr->patient == NULL) continue;
+		if (strcmp(curr->doctor->doctorId, doctorId) != 0) continue;
+		if (curr->status != STATUS_CALLED && curr->status != STATUS_IN_ROOM) continue;
+		if (count < 256) {
+			collected[count++] = curr;
+		}
+	}
+
+	if (count == 0) {
+		printf(">>> 当前没有已叫号/就诊中的患者。\n");
+		return;
+	}
+
+	qsort(collected, count, sizeof(QueueTicket*), compareConsultingPriority);
+
+	printf("\n========== 当前就诊患者列表 ==========\n");
+	printFormattedStr("排序", 4);
+	printFormattedStr("患者编号", 14);
+	printFormattedStr("患者姓名", 12);
+	printFormattedStr("患者类型", 10);
+	printFormattedStr("状态", 8);
+	printFormattedStr("优先标记", 10);
+	printf("\n");
+	printFormattedStr("----", 4);
+	printFormattedStr("--------------", 14);
+	printFormattedStr("------------", 12);
+	printFormattedStr("----------", 10);
+	printFormattedStr("--------", 8);
+	printFormattedStr("----------", 10);
+	printf("\n");
+
+	for (int i = 0; i < count; ++i) {
+		QueueTicket* t = collected[i];
+		char idx[16], patId[32], patName[32], typeStr[16], statusStr[16], priorityStr[16];
+		snprintf(idx, sizeof(idx), "%d", i + 1);
+		snprintf(patId, sizeof(patId), "%s", t->patient->patientId);
+		snprintf(patName, sizeof(patName), "%s", t->patient->name);
+		if (t->patient->type == PATIENT_EMERGENCY)
+			snprintf(typeStr, sizeof(typeStr), "急诊");
+		else if (t->patient->type == PATIENT_VIP)
+			snprintf(typeStr, sizeof(typeStr), "VIP");
+		else
+			snprintf(typeStr, sizeof(typeStr), "普通");
+		snprintf(statusStr, sizeof(statusStr), "%s", t->status == STATUS_IN_ROOM ? "就诊中" : "已叫号");
+		snprintf(priorityStr, sizeof(priorityStr), "%s", t->priorityOrder > 0 ? "[优先]" : "");
+		printFormattedStr(idx, 4);
+		printFormattedStr(patId, 14);
+		printFormattedStr(patName, 12);
+		printFormattedStr(typeStr, 10);
+		printFormattedStr(statusStr, 8);
+		printFormattedStr(priorityStr, 10);
+		printf("\n");
+	}
+	printf("------------------------------------------\n");
+}
+
+// 医生手动设定优先看诊患者：清除本医生所有旧优先标记，在目标患者上设新标记
+static void setDoctorPriorityPatient(const char* doctorId) {
+	if (doctorId == NULL) return;
+
+	// 收集该医生所有 CALLED/IN_ROOM 的患者
+	QueueTicket* collected[256];
+	int count = 0;
+	for (QueueTicket* curr = g_ticketHead; curr != NULL; curr = curr->next) {
+		if (curr->doctor == NULL || curr->patient == NULL) continue;
+		if (strcmp(curr->doctor->doctorId, doctorId) != 0) continue;
+		if (curr->status != STATUS_CALLED && curr->status != STATUS_IN_ROOM) continue;
+		if (count < 256) {
+			collected[count++] = curr;
+		}
+	}
+
+	if (count == 0) {
+		printf(">>> 当前没有已叫号/就诊中的患者，无法设置优先。\n");
+		return;
+	}
+
+	// 排序后展示
+	qsort(collected, count, sizeof(QueueTicket*), compareConsultingPriority);
+	printConsultingPatientsByDoctor(doctorId);
+
+	printf("\n>>> 请选择要设为优先的患者（输入序号，输入 0 返回）: ");
+	int choice = safeGetInt("");
+	if (choice == 0) return;
+	if (choice < 1 || choice > count) {
+		printf(">>> 无效的选择。\n");
+		return;
+	}
+
+	QueueTicket* target = collected[choice - 1];
+
+	// 清除该医生所有旧优先标记
+	for (int i = 0; i < count; ++i) {
+		collected[i]->priorityOrder = 0;
+	}
+
+	// 对目标患者设置新的优先标记
+	target->priorityOrder = ++g_priorityCounter;
+	printf(">>> 已将患者 %s (%s) 设为优先看诊对象。\n", target->patient->name, target->patient->patientId);
+}
+
+// 医生工作站「候诊与就诊管理」二级菜单
+void doctorConsultationMenu(HIS_System* sys, const char* doctorId) {
+	if (sys == NULL || doctorId == NULL) {
+		printf(">>> 医生身份无效。\n");
+		return;
+	}
+
+	int choice = -1;
+	while (1) {
+		printf("\n========== 候诊与就诊管理 ==========\n");
+		printf("1. 打印当前挂号队列\n");
+		printf("2. 查看当前就诊患者\n");
+		printf("3. 指定优先看诊患者\n");
+		printf("0. 返回上一级菜单\n");
+		printf("======================================\n");
+		choice = safeGetInt("请选择操作: ");
+
+		switch (choice) {
+		case 1:
+			if (isNightTime()) {
+				printNightQueue(doctorId, getCurrentDateStr());
+			} else {
+				TimeSlot curSlot = (TimeSlot)changeTimeToSlot(getCurrentTimeStr());
+				if (curSlot == SLOT_INVALID) {
+					printf(">>> 当前不是门诊时段，无法查看队列。\n");
+				} else {
+					printSlotQueue(doctorId, getCurrentDateStr(), curSlot);
+				}
+			}
+			break;
+		case 2:
+			printConsultingPatientsByDoctor(doctorId);
+			break;
+		case 3:
+			setDoctorPriorityPatient(doctorId);
+			break;
+		case 0:
+			return;
+		default:
+			printf(">>> 无效的选择。\n");
+			break;
+		}
+	}
 }
 
 // ========== 晚间急诊模块 ==========
@@ -968,6 +1143,7 @@ bool bookNightEmergencyTicket(Patient* patient, doctor* doc, const char* date) {
 	ticket->signSeq = g_signSeq++;
 	ticket->lateMinutes = 0;       // 不适用迟到规则
 	ticket->status = STATUS_WAITING;
+	ticket->priorityOrder = 0;
 	ticket->next = g_ticketHead;
 	g_ticketHead = ticket;
 

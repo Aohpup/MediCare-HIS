@@ -14,7 +14,7 @@
 
 //初始化医疗管理系统的所有子模块链表
 //sys 医疗管理系统底座指针
-bool TEST_SYSTEM_DEBUG = true;		//是否启用测试（true启用，false禁用）
+bool TEST_SYSTEM_DEBUG = false;		//是否启用测试（true启用，false禁用）
 bool AUTO_BACKUP_DATA = true;		//自动备份数据到backup目录（true启用，false禁用）
 bool TEST_NIGHT_TIME = false;		//测试夜间急诊时段（true启用，false禁用）
 

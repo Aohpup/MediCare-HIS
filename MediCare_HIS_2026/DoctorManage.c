@@ -896,6 +896,9 @@ void doctorScheduleMenu(HIS_System* sys, const char* currentDoctorId) {
 			exit(EXIT_FAILURE);
 		}
 	}
+	if(currentDoctorId == NULL) {
+		safeGetString(">>> 请输入医生编号: ", currentDoctorId, ID_LEN);
+	}
 	char date[DATE_STR_LEN];
 	int choice = -1;
 	while (1) {
@@ -1066,7 +1069,7 @@ void doctorManageMenu(HIS_System* sys) {
 			displayAllDoctors(sys);
 			break;
 		case 7:
-			doctorScheduleMenu(sys, "curr_logged_in_doctor_id");		//TODO
+			doctorScheduleMenu(sys, "NULL");		//TODO
 			break;
 		case 8:
 			doctorViewScheduleBoardMenu(sys);

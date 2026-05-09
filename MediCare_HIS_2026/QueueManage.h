@@ -32,7 +32,7 @@ typedef struct WaitingQueue {
 //排队挂号信息结构体
 typedef struct QueueTicket {
 	Patient* patient;
-	doctor* doctor;					
+	doctor* doctor;
 	char date[DATE_STR_LEN];		//预约的日期
 	TimeSlot slot;					//预约的时段
 	bool isOnsite;					//是否当场挂号
@@ -40,6 +40,7 @@ typedef struct QueueTicket {
 	int signSeq;					//签到顺序（同一时段内，签到越早的患者signSeq越小）
 	int lateMinutes;				//迟到分钟数（0/30/60/120，分别对应准时/迟到30分钟内/迟到30-60分钟/迟到超过60分钟）
 	PatientStatus status;			//患者状态（1.等待叫号 2.已叫号但未进入诊室 3.就诊中 4.就诊结束 5.过号未应 6.爽约/取消）
+	int priorityOrder;				//医生手动优先标记：0=从未标记，N(>0)=被设为优先的序号，越大越新、越靠前
 	struct QueueTicket* next;
 } QueueTicket;
 
@@ -171,5 +172,13 @@ void printNightQueue(const char* doctorId, const char* date);
 
 // 获取当前系统时间对应的时段（晚间返回SLOT_NIGHT）
 TimeSlot getCurrentSlot(void);
+
+// ========== 候诊与就诊管理（医生工作站子菜单） ==========
+
+// 列出某医生当前已叫号/就诊中的患者（三级排序：急诊>优先>签到）
+void printConsultingPatientsByDoctor(const char* doctorId);
+
+// 医生工作站「候诊与就诊管理」二级菜单（含查看队列、查看就诊患者、指定优先患者）
+void doctorConsultationMenu(HIS_System* sys, const char* doctorId);
 
 #endif // !QUEUEMANAGE_H

@@ -81,7 +81,7 @@ void doctorMenu(HIS_System* sys) {
 	int choice;
 	while (1) {
 		printf("\n========== 医生工作站 ==========\n");
-		printf("1. 查看挂号候诊队列\n");
+		printf("1. 候诊与就诊管理\n");
 		printf("2. 排队叫号\n");
 		printf("3. 查看患者病历\n");
 		printf("4. 患者看诊与开具处方\n");
@@ -99,20 +99,7 @@ void doctorMenu(HIS_System* sys) {
 
 
 		switch (choice) {
-		case 1:
-			if (isNightTime()) {
-				printNightQueue(getCurrentDoctorId(), getCurrentDateStr());
-			}
-			else {
-				TimeSlot curSlot = (TimeSlot)changeTimeToSlot(getCurrentTimeStr());
-				if (curSlot == SLOT_INVALID) {
-					printf(">>> 当前不是门诊时段，无法查看队列。\n");
-				}
-				else {
-					printSlotQueue(getCurrentDoctorId(), getCurrentDateStr(), curSlot);
-				}
-			}
-			break;
+		case 1: doctorConsultationMenu(sys, getCurrentDoctorId()); break;
 		case 2:
 			if (isNightTime()) {
 				callNextNightPatient(getCurrentDoctorId(), getCurrentDateStr());

@@ -220,8 +220,6 @@ typedef enum {
 	SLOT_NIGHT = 18		// 晚间急诊（独立于白天门诊）
 } TimeSlot;
 
-// 判断时段是否为晚间急诊时段
-bool isNightSlot(TimeSlot slot);
 
 //患者排队状态枚举
 typedef enum {
@@ -275,5 +273,8 @@ void chargeAllInpatientsDaily(HIS_System* sys);
 
 //管理员：财务与库存报表统计
 void showFinanceStatistics(HIS_System* sys);
+
+//管理员登录
+bool loginAdmin(void);
 
 #endif // HIS_SYSTEM_H

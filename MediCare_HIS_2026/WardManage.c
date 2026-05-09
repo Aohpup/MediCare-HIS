@@ -605,6 +605,38 @@ void displayAllWards(HIS_System* sys) {
 	pressEnterToContinue();
 }
 
+void displayAllStayInfo(HIS_System* sys) {
+	if (sys->wardHead == NULL) {
+		printf("\n>>> 系统内没有病房数据！\n");
+		return;
+	}
+	Ward* w = sys->wardHead; int count = 0;
+	while (w) {
+		Bed* b = w->bedListHead;
+		while (b) {
+			if (b->isOccupied) {
+				count++;
+				printf("\n--- 住院信息 #%d ---\n", count);
+				printf("患者编号: %s\n", b->patient);
+				printf("病房编号: %s\n", w->wardId);
+				printf("病房种类: %s\n", wardTypeToStr(w->type));
+				printf("所属科室: %s\n", w->department);
+				printf("床位编号: %s\n", b->bedId);
+				printf("每日价格: %.2f 元\n", w->price);
+			}
+			b = b->next;
+		}
+		w = w->next;
+	}
+	if (count == 0) {
+		printf("\n>>> 当前没有住院患者！\n");
+	}
+	else {
+		printf("\n>>> 共计 %d 位住院患者。\n", count);
+	}
+	pressEnterToContinue();
+}
+
 //病房管理菜单界面
 void wardManageMenu(HIS_System* sys) {
 	if (sys == NULL) {
@@ -637,7 +669,8 @@ void wardManageMenu(HIS_System* sys) {
 		printf("4. 排序病房\n");
 		printf("5. 删除病房\n");
 		printf("6. 显示所有病房\n");
-		printf("7. 保存病房数据\n");
+		printf("7. 显示所有住院病房信息\n");
+		printf("8. 保存病房数据\n");
 		printf("0. 返回上一级菜单\n");
 		printf("=================================\n");
 		choice = safeGetInt("请选择操作: ");
@@ -648,7 +681,8 @@ void wardManageMenu(HIS_System* sys) {
 		case 4: wardSortMenu(sys); break;
 		case 5: deleteWard(&sys); break;
 		case 6: displayAllWards(sys); break;
-		case 7: saveWardSystemData(sys); break;
+		case 7: displayAllStayInfo(sys); break;
+		case 8: saveWardSystemData(sys); break;
 		case 0: return;
 		default: printf(">>> 无效选择，请重试。\n"); break;
 		}

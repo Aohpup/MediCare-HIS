@@ -176,7 +176,6 @@
     <Text Include="HIS_queue_tickets.txt" />
     <Text Include="HIS_status.txt" />
     <Text Include="HIS_wards.txt" />
-    <Text Include="TODOLIST.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackupRestore.h" />

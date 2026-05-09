@@ -38,9 +38,12 @@ void loadQueueTicketData(HIS_System* sys) {
 		int signSeq = 0;
 		int lateMinutes = 0;
 		int status = 0;
-		if (sscanf(line, "T %24s %24s %19s %d %d %d %d %d %d", patientId, doctorId, date, &slotNo, &isOnsite, &checkedIn, &signSeq, &lateMinutes, &status) != 9) {
+		int priorityOrder = 0;
+		int scanned = sscanf(line, "T %24s %24s %19s %d %d %d %d %d %d %d", patientId, doctorId, date, &slotNo, &isOnsite, &checkedIn, &signSeq, &lateMinutes, &status, &priorityOrder);
+		if (scanned < 9) {
 			continue;
 		}
+		if (scanned == 9) priorityOrder = 0;	// 兼容旧格式（9字段）
 		Patient* patient = findPatientByIdInQueue(sys, patientId);
 		doctor* doc = findDoctorByIdInQueue(sys, doctorId);
 		if (patient == NULL || doc == NULL || slotNo <= SLOT_INVALID || (slotNo > SLOT_COUNT && slotNo != SLOT_NIGHT)) {
@@ -60,6 +63,7 @@ void loadQueueTicketData(HIS_System* sys) {
 		ticket->signSeq = signSeq;
 		ticket->lateMinutes = lateMinutes;
 		ticket->status = (PatientStatus)status;
+		ticket->priorityOrder = priorityOrder;
 		queueAddTicket(ticket);
 		if (signSeq > maxSeq) {
 			maxSeq = signSeq;
@@ -85,13 +89,13 @@ void saveQueueTicketData(HIS_System* sys) {
 		return;
 	}
 	fprintf(fp, "# HIS QUEUE TICKET DATA FILE\n");
-	fprintf(fp, "# 每行格式：T patientId doctorId date slot isOnsite checkedIn signSeq lateMinutes status\n");
-	fprintf(fp, "# 中文是：T 挂号单数据行标识 患者编号 医生编号 预约日期 预约时段 是否当场挂号 是否已签到 签到顺序 迟到分钟数 患者状态\n");
+	fprintf(fp, "# 每行格式：T patientId doctorId date slot isOnsite checkedIn signSeq lateMinutes status priorityOrder\n");
+	fprintf(fp, "# 中文是：T 挂号单数据行标识 患者编号 医生编号 预约日期 预约时段 是否当场挂号 是否已签到 签到顺序 迟到分钟数 患者状态 优先标记\n");
 	QueueTicket* curr = queueGetTicketHead();
 	while (curr != NULL) {
-		// 每行格式：T patientId doctorId date slot isOnsite checkedIn signSeq lateMinutes status
-		// 中文是：T 挂号单数据行标识 患者编号 医生编号 预约日期 预约时段 是否当场挂号 是否已签到 签到顺序 迟到分钟数 患者状态
-		fprintf(fp, "T %s %s %s %d %d %d %d %d %d\n",
+		// 每行格式：T patientId doctorId date slot isOnsite checkedIn signSeq lateMinutes status priorityOrder
+		// 中文是：T 挂号单数据行标识 患者编号 医生编号 预约日期 预约时段 是否当场挂号 是否已签到 签到顺序 迟到分钟数 患者状态 优先标记
+		fprintf(fp, "T %s %s %s %d %d %d %d %d %d %d\n",
 			curr->patient->patientId,
 			curr->doctor->doctorId,
 			curr->date,
@@ -100,7 +104,8 @@ void saveQueueTicketData(HIS_System* sys) {
 			curr->checkedIn ? 1 : 0,
 			curr->signSeq,
 			curr->lateMinutes,
-			(int)curr->status);
+			(int)curr->status,
+			curr->priorityOrder);
 		curr = curr->next;
 	}
 	fclose(fp);
