@@ -29,7 +29,7 @@ void logInPatient(HIS_System* sys);
 //患者退出登录
 void logOutPatient(void);
 
-//挂号预约
+//挂号预约/当场挂号/夜间急诊挂号/签到
 void registerAppointment(HIS_System* sys);
 
 //查看病例信息（患者视角）

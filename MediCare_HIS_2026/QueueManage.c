@@ -961,7 +961,7 @@ void printConsultingPatientsByDoctor(const char* doctorId) {
 		else
 			snprintf(typeStr, sizeof(typeStr), "普通");
 		snprintf(statusStr, sizeof(statusStr), "%s", t->status == STATUS_IN_ROOM ? "就诊中" : "已叫号");
-		snprintf(priorityStr, sizeof(priorityStr), "%s", t->priorityOrder > 0 ? "[优先]" : "");
+		snprintf(priorityStr, sizeof(priorityStr), "%s", t->priorityOrder > 0 ? "优先" : "");
 		printFormattedStr(idx, 4);
 		printFormattedStr(patId, 14);
 		printFormattedStr(patName, 12);
@@ -1027,38 +1027,43 @@ void doctorConsultationMenu(HIS_System* sys, const char* doctorId) {
 
 	int choice = -1;
 	while (1) {
-		printf("\n========== 候诊与就诊管理 ==========\n");
-		printf("1. 打印当前挂号队列\n");
-		printf("2. 查看当前就诊患者\n");
-		printf("3. 指定优先看诊患者\n");
-		printf("0. 返回上一级菜单\n");
-		printf("======================================\n");
-		choice = safeGetInt("请选择操作: ");
+		if (isNightTime()) {
+			// 夜班：仅显示挂号队列，不涉及优先级管理
+			printf("\n========== 候诊与就诊管理 ==========\n");
+			printf("1. 打印当前挂号队列\n");
+			printf("0. 返回上一级菜单\n");
+			printf("======================================\n");
+			choice = safeGetInt("请选择操作: ");
 
-		switch (choice) {
-		case 1:
-			if (isNightTime()) {
-				printNightQueue(doctorId, getCurrentDateStr());
-			} else {
+			switch (choice) {
+			case 1: printNightQueue(doctorId, getCurrentDateStr()); break;
+			case 0: return;
+			default: printf(">>> 无效的选择。\n"); break;
+			}
+		} else {
+			printf("\n========== 候诊与就诊管理 ==========\n");
+			printf("1. 打印当前挂号队列\n");
+			printf("2. 查看当前就诊患者\n");
+			printf("3. 指定优先看诊患者\n");
+			printf("0. 返回上一级菜单\n");
+			printf("======================================\n");
+			choice = safeGetInt("请选择操作: ");
+
+			switch (choice) {
+			case 1: {
 				TimeSlot curSlot = (TimeSlot)changeTimeToSlot(getCurrentTimeStr());
 				if (curSlot == SLOT_INVALID) {
 					printf(">>> 当前不是门诊时段，无法查看队列。\n");
 				} else {
 					printSlotQueue(doctorId, getCurrentDateStr(), curSlot);
 				}
+				break;
 			}
-			break;
-		case 2:
-			printConsultingPatientsByDoctor(doctorId);
-			break;
-		case 3:
-			setDoctorPriorityPatient(doctorId);
-			break;
-		case 0:
-			return;
-		default:
-			printf(">>> 无效的选择。\n");
-			break;
+			case 2: printConsultingPatientsByDoctor(doctorId); break;
+			case 3: setDoctorPriorityPatient(doctorId); break;
+			case 0: return;
+			default: printf(">>> 无效的选择。\n"); break;
+			}
 		}
 	}
 }

@@ -1022,16 +1022,29 @@ void doctorManageMenu(HIS_System* sys) {
 		}
 		// 同步科室数据到病房模块
 		// 在测试模式下直接提示用户是否同步，在正式模式下强制同步（因为没有科室数据病房模块无法使用）
-		if (!TEST_SYSTEM_DEBUG || adminConfirmFunc("同步", "科室数据到医生模块")) {
+		if (TEST_SYSTEM_DEBUG){
+			if (adminConfirmFunc("同步", "科室数据到医生模块")) {
+				loadDepartmentSystemData(sys);
+			}
+			else 
+				printf(">>> 已跳过科室数据同步。警告：医生模块将无法正常使用！\n");
+		}
+		else
 			loadDepartmentSystemData(sys);
-		}
-		else {
-			return;
-		}
 	}
 
-	loadDoctorSystemData(sys);   // 从文件加载医生排班数据
-	loadQueueTicketData(sys);    // 从文件加载排队挂号数据，确保候诊队列查询可用
+	if (TEST_SYSTEM_DEBUG) {
+		if (adminConfirmFunc("加载", "医生系统数据")) {
+			loadDoctorSystemData(sys);   // 从文件加载医生排班数据
+			loadQueueTicketData(sys);    // 从文件加载排队挂号数据，确保候诊队列查询可用
+		}
+		else
+			printf(">>> 已跳过医生系统数据加载。警告：医生模块将无法正常使用！\n");
+	}
+	else {
+		loadDoctorSystemData(sys);   // 从文件加载医生排班数据
+		loadQueueTicketData(sys);    // 从文件加载排队挂号数据，确保候诊队列查询可用
+	}
 
 	int choice = -1;
 	while (1) {

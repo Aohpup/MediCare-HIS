@@ -80,7 +80,15 @@ void drugManageMenu(HIS_System* sys) {
 		printf(">>> 严重错误: 系统底座未初始化！！！\n");
 		return;
 	}
-	loadDrugSystemData(sys);   // 从文件加载数据
+	if(TEST_SYSTEM_DEBUG){
+		if(adminConfirmFunc("加载", "药品系统数据")) {
+			loadDrugSystemData(sys);   // 从文件加载数据
+		}
+		else
+			printf(">>> 已跳过加载药品系统数据，警告：药品模块将无法正常使用！\n");
+	}
+	else
+		loadDrugSystemData(sys);   // 从文件加载数据
 	// 默认按照药品编号升序显示
 	sortDrugList(sys->drugDisplayHead, NULL, SORT_BY_ID, ORDER_ASC);
 	int choice = -1;

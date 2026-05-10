@@ -656,8 +656,17 @@ void registerNightEmergency(HIS_System* sys) {
 
 	char date[DATE_STR_LEN];
 	if (TEST_SYSTEM_DEBUG) {
-		char* testDate = setTestDate("2026-05-09");
-		strcpy(date, testDate);
+		if(confirmFunc("使用", "自定义日期")) {
+			safeGetString(">>> 请输入自定义日期(YYYY-MM-DD): ", date, DATE_STR_LEN);
+			if (!isValidDate(date)) {
+				printf(">>> 日期格式无效。\n");
+				return;
+			}
+		}
+		 else {
+			strcpy(date, getCurrentDateStr());
+			printf(">>> 已使用当前日期: %s\n", date);
+		}
 	}
 	else {
 		strcpy(date, getCurrentDateStr());
