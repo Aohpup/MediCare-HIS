@@ -10,4 +10,6 @@ bool isAllDigits(const char* str);
 // 判断字符串是否全部为字母字符（A-Z/a-z），空串/NULL 返回 false
 bool isAllAlpha(const char* str);
 
+// 判断字符串是否全部为可打印ASCII字符（32-126），空串/NULL 返回 true
+bool isAllPrintableAscii(const char* str);
 #endif

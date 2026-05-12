@@ -27,6 +27,7 @@
 #define BACKUP_DIR "data_backup"                 //数据备份目录
 #define STATUS_FILE "HIS_status.txt"             //退出状态文件
 #define FINANCE_FILE "HIS_finance.txt"           //财务数据文件
+#define ADMIN_FILE "HIS_admin.txt"               //管理员凭据文件
 
 #endif // !LIMITS_H
  

@@ -5,6 +5,9 @@
 // 主菜单入口
 void showMainMenu(HIS_System* sys);
 
+// 管理员密码登录验证，最多3次尝试
+bool logInAdmin(void);
+
 // 管理员/视角菜单
 void adminMenu(HIS_System* sys);
 

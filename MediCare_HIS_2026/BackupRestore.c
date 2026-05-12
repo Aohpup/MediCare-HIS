@@ -11,9 +11,9 @@
 static const char* dataFiles[] = {
 	DRUG_FILE, DOCTOR_FILE, DEPARTMENT_FILE, WARD_FILE,
 	PATIENT_FILE, QUEUE_TICKET_FILE, EXAM_ITEM_FILE, EXAM_ORDER_FILE,
-	FINANCE_FILE
+	FINANCE_FILE, ADMIN_FILE
 };
-#define DATA_FILE_COUNT 9
+#define DATA_FILE_COUNT 10
 
 // 逐字节复制文件，返回0成功，-1失败
 static int copyFile(const char* src, const char* dst) {

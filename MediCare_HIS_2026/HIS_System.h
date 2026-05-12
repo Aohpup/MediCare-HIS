@@ -10,6 +10,7 @@
 #include"ProjectLimits.h"
 #include"StringCheck.h"
 
+//.h/.c 文件共有12567行，包含了医疗管理系统的核心数据结构定义、全局变量声明，以及系统初始化、数据加载与保存等功能函数的声明。
 
 
 //测试信息
@@ -177,7 +178,6 @@ typedef struct StayRecord {
 	char bedId[BED_ID_LEN];			// 床位编号（如 "P10401"）
 	int dischargeApproved;			// 出院许可(0=不可出院,1=准许出院)
 	char isChargeDate[DATE_STR_LEN];	// 患者最终缴费办结日期（住院费用结清后记录）
-	char details[512];				// 住院事件描述（入院 | 出院）
 	struct StayRecord* next;
 } StayRecord;
 
@@ -274,7 +274,5 @@ void chargeAllInpatientsDaily(HIS_System* sys);
 //管理员：财务与库存报表统计
 void showFinanceStatistics(HIS_System* sys);
 
-//管理员登录
-bool loginAdmin(void);
 
 #endif // HIS_SYSTEM_H

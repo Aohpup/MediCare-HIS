@@ -182,9 +182,6 @@
     <Text Include="HIS_departments.txt">
       <Filter>资源文件\data</Filter>
     </Text>
-    <Text Include="C:\Users\27918\Desktop\要求\README.txt">
-      <Filter>资源文件</Filter>
-    </Text>
     <Text Include="HIS_drugs.txt">
       <Filter>资源文件\data</Filter>
     </Text>
@@ -235,6 +232,9 @@
     </Text>
     <Text Include="data_backup\HIS_finance.txt">
       <Filter>资源文件\data_backup</Filter>
+    </Text>
+    <Text Include="HIS_admin.txt">
+      <Filter>资源文件\data</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>

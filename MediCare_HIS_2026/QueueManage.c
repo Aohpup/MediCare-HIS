@@ -1128,7 +1128,7 @@ bool bookNightEmergencyTicket(Patient* patient, doctor* doc, const char* date) {
 			strcmp(t->doctor->doctorId, doc->doctorId) == 0 &&
 			strcmp(t->date, date) == 0 &&
 			t->slot == SLOT_NIGHT &&
-			t->status != STATUS_CANCELLED) {
+			t->status != STATUS_CANCELLED && t->status != STATUS_FINISHED) {
 			printf(">>> 您已挂过该医生的晚间急诊，请勿重复挂号。\n");
 			return false;
 		}
@@ -1197,6 +1197,19 @@ void refreshNightQueue(const char* doctorId, const char* date) {
 
 // 晚间叫号
 Patient* callNextNightPatient(const char* doctorId, const char* date) {
+	if (TEST_NIGHT_TIME) {
+		char dateStr[DATE_STR_LEN];
+		if (confirmFunc("使用", "自定义日期")) {
+			safeGetString("请输入日期（格式 YYYY-MM-DD）：", dateStr, sizeof(dateStr));
+		}
+		if (isValidDate(dateStr)) {
+			printf(">>> 已设置测试日期为 %s。\n", dateStr);
+			strcpy(date, dateStr);
+		}
+		else {
+			printf(">>> 无效的日期格式，已取消测试日期设置。\n");
+		}
+	}
 	refreshNightQueue(doctorId, date);
 	WaitingQueue* waiting = getWaitingQueue(doctorId, date, SLOT_NIGHT, false);
 	if (waiting == NULL || waiting->queue.front == NULL) {
@@ -1217,6 +1230,19 @@ Patient* callNextNightPatient(const char* doctorId, const char* date) {
 
 // 打印晚间急诊队列
 void printNightQueue(const char* doctorId, const char* date) {
+	if (TEST_NIGHT_TIME) {
+		char dateStr[DATE_STR_LEN];
+		if(confirmFunc("使用", "自定义日期")) {
+			safeGetString("请输入日期（格式 YYYY-MM-DD）：", dateStr, sizeof(dateStr));
+		}
+		if(isValidDate(dateStr)) {
+			printf(">>> 已设置测试日期为 %s。\n", dateStr);
+			strcpy(date, dateStr);
+		}
+		else {
+			printf(">>> 无效的日期格式，已取消测试日期设置。\n");
+		}
+	}
 	refreshNightQueue(doctorId, date);
 	WaitingQueue* waiting = getWaitingQueue(doctorId, date, SLOT_NIGHT, false);
 

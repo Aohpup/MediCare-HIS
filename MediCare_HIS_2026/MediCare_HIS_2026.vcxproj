@@ -156,7 +156,6 @@
     <ClCompile Include="WardSort.c" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="C:\Users\27918\Desktop\要求\README.txt" />
     <Text Include="data_backup\HIS_departments.txt" />
     <Text Include="data_backup\HIS_doctors.txt" />
     <Text Include="data_backup\HIS_drugs.txt" />
@@ -166,6 +165,7 @@
     <Text Include="data_backup\HIS_patients.txt" />
     <Text Include="data_backup\HIS_queue_tickets.txt" />
     <Text Include="data_backup\HIS_wards.txt" />
+    <Text Include="HIS_admin.txt" />
     <Text Include="HIS_departments.txt" />
     <Text Include="HIS_doctors.txt" />
     <Text Include="HIS_drugs.txt" />

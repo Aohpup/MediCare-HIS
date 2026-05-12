@@ -56,7 +56,7 @@ void viewConsultationHistory(HIS_System* sys, const char* doctorId);
 //写入看诊病例（医生开具）
 bool appendViewMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* details, const char* date);
 
-//写入住院病例（新增 deptInfo、bedId 参数，details 由函数写入"入院"）
+//写入住院病例（新增 deptInfo、bedId 参数）
 bool appendStayMedicalRecord(HIS_System* sys, const char* patientId, const char* doctorId, const char* deptInfo, const char* bedId, const char* startDate, const char* duration, const char* endDate, const char* wardId);
 
 //更新住院记录的出院日期与时长（出院时调用）

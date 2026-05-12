@@ -102,6 +102,8 @@ void doctorMenu(HIS_System* sys) {
 		case 1: doctorConsultationMenu(sys, getCurrentDoctorId()); break;
 		case 2:
 			if (isNightTime()) {
+				printNightQueue(getCurrentDoctorId(), getCurrentDateStr());
+				if (confirmFunc("叫号","下一位患者"));
 				callNextNightPatient(getCurrentDoctorId(), getCurrentDateStr());
 			}
 			else {
@@ -198,6 +200,45 @@ void patientMenu(HIS_System* sys) {
 	}
 }
 
+// 管理员密码登录验证，最多3次尝试
+bool logInAdmin(void) {
+	FILE* fp = fopen(ADMIN_FILE, "r");
+	if (!fp) {
+		printf(">>> 管理员凭据文件不存在，请联系系统管理员。\n");
+		return false;
+	}
+
+	char fileUser[STR_LEN], filePass[STR_LEN];
+	if (fscanf(fp, "%49s %49s", fileUser, filePass) != 2) {
+		if (TEST_SYSTEM_DEBUG)
+			printf(">>> 管理员凭据文件格式错误。\n");
+		fclose(fp);
+		return false;
+	}
+	fclose(fp);
+
+	int attempts = 0;
+	char inputUser[STR_LEN], inputPass[STR_LEN];
+	while (attempts < 3) {
+		printf("\n========== 管理员登录验证 ==========\n");
+		safeGetString("账号: ", inputUser, STR_LEN);
+		safeGetString("密码: ", inputPass, STR_LEN);
+
+		if (strcmp(inputUser, fileUser) == 0 && strcmp(inputPass, filePass) == 0) {
+			if (TEST_SYSTEM_DEBUG)
+				printf(">>> 管理员身份验证通过。\n");
+			return true;
+		}
+
+		attempts++;
+		if (attempts < 3)
+			printf(">>> 账号或密码错误，还剩 %d 次尝试机会。\n", 3 - attempts);
+	}
+
+	printf(">>> 管理员登录失败，已超过最大尝试次数！\n");
+	return false;
+}
+
 // 主菜单入口
 void showMainMenu(HIS_System* sys) {
 	int choice;
@@ -212,7 +253,12 @@ void showMainMenu(HIS_System* sys) {
 		choice = safeGetInt("请选择您的身份: ");
 
 		switch (choice) {
-		case 1: adminMenu(sys); break;
+		case 1:
+			if (!logInAdmin()) {
+				printf(">>> 管理员身份验证未通过，返回主菜单。\n");
+				break;
+			}
+			adminMenu(sys); break;
 		case 2: doctorMenu(sys); break;
 		case 3: patientMenu(sys); break;
 		case 0:

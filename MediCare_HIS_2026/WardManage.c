@@ -6,6 +6,7 @@
 #include"ConfirmFunc.h"
 #include"InputUtils.h"
 #include"PauseUtil.h"
+#include"PrintFormattedStr.h"
 #include"DepartmentManage.h"
 #include"PatientManage.h"
 #include<string.h>
@@ -637,6 +638,83 @@ void displayAllStayInfo(HIS_System* sys) {
 	pressEnterToContinue();
 }
 
+// 病房与床位统计
+void getWardStatistics(HIS_System* sys) {
+	if (sys == NULL || sys->wardHead == NULL) {
+		printf("\n>>> 暂无病房数据，无法统计。\n");
+		pressEnterToContinue();
+		return;
+	}
+
+	int totalWards = 0, occupiedWards = 0;
+	int totalBeds = 0, occupiedBeds = 0;
+
+	Ward* w = sys->wardHead;
+	while (w) {
+		totalWards++;
+		int beds = countBeds(w);
+		int occ = countOccupiedBeds(w);
+		totalBeds += beds;
+		occupiedBeds += occ;
+		if (occ > 0) occupiedWards++;
+		w = w->next;
+	}
+
+	double wardOccRate = (totalWards > 0) ? (double)occupiedWards / totalWards * 100.0 : 0.0;
+	double bedOccRate = (totalBeds > 0) ? (double)occupiedBeds / totalBeds * 100.0 : 0.0;
+
+	printf("\n========== 病房与床位统计 ==========\n");
+
+	const int wLabel = 20, wValue = 12;
+	char buf[32];
+
+	printFormattedStr("统计项目", wLabel);
+	printFormattedStr("数值", wValue);
+	printf("\n");
+
+	sprintf(buf, "%d", totalWards);
+	printFormattedStr("病房总数", wLabel);
+	printFormattedStr(buf, wValue);
+	printf("\n");
+
+	sprintf(buf, "%d", occupiedWards);
+	printFormattedStr("已占用病房数", wLabel);
+	printFormattedStr(buf, wValue);
+	printf("\n");
+
+	sprintf(buf, "%.1f%%", wardOccRate);
+	printFormattedStr("病房占用率", wLabel);
+	printFormattedStr(buf, wValue);
+	printf("\n");
+
+	sprintf(buf, "%d", totalBeds);
+	printFormattedStr("床位总数", wLabel);
+	printFormattedStr(buf, wValue);
+	printf("\n");
+
+	sprintf(buf, "%d", occupiedBeds);
+	printFormattedStr("已占用床位数", wLabel);
+	printFormattedStr(buf, wValue);
+	printf("\n");
+
+	sprintf(buf, "%.1f%%", bedOccRate);
+	printFormattedStr("床位占用率", wLabel);
+	printFormattedStr(buf, wValue);
+	printf("\n");
+
+	sprintf(buf, "%d", occupiedBeds);
+	printFormattedStr("当前住院人数", wLabel);
+	printFormattedStr(buf, wValue);
+	printf("\n");
+
+	printf("====================================\n");
+
+	if (TEST_SYSTEM_DEBUG)
+		printf(">>> 病房统计完成: %d个病房, %d张床位, %d位住院患者。\n", totalWards, totalBeds, occupiedBeds);
+
+	pressEnterToContinue();
+}
+
 //病房管理菜单界面
 void wardManageMenu(HIS_System* sys) {
 	if (sys == NULL) {
@@ -671,6 +749,7 @@ void wardManageMenu(HIS_System* sys) {
 		printf("6. 显示所有病房\n");
 		printf("7. 显示所有住院病房信息\n");
 		printf("8. 保存病房数据\n");
+		printf("9. 病房与床位统计\n");
 		printf("0. 返回上一级菜单\n");
 		printf("=================================\n");
 		choice = safeGetInt("请选择操作: ");
@@ -683,6 +762,7 @@ void wardManageMenu(HIS_System* sys) {
 		case 6: displayAllWards(sys); break;
 		case 7: displayAllStayInfo(sys); break;
 		case 8: saveWardSystemData(sys); break;
+		case 9: getWardStatistics(sys); break;
 		case 0: return;
 		default: printf(">>> 无效选择，请重试。\n"); break;
 		}

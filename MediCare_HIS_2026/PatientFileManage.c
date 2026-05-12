@@ -26,7 +26,7 @@ static char* trimStr(char* s) {
 // R recordId department doctorId date time  (挂号记录)
 // V recordId details date doctorId  (看诊记录)
 // M recordId details date doctorId  (处方记录，details格式: drugId:通用名:数量;...)
-// S recordId startDate duration endDate deptInfo doctorId wardId bedId details  (住院记录，9字段)
+// S recordId startDate duration endDate deptInfo doctorId wardId bedId  (住院记录，10字段)
 // END  (结束当前患者)
 
 //尾插法
@@ -317,31 +317,17 @@ void loadPatientsSystemData(HIS_System* sys) {
 			}
 			bool parseOk = false;
 			if (pipes >= 10) {
-				// 新新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|dischargeApproved|isChargeDate|details
+				// 兼容旧格式（含已废弃的details字段）: recordId|...|isChargeDate|details(忽略)
+				// 新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|dischargeApproved|isChargeDate
+				char ignored[512];
 				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%d|%19[^|]|%511[^\n]",
 					stay->recordId, stay->startDate, stay->duration, stay->endDate,
-					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, &stay->dischargeApproved, stay->isChargeDate, stay->details) == 11);
-			} 
-			/*/else if (pipes >= 9) {
-				// 新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|dischargeApproved|details
-				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%d|%511[^\n]",
+					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, &stay->dischargeApproved, stay->isChargeDate, ignored) >= 10);
+			} else if (pipes >= 9) {
+				// 新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|dischargeApproved|isChargeDate
+				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%d|%19[^\n]",
 					stay->recordId, stay->startDate, stay->duration, stay->endDate,
-					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, &stay->dischargeApproved, stay->details) == 10);
-			} else if (pipes >= 8) {
-				// 旧新格式: recordId|startDate|duration|endDate|deptInfo|doctorId|wardId|bedId|details
-				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%49[^|]|%24[^|]|%24[^|]|%63[^|]|%511[^\n]",
-					stay->recordId, stay->startDate, stay->duration, stay->endDate,
-					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, stay->details) == 9);
-				stay->dischargeApproved = 0;
-			} else if (pipes >= 6) {
-				// 旧格式兼容: recordId|startDate|duration|endDate|doctorId|wardId|details
-				parseOk = (sscanf(trimStr(line), "%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%24[^|]|%511[^\n]",
-					stay->recordId, stay->startDate, stay->duration, stay->endDate,
-					stay->doctorId, stay->wardId, stay->details) == 7);
-				// deptInfo 与 bedId 保持 memset 置零的结果（空字符串）
-				stay->dischargeApproved = 0;
-			}*/ else {
-				// 其他字段数均不支持
+					stay->deptInfo, stay->doctorId, stay->wardId, stay->bedId, &stay->dischargeApproved, stay->isChargeDate) >= 9);
 			}
 			if (!parseOk) {
 				if(TEST_SYSTEM_DEBUG)
@@ -416,9 +402,9 @@ void savePatientsSystemData(HIS_System* sys) {
 		}
 		StayRecord* stay = patient->stayHead;
 		while (stay) {
-			fprintf(fp, "S %s|%s|%s|%s|%s|%s|%s|%s|%d|%s|%s\n", stay->recordId, stay->startDate,
+			fprintf(fp, "S %s|%s|%s|%s|%s|%s|%s|%s|%d|%s\n", stay->recordId, stay->startDate,
 				stay->duration, stay->endDate, stay->deptInfo,
-				stay->doctorId, stay->wardId, stay->bedId, stay->dischargeApproved, stay->isChargeDate, stay->details);
+				stay->doctorId, stay->wardId, stay->bedId, stay->dischargeApproved, stay->isChargeDate);
 			stay = stay->next;
 		}
 		fprintf(fp, "END\n");

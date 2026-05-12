@@ -58,6 +58,9 @@ void wardQueryMenuPat(HIS_System* sys, const char* patientId);
 // 自动推荐病房（按优先级规则，供医生分配时调用）
 Ward* autoRecommendWard(HIS_System* sys, PatientType patientType, const char* doctorDept);
 
+// 病房与床位统计
+void getWardStatistics(HIS_System* sys);
+
 // 查找患者入住病房
 Ward* findPatientWard(HIS_System* sys, const char* patientId);
 

@@ -1731,6 +1731,7 @@ void doctorApproveDischarge(HIS_System* sys, const char* doctorId) {
 	activeStay->dischargeApproved = 1;
 	strncpy(activeStay->endDate, endDate, ID_LEN - 1);
 	activeStay->endDate[ID_LEN - 1] = '\0';
+	strcpy(activeStay->isChargeDate, "未缴费");
 	// 更新住院时长
 	int days = daysBetweenDates(activeStay->startDate, endDate);
 	char duration[ID_LEN];

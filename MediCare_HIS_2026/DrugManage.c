@@ -8,6 +8,7 @@
 #include"PrintFormattedStr.h"
 #include"PauseUtil.h"
 #include"ConfirmFunc.h"
+#include"StringCheck.h"
 
 //---------------------------------------------------
 // 根据药品编号查找药品信息
@@ -235,6 +236,10 @@ void addDrug(HIS_System* sys) {
 				printf(">>> 错误：该药品编号已存在，请重新输入！\n");
 				continue;
 			}
+			if (!isAllPrintableAscii(newDrug->drugId)) {
+				printf(">>> 错误：药品编号包含非可打印字符，请重新输入！\n");
+				continue;
+			}
 			break;
 		}
 		if (hasCancelFlag) {
@@ -252,6 +257,10 @@ void addDrug(HIS_System* sys) {
 			}
 			if (isDrugGbCodeExist(sys->drugHead, newDrug->drugGbCode)) {
 				printf(">>> 错误：该国标码对应药品已存在，请重新输入！\n");
+				continue;
+			}
+			if(isAllDigits(newDrug->drugGbCode) == false || strlen(newDrug->drugGbCode) != 14) {
+				printf(">>> 错误：国标码必须为14位数字，请重新输入！\n");
 				continue;
 			}
 			break;
@@ -329,11 +338,16 @@ void addDrug(HIS_System* sys) {
 		while(1){
 			newDrug->stock = safeGetInt("请输入初始库存量: ");
 			if (newDrug->stock == -1) {
+				printf("您可能输入了 '-1'退出，或者输入了无效的（溢出）库存量。\n");
 				hasCancelFlag = true;
 				break;
 			}
 			if (newDrug->stock < 0) {
 				printf(">>> 错误：库存量不能为负数！\n");
+				continue;
+			}
+			if(newDrug->stock > 100000) {
+				printf(">>> 错误：库存量过大，请重新输入！\n");
 				continue;
 			}
 			break;
@@ -348,11 +362,16 @@ void addDrug(HIS_System* sys) {
 		while (1) {
 			newDrug->price = safeGetDouble("请输入单价: ");
 			if (newDrug->price <= -1.00 + 1e-6 && newDrug->price >= -1.00 - 1e-6) {
+				printf("您可能输入了 '-1'退出,或者输入了无效的（溢出）价格。\n");
 				hasCancelFlag = true;
 				break;
 			}
 			if (newDrug->price < 0) {
 				printf(">>> 错误：价格不能为负数！\n");
+				continue;
+			}
+			if(newDrug->price > 100000.00) {
+				printf(">>> 错误：价格过高，请重新输入！\n");
 				continue;
 			}
 			break;
@@ -682,6 +701,10 @@ void modifyDrug(HIS_System* sys) {
 				printf(">>> 错误：该药品编号已存在，请重新输入！\n");
 				continue;
 			}
+			if(!isAllAlpha(newId)) {
+				printf(">>> 错误：药品编号必须为字母，请重新输入！\n");
+				continue;
+			}
 			strcpy(target->drugId, newId);
 			printf(">>> 药品编号修改成功！\n");
 			break;
@@ -699,6 +722,10 @@ void modifyDrug(HIS_System* sys) {
 			}
 			if (isDrugGbCodeExist(sys->drugHead, newGb)) {
 				printf(">>> 错误：该国标码已存在，请重新输入！\n");
+				continue;
+			}
+			if(isAllDigits(newGb) == false || strlen(newGb) != 14) {
+				printf(">>> 错误：国标码必须为14位数字，请重新输入！\n");
 				continue;
 			}
 			strcpy(target->drugGbCode, newGb);
